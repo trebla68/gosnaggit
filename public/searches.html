@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>GoSnaggit – My Searches</title>
+  <title>GoSnaggit – Saved Searches</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -51,12 +51,14 @@
   </style>
 </head>
 <body>
-  <h1>My Searches</h1>
-  <p>Here are the items GoSnaggit is watching for you.</p>
+  <h1>GoSnaggit – Saved Searches</h1>
+  <h2>Your Saved Searches</h2>
+  <p>These are the items GoSnaggit is currently watching for you.<br>
+     Showing the most recent searches first.</p>
 
   <div class="buttons">
     <a href="/" class="button-link">← Back to Home</a>
-    <a href="/search" class="button-link">Create New Search</a>
+    <a href="/search" class="button-link">Create a New Search →</a>
     <button id="refresh-btn">Refresh List</button>
   </div>
 
@@ -72,6 +74,7 @@
         <th>Max Price</th>
         <th>Status</th>
         <th>Created At</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody id="searches-body">
@@ -108,6 +111,9 @@
             <td>${s.max_price || ''}</td>
             <td>${s.status || ''}</td>
             <td>${s.created_at ? new Date(s.created_at).toLocaleString() : ''}</td>
+            <td>
+              <button onclick="deleteSearch(${s.id})">Delete</button>
+            </td>
           `;
           tbody.appendChild(tr);
         });
@@ -117,6 +123,44 @@
       } catch (err) {
         console.error(err);
         statusDiv.textContent = 'Failed to load searches.';
+        statusDiv.style.color = 'red';
+      }
+    }
+
+    async function deleteSearch(id) {
+      const statusDiv = document.getElementById('status');
+
+      const sure = window.confirm(
+        'Are you sure you want to delete search #' + id + '?'
+      );
+      if (!sure) {
+        return;
+      }
+
+      statusDiv.textContent = 'Deleting search #' + id + '...';
+      statusDiv.style.color = 'black';
+
+      try {
+        const response = await fetch('/searches/' + id, {
+          method: 'DELETE'
+        });
+
+        const body = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          statusDiv.textContent = body.error || 'Failed to delete search.';
+          statusDiv.style.color = 'red';
+          return;
+        }
+
+        statusDiv.textContent = 'Search #' + id + ' deleted.';
+        statusDiv.style.color = 'green';
+
+        // Reload the list
+        loadSearches();
+      } catch (err) {
+        console.error(err);
+        statusDiv.textContent = 'Network error while deleting search.';
         statusDiv.style.color = 'red';
       }
     }
