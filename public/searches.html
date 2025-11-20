@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GoSnaggit – My Searches</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .nav-buttons a {
+      margin-left: 8px;
+      text-decoration: none;
+      padding: 8px 12px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .nav-buttons a:hover {
+      background: #f0f0f0;
+    }
+    h1 {
+      margin: 0;
+    }
+    p {
+      color: #444;
+      margin-bottom: 16px;
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+      align-items: end;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 4px;
+    }
+    input {
+      width: 100%;
+      padding: 6px;
+      box-sizing: border-box;
+    }
+    .table-container {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+    .pagination {
+      margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .message {
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    .error {
+      color: #b00020;
+    }
+    .success {
+      color: #007700;
+    }
+    .action-btn {
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-right: 4px;
+    }
+    .delete-btn {
+      background-color: #ffe5e5;
+      border: 1px solid #cc0000;
+      color: #990000;
+    }
+    .edit-btn {
+      background-color: #e5f1ff;
+      border: 1px solid #004c99;
+      color: #003366;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">GoSnaggit</div>
+    <div class="nav-buttons">
+      <a href="/search.html">Search a Product</a>
+      <a href="/searches.html">View My Searches</a>
+    </div>
+  </header>
+
+  <h1>My Searches</h1>
+  <p>Here are the items GoSnaggit is currently tracking for you.</p>
+
+  <section class="filters">
+    <div>
+      <label for="filter_category">Category</label>
+      <input type="text" id="filter_category" placeholder="e.g. Furniture" />
+    </div>
+    <div>
+      <label for="filter_location">Location</label>
+      <input type="text" id="filter_location" placeholder="e.g. Los Angeles" />
+    </div>
+    <div>
+      <label for="filter_max_price">Max Price (≤)</label>
+      <input type="number" step="0.01" id="filter_max_price" placeholder="e.g. 500" />
+    </div>
+    <div>
+      <label for="filter_limit">Per Page</label>
+      <input type="number" id="filter_limit" value="10" />
+    </div>
+    <div>
+      <button id="load-btn">Load Searches</button>
+    </div>
+  </section>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Search Item</th>
+          <th>Location</th>
+          <th>Category</th>
+          <th>Max Price</th>
+          <th>Created At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="searches-body">
+        <!-- rows inserted here -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div>
+      <button id="prev-page-btn">&laquo; Previous</button>
+      <button id="next-page-btn">Next &raquo;</button>
+    </div>
+    <div id="page-info"></div>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <script>
+    const tbody = document.getElementById('searches-body');
+    const messageEl = document.getElementById('message');
+    const pageInfoEl = document.getElementById('page-info');
+
+    const categoryInput = document.getElementById('filter_category');
+    const locationInput = document.getElementById('filter_location');
+    const maxPriceInput = document.getElementById('filter_max_price');
+    const limitInput = document.getElementById('filter_limit');
+
+    const loadBtn = document.getElementById('load-btn');
+    const prevBtn = document.getElementById('prev-page-btn');
+    const nextBtn = document.getElementById('next-page-btn');
+
+    let currentPage = 1;
+
+    async function deleteSearch(id) {
+      const confirmed = window.confirm('Delete this search (ID ' + id + ')?');
+      if (!confirmed) return;
+
+      messageEl.textContent = '';
+      messageEl.className = 'message';
+
+      try {
+        const response = await fetch('/searches/' + id, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to delete search');
+        }
+
+        messageEl.textContent = 'Search deleted (ID ' + id + ').';
+        messageEl.classList.add('success');
+
+        // Reload current page
+        loadSearches(currentPage);
+      } catch (err) {
+        console.error(err);
+        messageEl.textContent = err.message || 'Something went wrong while deleting.';
+        messageEl.classList.add('error');
+      }
+    }
+
+    async function editSearch(item) {
+      // Simple prompt-based edit for now
+      const newSearchItem = window.prompt('Search Item:', item.search_item);
+      if (newSearchItem === null) return; // cancel
+
+      const newLocation = window.prompt('Location:', item.location || '');
+      if (newLocation === null) return;
+
+      const newCategory = window.prompt('Category:', item.category || '');
+      if (newCategory === null) return;
+
+      const newMaxPrice = window.prompt('Max Price:', item.max_price != null ? item.max_price : '');
+      if (newMaxPrice === null) return;
+
+      const payload = {
+        search_item: newSearchItem.trim() || item.search_item,
+        location: newLocation.trim() || null,
+        category: newCategory.trim() || null,
+        max_price: newMaxPrice.trim() ? Number(newMaxPrice.trim()) : null
+      };
+
+      messageEl.textContent = '';
+      messageEl.className = 'message';
+
+      try {
+        const response = await fetch('/searches/' + item.id, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to update search');
+        }
+
+        messageEl.textContent = 'Search updated (ID ' + item.id + ').';
+        messageEl.classList.add('success');
+
+        // Reload current page
+        loadSearches(currentPage);
+      } catch (err) {
+        console.error(err);
+        messageEl.textContent = err.message || 'Something went wrong while updating.';
+        messageEl.classList.add('error');
+      }
+    }
+
+    async function loadSearches(page = 1) {
+      messageEl.textContent = '';
+      messageEl.className = 'message';
+
+      const params = new URLSearchParams();
+
+      const category = categoryInput.value.trim();
+      const location = locationInput.value.trim();
+      const maxPrice = maxPriceInput.value.trim();
+      const limit = limitInput.value.trim() || '10';
+
+      if (category) params.append('category', category);
+      if (location) params.append('location', location);
+      if (maxPrice) params.append('max_price', maxPrice);
+
+      params.append('page', page.toString());
+      params.append('limit', limit);
+
+      try {
+        const response = await fetch('/searches?' + params.toString());
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to fetch searches');
+        }
+
+        const data = await response.json();
+
+        // Clear table
+        tbody.innerHTML = '';
+
+        if (data.length === 0) {
+          const row = document.createElement('tr');
+          const cell = document.createElement('td');
+          cell.colSpan = 7;
+          cell.textContent = 'No searches found.';
+          row.appendChild(cell);
+          tbody.appendChild(row);
+        } else {
+          data.forEach((item) => {
+            const row = document.createElement('tr');
+
+            const idCell = document.createElement('td');
+            idCell.textContent = item.id;
+
+            const itemCell = document.createElement('td');
+            itemCell.textContent = item.search_item;
+
+            const locationCell = document.createElement('td');
+            locationCell.textContent = item.location || '';
+
+            const categoryCell = document.createElement('td');
+            categoryCell.textContent = item.category || '';
+
+            const priceCell = document.createElement('td');
+            priceCell.textContent = item.max_price != null ? item.max_price : '';
+
+            const createdAtCell = document.createElement('td');
+            createdAtCell.textContent = new Date(item.created_at).toLocaleString();
+
+            const actionsCell = document.createElement('td');
+            const editButton = document.createElement('button');
+            editButton.textContent = 'Edit';
+            editButton.className = 'action-btn edit-btn';
+            editButton.addEventListener('click', () => editSearch(item));
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.className = 'action-btn delete-btn';
+            deleteButton.addEventListener('click', () => deleteSearch(item.id));
+
+            actionsCell.appendChild(editButton);
+            actionsCell.appendChild(deleteButton);
+
+            row.appendChild(idCell);
+            row.appendChild(itemCell);
+            row.appendChild(locationCell);
+            row.appendChild(categoryCell);
+            row.appendChild(priceCell);
+            row.appendChild(createdAtCell);
+            row.appendChild(actionsCell);
+
+            tbody.appendChild(row);
+          });
+        }
+
+        currentPage = page;
+        pageInfoEl.textContent = 'Page ' + currentPage;
+      } catch (err) {
+        console.error(err);
+        messageEl.textContent = err.message || 'Something went wrong.';
+        messageEl.classList.add('error');
+      }
+    }
+
+    loadBtn.addEventListener('click', () => {
+      loadSearches(1);
+    });
+
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 1) {
+        loadSearches(currentPage - 1);
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      loadSearches(currentPage + 1);
+    });
+
+    // Initial load
+    loadSearches(1);
+  </script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GoSnaggit – Search a Product</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .nav-buttons a {
+      margin-left: 8px;
+      text-decoration: none;
+      padding: 8px 12px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .nav-buttons a:hover {
+      background: #f0f0f0;
+    }
+    h1 {
+      margin-bottom: 8px;
+    }
+    p {
+      color: #444;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 16px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .message {
+      margin-top: 16px;
+      font-weight: bold;
+    }
+    .error {
+      color: #b00020;
+    }
+    .success {
+      color: #007700;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">GoSnaggit</div>
+    <div class="nav-buttons">
+      <a href="/search.html">Search a Product</a>
+      <a href="/searches.html">View My Searches</a>
+    </div>
+  </header>
+
+  <h1>Search a Product</h1>
+  <p>Tell GoSnaggit what you’re hunting for and we’ll track it for you.</p>
+
+  <form id="search-form">
+    <label for="search_item">Search Item *</label>
+    <input
+      type="text"
+      id="search_item"
+      name="search_item"
+      required
+      placeholder="e.g. Vintage Marantz receiver"
+    />
+
+    <label for="location">Location (optional)</label>
+    <input
+      type="text"
+      id="location"
+      name="location"
+      placeholder="e.g. Los Angeles, CA"
+    />
+
+    <label for="category">Category (optional)</label>
+    <input
+      type="text"
+      id="category"
+      name="category"
+      placeholder="e.g. Electronics"
+    />
+
+    <label for="max_price">Max Price (optional)</label>
+    <input
+      type="number"
+      step="0.01"
+      id="max_price"
+      name="max_price"
+      placeholder="e.g. 500"
+    />
+
+    <button type="submit">Save Search</button>
+  </form>
+
+  <div id="message" class="message"></div>
+
+  <script>
+    const form = document.getElementById('search-form');
+    const messageEl = document.getElementById('message');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault(); // prevent page reload
+
+      messageEl.textContent = '';
+      messageEl.className = 'message';
+
+      const search_item = document.getElementById('search_item').value.trim();
+      const location = document.getElementById('location').value.trim();
+      const category = document.getElementById('category').value.trim();
+      const max_price_value = document.getElementById('max_price').value.trim();
+
+      if (!search_item) {
+        messageEl.textContent = 'Search item is required.';
+        messageEl.classList.add('error');
+        return;
+      }
+
+      const payload = {
+        search_item,
+        location: location || null,
+        category: category || null,
+        max_price: max_price_value ? Number(max_price_value) : null
+      };
+
+      try {
+        const response = await fetch('/searches', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to create search');
+        }
+
+        const data = await response.json();
+
+        messageEl.textContent = 'Search saved! ID: ' + data.id;
+        messageEl.classList.add('success');
+
+        // Clear the form
+        form.reset();
+      } catch (err) {
+        console.error(err);
+        messageEl.textContent = err.message || 'Something went wrong.';
+        messageEl.classList.add('error');
+      }
+    });
+  </script>
+</body>
+</html>
