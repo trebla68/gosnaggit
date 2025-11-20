@@ -1,153 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <title>GoSnaggit – Search a Product</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GoSnaggit – New Search</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 700px;
-      margin: 40px auto;
-      padding: 0 16px;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
     }
+
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-      gap: 8px;
-      flex-wrap: wrap;
+      background: #222;
+      color: #fff;
+      padding: 16px;
+      text-align: center;
     }
-    .brand {
-      font-size: 20px;
-      font-weight: bold;
+
+    main {
+      max-width: 600px;
+      margin: 32px auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
-    .nav-buttons a {
-      margin-left: 8px;
-      text-decoration: none;
-      padding: 8px 12px;
-      border: 1px solid #333;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-    .nav-buttons a:hover {
-      background: #f0f0f0;
-    }
+
     h1 {
-      margin-bottom: 8px;
+      margin-top: 0;
     }
-    p {
-      color: #444;
-      margin-bottom: 24px;
-    }
+
     label {
       display: block;
       margin-top: 12px;
       font-weight: bold;
     }
-    input {
+
+    input,
+    select {
       width: 100%;
       padding: 8px;
       margin-top: 4px;
       box-sizing: border-box;
     }
+
     button {
       margin-top: 20px;
       padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      background: #007bff;
+      color: #fff;
       font-size: 16px;
       cursor: pointer;
     }
+
+    button:hover {
+      background: #0056b3;
+    }
+
     .message {
       margin-top: 16px;
-      font-weight: bold;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
     }
-    .error {
-      color: #b00020;
+
+    .message.success {
+      background: #d4edda;
+      color: #155724;
     }
-    .success {
-      color: #007700;
+
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .links {
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
+
 <body>
   <header>
-    <div class="brand">GoSnaggit</div>
-    <div class="nav-buttons">
-      <a href="/search.html">Search a Product</a>
-      <a href="/searches.html">View My Searches</a>
-    </div>
+    <h2>GoSnaggit – Create a New Search</h2>
   </header>
 
-  <h1>Search a Product</h1>
-  <p>Tell GoSnaggit what you’re hunting for and we’ll track it for you.</p>
+  <main>
+    <h1>What are you hunting for?</h1>
+    <p>Fill out the details below and GoSnaggit will keep an eye out for you.</p>
 
-  <form id="search-form">
-    <label for="search_item">Search Item *</label>
-    <input
-      type="text"
-      id="search_item"
-      name="search_item"
-      required
-      placeholder="e.g. Vintage Marantz receiver"
-    />
+    <form id="search-form">
+      <label for="search_item">Search Item (required)</label>
+      <input type="text" id="search_item" name="search_item"
+        placeholder="e.g. 1960s Porsche, vintage turntable, antique oak desk" required />
 
-    <label for="location">Location (optional)</label>
-    <input
-      type="text"
-      id="location"
-      name="location"
-      placeholder="e.g. Los Angeles, CA"
-    />
+      <label for="location">Location (optional)</label>
+      <input type="text" id="location" name="location" placeholder="e.g. Brooklyn, Seattle, Los Angeles" />
 
-    <label for="category">Category (optional)</label>
-    <input
-      type="text"
-      id="category"
-      name="category"
-      placeholder="e.g. Electronics"
-    />
+      <label for="category">Category (optional)</label>
+      <input type="text" id="category" name="category" placeholder="e.g. Auto, Electronics, Furniture" />
 
-    <label for="max_price">Max Price (optional)</label>
-    <input
-      type="number"
-      step="0.01"
-      id="max_price"
-      name="max_price"
-      placeholder="e.g. 500"
-    />
+      <label for="max_price">Max Price (optional)</label>
+      <input type="number" step="0.01" id="max_price" name="max_price" placeholder="e.g. 500, 100000" />
 
-    <button type="submit">Save Search</button>
-  </form>
+      <!-- We’re letting the backend default status to 'active', so no field needed here -->
 
-  <div id="message" class="message"></div>
+      <button type="submit">Save Search</button>
+    </form>
+
+    <div id="message" class="message"></div>
+
+    <div class="links">
+      <a href="/index.html">&larr; Back to Home</a>
+      <a href="/searches.html">View All Searches &rarr;</a>
+    </div>
+  </main>
 
   <script>
     const form = document.getElementById('search-form');
-    const messageEl = document.getElementById('message');
+    const messageBox = document.getElementById('message');
 
     form.addEventListener('submit', async (event) => {
-      event.preventDefault(); // prevent page reload
+      event.preventDefault(); // don't let the browser reload the page
 
-      messageEl.textContent = '';
-      messageEl.className = 'message';
+      messageBox.style.display = 'none';
+      messageBox.textContent = '';
+      messageBox.className = 'message';
 
-      const search_item = document.getElementById('search_item').value.trim();
-      const location = document.getElementById('location').value.trim();
-      const category = document.getElementById('category').value.trim();
-      const max_price_value = document.getElementById('max_price').value.trim();
-
-      if (!search_item) {
-        messageEl.textContent = 'Search item is required.';
-        messageEl.classList.add('error');
-        return;
-      }
-
+      const formData = new FormData(form);
       const payload = {
-        search_item,
-        location: location || null,
-        category: category || null,
-        max_price: max_price_value ? Number(max_price_value) : null
+        search_item: formData.get('search_item'),
+        location: formData.get('location') || null,
+        category: formData.get('category') || null,
+        max_price: formData.get('max_price') || null
+        // status will default to 'active' on the server
       };
 
       try {
@@ -166,17 +169,20 @@
 
         const data = await response.json();
 
-        messageEl.textContent = 'Search saved! ID: ' + data.id;
-        messageEl.classList.add('success');
+        messageBox.textContent = `Search saved! ID: ${data.id}, Item: "${data.search_item}".`;
+        messageBox.classList.add('success');
+        messageBox.style.display = 'block';
 
-        // Clear the form
+        // Optionally clear the form
         form.reset();
       } catch (err) {
-        console.error(err);
-        messageEl.textContent = err.message || 'Something went wrong.';
-        messageEl.classList.add('error');
+        console.error('Error creating search:', err);
+        messageBox.textContent = err.message || 'Something went wrong.';
+        messageBox.classList.add('error');
+        messageBox.style.display = 'block';
       }
     });
   </script>
 </body>
+
 </html>

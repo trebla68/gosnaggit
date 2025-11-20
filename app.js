@@ -7,7 +7,10 @@ const pool = require('./db');
 
 // Middleware to parse JSON bodies
 app.use(express.json());
+
+// Serve static files from /public (for your front end)
 app.use(express.static(path.join(__dirname, 'public')));
+
 // Simple home route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -42,7 +45,7 @@ app.post('/searches', async (req, res) => {
         location || null,
         category || null,
         max_price || null,
-        status || 'active'
+        status || 'active' // default if not provided in body
       ]
     );
 
@@ -53,37 +56,79 @@ app.post('/searches', async (req, res) => {
   }
 });
 
-
-// TEMP DEBUG: super simple /searches to see what the DB actually returns
+// Get all searches (optionally filtered + paginated)
 app.get('/searches', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, search_item, status, created_at
-       FROM searches
-       ORDER BY created_at DESC
-       LIMIT 5`
-    );
+    const { category, location, max_price, page, limit } = req.query;
 
-    console.log('DEBUG /searches rows from DB:', result.rows);
+    // Pagination defaults
+    const pageNum = parseInt(page, 10) || 1;    // which page? (1-based)
+    const limitNum = parseInt(limit, 10) || 10; // how many per page?
+    const offset = (pageNum - 1) * limitNum;
+
+    const conditions = [];
+    const values = [];
+    let idx = 1;
+
+    if (category) {
+      conditions.push(`category = $${idx++}`);
+      values.push(category);
+    }
+
+    if (location) {
+      conditions.push(`location = $${idx++}`);
+      values.push(location);
+    }
+
+    if (max_price) {
+      conditions.push(`max_price <= $${idx++}`);
+      values.push(max_price);
+    }
+
+    let query =
+      'SELECT id, search_item, location, category, max_price, status, created_at FROM searches';
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    // Order newest first
+    query += ' ORDER BY created_at DESC';
+
+    // Add LIMIT and OFFSET for pagination
+    values.push(limitNum);
+    query += ` LIMIT $${idx++}`;
+    values.push(offset);
+    query += ` OFFSET $${idx++}`;
+
+    const result = await pool.query(query, values);
     res.json(result.rows);
   } catch (err) {
-    console.error('DEBUG /searches error:', err);
-    res.status(500).json({ error: 'Debug failed' });
+    console.error('Get searches error:', err);
+    res.status(500).json({ error: 'Failed to fetch searches' });
   }
 });
 
-
-
-
 // Get a single search by ID
 app.get('/searches/:id', async (req, res) => {
-  const { id } = req.params;
+  // Force the id into a number so there's no weird string issue
+  const id = Number(req.params.id);
+  console.log('DEBUG /searches/:id requested with id =', id);
+
+  // If id is not a valid number, bail early
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Invalid search id' });
+  }
 
   try {
     const result = await pool.query(
-      'SELECT id, search_item, location, category, max_price, created_at FROM searches WHERE id = $1',
+      `SELECT id, search_item, location, category, max_price, status, created_at
+       FROM searches
+       WHERE id = $1`,
       [id]
     );
+
+    console.log('DEBUG /searches/:id rowCount =', result.rowCount);
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Search not found' });
@@ -102,7 +147,9 @@ app.delete('/searches/:id', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'DELETE FROM searches WHERE id = $1 RETURNING id, search_item, location, category, max_price, created_at',
+      `DELETE FROM searches
+       WHERE id = $1
+       RETURNING id, search_item, location, category, max_price, status, created_at`,
       [id]
     );
 
@@ -119,36 +166,7 @@ app.delete('/searches/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete search' });
   }
 });
-// Update a search by ID
-app.put('/searches/:id', async (req, res) => {
-  const { id } = req.params;
-  const { search_item, location, category, max_price } = req.body;
 
-  try {
-    const result = await pool.query(
-      `UPDATE searches
-       SET search_item = COALESCE($1, search_item),
-           location = COALESCE($2, location),
-           category = COALESCE($3, category),
-           max_price = COALESCE($4, max_price)
-       WHERE id = $5
-       RETURNING id, search_item, location, category, max_price, created_at`,
-      [search_item, location, category, max_price, id]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Search not found' });
-    }
-
-    res.json({
-      message: 'Search updated',
-      updated: result.rows[0]
-    });
-  } catch (err) {
-    console.error('Update search error:', err);
-    res.status(500).json({ error: 'Failed to update search' });
-  }
-});
 // Get results for a specific search (with simple pagination)
 app.get('/searches/:id/results', async (req, res) => {
   const searchId = req.params.id;
@@ -160,12 +178,13 @@ app.get('/searches/:id/results', async (req, res) => {
 
   try {
     const resultsQuery = `
-      SELECT id, title, price, url, source, created_at
+      SELECT *
       FROM search_results
       WHERE search_id = $1
-      ORDER BY created_at DESC
+      ORDER BY id DESC
       LIMIT $2 OFFSET $3
     `;
+
 
     const countQuery = `
       SELECT COUNT(*) AS total
@@ -285,7 +304,6 @@ setInterval(async () => {
   }
 }, 10 * 60 * 1000); // 10 minutes in milliseconds
 
-  
 // Debug route: get all search results (for now)
 app.get('/results', async (req, res) => {
   try {
@@ -301,6 +319,7 @@ app.get('/results', async (req, res) => {
   }
 });
 
+// Little helper route to confirm which app.js is running
 app.get('/test-route-123', (req, res) => {
   res.json({
     message: 'Hello from THIS app.js',
