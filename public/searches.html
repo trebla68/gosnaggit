@@ -1,337 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
-  <title>GoSnaggit – Saved Searches</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoSnaggit – My Searches</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 0;
-    }
-
-    header {
-      background: #222;
-      color: #fff;
-      padding: 16px;
-      text-align: center;
-    }
-
-    main {
       max-width: 900px;
-      margin: 32px auto;
-      background: #fff;
-      padding: 24px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin: 40px auto;
+      padding: 0 16px;
+      line-height: 1.5;
     }
-
     h1 {
-      margin-top: 0;
+      margin-bottom: 0.5rem;
     }
-
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      padding: 8px 14px;
-      border: none;
-      border-radius: 4px;
-      background: #007bff;
-      color: #fff;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #0056b3;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 8px;
+      margin-top: 1rem;
     }
-
-    th,
-    td {
+    th, td {
+      border: 1px solid #ccc;
       padding: 8px;
-      border-bottom: 1px solid #ddd;
       text-align: left;
-      font-size: 14px;
+      font-size: 0.9rem;
     }
-
     th {
       background: #f0f0f0;
     }
-
-    tr:nth-child(even) {
-      background: #fafafa;
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-
-    .status-active {
-      background: #d4edda;
-      color: #155724;
-    }
-
-    .status-pending {
-      background: #fff3cd;
-      color: #856404;
-    }
-
-    .status-other {
-      background: #d1ecf1;
-      color: #0c5460;
-    }
-
-    .message {
-      margin-top: 12px;
-      padding: 10px;
-      border-radius: 4px;
-      display: none;
-      font-size: 14px;
-    }
-
-    .message.error {
-      background: #f8d7da;
-      color: #721c24;
-    }
-
-    .message.info {
-      background: #e2e3e5;
-      color: #383d41;
-    }
-
-    .links {
-      margin-top: 24px;
+    .buttons {
+      margin-top: 1rem;
       display: flex;
-      justify-content: space-between;
-      font-size: 14px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-
-    a {
-      color: #007bff;
+    button, a.button-link {
+      padding: 8px 16px;
+      border: 1px solid #333;
+      background: #f0f0f0;
       text-decoration: none;
+      color: #000;
+      cursor: pointer;
+      border-radius: 4px;
     }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    .small {
-      font-size: 12px;
-      color: #666;
+    #status {
+      margin-top: 1rem;
+      font-weight: bold;
     }
   </style>
 </head>
-
 <body>
-  <header>
-    <h2>GoSnaggit – Saved Searches</h2>
-  </header>
+  <h1>My Searches</h1>
+  <p>Here are the items GoSnaggit is watching for you.</p>
 
-  <main>
-    <h1>Your Saved Searches</h1>
-    <p class="small">
-      These are the items GoSnaggit is currently watching for you.
-    </p>
+  <div class="buttons">
+    <a href="/" class="button-link">← Back to Home</a>
+    <a href="/search" class="button-link">Create New Search</a>
+    <button id="refresh-btn">Refresh List</button>
+  </div>
 
-    <div class="controls">
-      <div>
-        <button id="refresh-btn">Refresh List</button>
-        <button id="run-mock-btn">Run Mock Engine</button>
-      </div>
-      <div class="small">
-        Showing the most recent searches first.
-      </div>
-    </div>
+  <div id="status"></div>
 
-
-    <div id="message" class="message"></div>
-
-    <table id="searches-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Item</th>
-          <th>Location</th>
-          <th>Category</th>
-          <th>Max Price</th>
-          <th>Status</th>
-          <th>Created At</th>
-        </tr>
-      </thead>
-      <tbody id="searches-body">
-        <!-- Rows will be inserted here by JavaScript -->
-      </tbody>
-    </table>
-
-    <div class="links">
-      <a href="/index.html">&larr; Back to Home</a>
-      <a href="/search.html">Create a New Search &rarr;</a>
-    </div>
-  </main>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Item</th>
+        <th>Location</th>
+        <th>Category</th>
+        <th>Max Price</th>
+        <th>Status</th>
+        <th>Created At</th>
+      </tr>
+    </thead>
+    <tbody id="searches-body">
+      <!-- rows go here -->
+    </tbody>
+  </table>
 
   <script>
-    const messageBox = document.getElementById('message');
-    const tableBody = document.getElementById('searches-body');
-    const refreshBtn = document.getElementById('refresh-btn');
-    const runMockBtn = document.getElementById('run-mock-btn');
-
-    function showMessage(text, type = 'info') {
-      messageBox.textContent = text;
-      messageBox.className = 'message ' + type; // resets & adds type
-      messageBox.style.display = 'block';
-    }
-
-    function hideMessage() {
-      messageBox.style.display = 'none';
-      messageBox.textContent = '';
-      messageBox.className = 'message';
-    }
-
-    function formatDate(isoString) {
-      if (!isoString) return '';
-      try {
-        const d = new Date(isoString);
-        return d.toLocaleString(); // local date/time display
-      } catch {
-        return isoString;
-      }
-    }
-
-    function createStatusBadge(status) {
-      const span = document.createElement('span');
-      const value = (status || '').toLowerCase();
-
-      span.textContent = status || 'unknown';
-      span.classList.add('status-badge');
-
-      if (value === 'active') {
-        span.classList.add('status-active');
-      } else if (value === 'pending') {
-        span.classList.add('status-pending');
-      } else {
-        span.classList.add('status-other');
-      }
-
-      return span;
-    }
-
     async function loadSearches() {
-      // Don’t hide the message here, so status messages stay visible
-      tableBody.innerHTML = '';
+      const statusDiv = document.getElementById('status');
+      const tbody = document.getElementById('searches-body');
+      statusDiv.textContent = 'Loading searches...';
+      statusDiv.style.color = 'black';
 
       try {
         const response = await fetch('/searches');
-        if (!response.ok) {
-          throw new Error('Failed to fetch searches');
-        }
+        const data = await response.json();
 
-        const searches = await response.json();
+        tbody.innerHTML = '';
 
-        if (!Array.isArray(searches) || searches.length === 0) {
-          showMessage('No searches saved yet.', 'info');
+        if (!Array.isArray(data) || data.length === 0) {
+          statusDiv.textContent = 'No searches found yet.';
+          statusDiv.style.color = 'black';
           return;
         }
 
-        for (const s of searches) {
+        data.forEach((s) => {
           const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${s.id}</td>
+            <td>${s.search_item || ''}</td>
+            <td>${s.location || ''}</td>
+            <td>${s.category || ''}</td>
+            <td>${s.max_price || ''}</td>
+            <td>${s.status || ''}</td>
+            <td>${s.created_at ? new Date(s.created_at).toLocaleString() : ''}</td>
+          `;
+          tbody.appendChild(tr);
+        });
 
-          const tdId = document.createElement('td');
-          const idLink = document.createElement('a');
-          idLink.href = `/search-detail.html?id=${encodeURIComponent(s.id)}`;
-          idLink.textContent = s.id;
-          tdId.appendChild(idLink);
-
-          const tdItem = document.createElement('td');
-          tdItem.textContent = s.search_item || '';
-
-          const tdLocation = document.createElement('td');
-          tdLocation.textContent = s.location || '';
-
-          const tdCategory = document.createElement('td');
-          tdCategory.textContent = s.category || '';
-
-          const tdMaxPrice = document.createElement('td');
-          tdMaxPrice.textContent = s.max_price != null ? s.max_price : '';
-
-          const tdStatus = document.createElement('td');
-          tdStatus.appendChild(createStatusBadge(s.status));
-
-          const tdCreatedAt = document.createElement('td');
-          tdCreatedAt.textContent = formatDate(s.created_at);
-
-          tr.appendChild(tdId);
-          tr.appendChild(tdItem);
-          tr.appendChild(tdLocation);
-          tr.appendChild(tdCategory);
-          tr.appendChild(tdMaxPrice);
-          tr.appendChild(tdStatus);
-          tr.appendChild(tdCreatedAt);
-
-          tableBody.appendChild(tr);
-        }
+        statusDiv.textContent = `Loaded ${data.length} search(es).`;
+        statusDiv.style.color = 'green';
       } catch (err) {
-        console.error('Error loading searches:', err);
-        showMessage(err.message || 'Something went wrong while loading searches.', 'error');
+        console.error(err);
+        statusDiv.textContent = 'Failed to load searches.';
+        statusDiv.style.color = 'red';
       }
     }
 
-    // Load searches on page load
-    window.addEventListener('DOMContentLoaded', loadSearches);
-
-    // Refresh button
-    refreshBtn.addEventListener('click', () => {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('refresh-btn').addEventListener('click', loadSearches);
       loadSearches();
     });
-
-    // Run mock engine button
-    runMockBtn.addEventListener('click', async () => {
-      hideMessage();
-      showMessage('Running mock engine…', 'info');
-
-      try {
-        const response = await fetch('/run-searches-mock', {
-          method: 'POST'
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to run mock engine.');
-        }
-
-        const data = await response.json();
-
-        // Refresh the list first
-        await loadSearches();
-
-        // Then show a summary message
-        const info = `Mock engine complete. Searches: ${data.total_searches}, results created: ${data.total_results_created}.`;
-        showMessage(info, 'info');
-      } catch (err) {
-        console.error('Error running mock engine:', err);
-        showMessage(err.message || 'Failed to run mock engine.', 'error');
-      }
-    });
   </script>
-
 </body>
-
 </html>

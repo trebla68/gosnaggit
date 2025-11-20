@@ -5,6 +5,14 @@ const PORT = 3000;
 
 const pool = require('./db');
 
+// Log every incoming request (for debugging)
+app.use((req, res, next) => {
+  console.log('INCOMING:', req.method, 'URL =', JSON.stringify(req.url));
+  next();
+});
+
+
+
 // Middleware to parse JSON bodies
 app.use(express.json());
 
@@ -14,6 +22,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Simple home route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 'Search a Product' page
+app.get('/search', (req, res) => {
+  console.log('>>> Hit /search route handler');
+  res.sendFile(path.join(__dirname, 'public', 'search.html'));
+});
+
+// 'View My Searches' page
+app.get('/my-searches', (req, res) => {
+  console.log('>>> Hit /my-searches route handler');
+  res.sendFile(path.join(__dirname, 'public', 'searches.html'));
+});
+
+app.get('/debug-weird', (req, res) => {
+  res.send('Debug route alive at ' + new Date().toISOString());
 });
 
 // Test route to check database connection
