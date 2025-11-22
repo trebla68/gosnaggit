@@ -115,6 +115,29 @@ app.get('/searches', async (req, res) => {
     if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
+// Delete a search by ID
+app.delete('/searches/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM searches WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Search not found' });
+    }
+
+    res.json({
+      message: 'Search deleted',
+      deleted: result.rows[0],
+    });
+  } catch (err) {
+    console.error('Error deleting search:', err);
+    res.status(500).json({ error: 'Failed to delete search' });
+  }
+});
 
     // Order newest first
     query += ' ORDER BY created_at DESC';

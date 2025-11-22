@@ -109,12 +109,13 @@
     </div>
   </main>
 
-  <script>
+    <script>
     async function loadSearches() {
       const tbody = document.getElementById('searches-body');
       const messageEl = document.getElementById('searches-message');
 
       tbody.innerHTML = '';
+      messageEl.textContent = 'Loading your searches...';
 
       try {
         const response = await fetch('/searches');
@@ -131,6 +132,7 @@
 
         searches.forEach(search => {
           const tr = document.createElement('tr');
+          tr.dataset.searchId = search.id;
 
           tr.innerHTML = `
             <td>${search.search_item || ''}</td>
@@ -139,7 +141,11 @@
             <td>${search.max_price || ''}</td>
             <td>${search.status || ''}</td>
             <td>${search.created_at ? new Date(search.created_at).toLocaleString() : ''}</td>
-            <td><a href="/results.html?searchId=${search.id}">View Results</a></td>
+            <td>
+              <a href="/results.html?searchId=${search.id}">View Results</a>
+              &nbsp;|&nbsp;
+              <button type="button" class="delete-btn" data-search-id="${search.id}">Delete</button>
+            </td>
           `;
 
           tbody.appendChild(tr);
@@ -150,8 +156,49 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', loadSearches);
+    async function handleDeleteClick(event) {
+      if (!event.target.matches('.delete-btn')) return;
+
+      const button = event.target;
+      const searchId = button.getAttribute('data-search-id');
+      const row = button.closest('tr');
+      const messageEl = document.getElementById('searches-message');
+
+      if (!searchId) return;
+
+      const ok = window.confirm('Delete this search? This cannot be undone.');
+      if (!ok) return;
+
+      try {
+        const response = await fetch(`/searches/${searchId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to delete search');
+        }
+
+        if (row) {
+          row.remove();
+        }
+        if (messageEl) {
+          messageEl.textContent = 'Search deleted.';
+        }
+      } catch (err) {
+        console.error('Error deleting search:', err);
+        if (messageEl) {
+          messageEl.textContent = err.message || 'Error deleting search.';
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSearches();
+      document.addEventListener('click', handleDeleteClick);
+    });
   </script>
+
 
 </body>
 
