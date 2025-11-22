@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GoSnaggit – Search Results</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 16px;
+      line-height: 1.5;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    th {
+      background: #f0f0f0;
+    }
+    a.button-link, button {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 8px 16px;
+      border: 1px solid #333;
+      background: #f0f0f0;
+      text-decoration: none;
+      color: #000;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    #status {
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <h1 id="search-title">Search Results</h1>
+  <p id="search-description"></p>
+
+  <a href="/my-searches" class="button-link">← Back to My Searches</a>
+
+  <div id="status"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Source</th>
+        <th>Price</th>
+        <th>Link</th>
+      </tr>
+    </thead>
+    <tbody id="results-body">
+      <!-- Results go here -->
+    </tbody>
+  </table>
+
+  <script>
+    function getSearchIdFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('id');
+    }
+
+    async function loadResults() {
+      const searchId = getSearchIdFromURL();
+      const statusDiv = document.getElementById('status');
+      const tbody = document.getElementById('results-body');
+
+      if (!searchId) {
+        statusDiv.textContent = 'No search ID provided.';
+        statusDiv.style.color = 'red';
+        return;
+      }
+
+      try {
+        // Load search details
+        const searchInfoRes = await fetch('/searches/' + searchId);
+        const searchInfo = await searchInfoRes.json();
+
+        if (searchInfoRes.ok) {
+          document.getElementById('search-title').textContent =
+            'Search Results for: ' + searchInfo.search_item;
+          document.getElementById('search-description').textContent =
+            'Location: ' + (searchInfo.location || 'Any') +
+            ' | Category: ' + (searchInfo.category || 'Any') +
+            ' | Max Price: ' + (searchInfo.max_price || 'None');
+        }
+
+        // Load results list
+        const res = await fetch('/searches/' + searchId + '/results');
+        const data = await res.json();
+
+        tbody.innerHTML = '';
+
+        if (!res.ok || !Array.isArray(data.results)) {
+          statusDiv.textContent = 'No results found.';
+          statusDiv.style.color = 'black';
+          return;
+        }
+
+        if (data.results.length === 0) {
+          statusDiv.textContent = 'No results yet. Mock engine may not have run.';
+          statusDiv.style.color = 'black';
+          return;
+        }
+
+        data.results.forEach((r) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${r.title}</td>
+            <td>${r.source}</td>
+            <td>${r.price}</td>
+            <td><a href="${r.url}" target="_blank">View</a></td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        statusDiv.textContent = 'Loaded ' + data.results.length + ' result(s).';
+        statusDiv.style.color = 'green';
+
+      } catch (err) {
+        console.error(err);
+        statusDiv.textContent = 'Failed to load results.';
+        statusDiv.style.color = 'red';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadResults);
+  </script>
+
+</body>
+</html>
