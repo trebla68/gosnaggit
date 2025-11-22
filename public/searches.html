@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>GoSnaggit – Saved Searches</title>
@@ -12,30 +13,38 @@
       padding: 0 16px;
       line-height: 1.5;
     }
+
     h1 {
       margin-bottom: 0.5rem;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 1rem;
     }
-    th, td {
+
+    th,
+    td {
       border: 1px solid #ccc;
       padding: 8px;
       text-align: left;
       font-size: 0.9rem;
     }
+
     th {
       background: #f0f0f0;
     }
+
     .buttons {
       margin-top: 1rem;
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
     }
-    button, a.button-link {
+
+    button,
+    a.button-link {
       padding: 8px 16px;
       border: 1px solid #333;
       background: #f0f0f0;
@@ -44,17 +53,19 @@
       cursor: pointer;
       border-radius: 4px;
     }
+
     #status {
       margin-top: 1rem;
       font-weight: bold;
     }
   </style>
 </head>
+
 <body>
   <h1>GoSnaggit – Saved Searches</h1>
   <h2>Your Saved Searches</h2>
   <p>These are the items GoSnaggit is currently watching for you.<br>
-     Showing the most recent searches first.</p>
+    Showing the most recent searches first.</p>
 
   <div class="buttons">
     <a href="/" class="button-link">← Back to Home</a>
@@ -104,19 +115,21 @@
         data.forEach((s) => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${s.id}</td>
-            <td>${s.search_item || ''}</td>
-            <td>${s.location || ''}</td>
-            <td>${s.category || ''}</td>
-            <td>${s.max_price || ''}</td>
-            <td>${s.status || ''}</td>
-            <td>${s.created_at ? new Date(s.created_at).toLocaleString() : ''}</td>
-            <td>
-              <button onclick="deleteSearch(${s.id})">Delete</button>
-            </td>
-          `;
+    <td>${s.id}</td>
+    <td>${s.search_item || ''}</td>
+    <td>${s.location || ''}</td>
+    <td>${s.category || ''}</td>
+    <td>${s.max_price || ''}</td>
+    <td>${s.status || ''}</td>
+    <td>${s.created_at ? new Date(s.created_at).toLocaleString() : ''}</td>
+    <td>
+      <button onclick="window.location.href='/results.html?id=${s.id}'">View Results</button>
+      <button onclick="deleteSearch(${s.id})">Delete</button>
+    </td>
+  `;
           tbody.appendChild(tr);
         });
+
 
         statusDiv.textContent = `Loaded ${data.length} search(es).`;
         statusDiv.style.color = 'green';
@@ -171,4 +184,5 @@
     });
   </script>
 </body>
+
 </html>
