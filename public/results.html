@@ -1,141 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>GoSnaggit – Search Results</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #222;
+      color: #fff;
+      padding: 16px;
+      text-align: center;
+    }
+
+    main {
       max-width: 900px;
-      margin: 40px auto;
-      padding: 0 16px;
-      line-height: 1.5;
+      margin: 32px auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
+
     h1 {
-      margin-bottom: 0.5rem;
+      margin-top: 0;
     }
+
+    .message {
+      margin-top: 16px;
+      padding: 10px;
+      border-radius: 4px;
+      background: #e9ecef;
+      color: #333;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 1rem;
+      margin-top: 16px;
+      font-size: 0.9rem;
     }
-    th, td {
+
+    th,
+    td {
       border: 1px solid #ccc;
       padding: 8px;
       text-align: left;
-      font-size: 0.9rem;
     }
+
     th {
       background: #f0f0f0;
     }
-    a.button-link, button {
-      display: inline-block;
-      margin-top: 1rem;
-      padding: 8px 16px;
-      border: 1px solid #333;
-      background: #f0f0f0;
-      text-decoration: none;
-      color: #000;
-      cursor: pointer;
-      border-radius: 4px;
+
+    .links {
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
     }
-    #status {
-      margin-top: 1rem;
-      font-weight: bold;
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 
 <body>
-  <h1 id="search-title">Search Results</h1>
-  <p id="search-description"></p>
+  <header>
+    <h2>GoSnaggit – Search Results</h2>
+  </header>
 
-  <a href="/my-searches" class="button-link">← Back to My Searches</a>
+  <main>
+    <h1>Search Results</h1>
 
-  <div id="status"></div>
+    <p id="results-message" class="message">Loading results...</p>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Source</th>
-        <th>Price</th>
-        <th>Link</th>
-      </tr>
-    </thead>
-    <tbody id="results-body">
-      <!-- Results go here -->
-    </tbody>
-  </table>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Source</th>
+          <th>Price</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody id="results-body"></tbody>
+    </table>
+
+    <div class="links">
+      <a href="/searches.html">&larr; Back to My Searches</a>
+      <a href="/search.html">Create a New Search &rarr;</a>
+    </div>
+  </main>
 
   <script>
-    function getSearchIdFromURL() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('id');
-    }
-
     async function loadResults() {
-      const searchId = getSearchIdFromURL();
-      const statusDiv = document.getElementById('status');
+      const params = new URLSearchParams(window.location.search);
+      const searchId = params.get('searchId');
+
+      const messageEl = document.getElementById('results-message');
       const tbody = document.getElementById('results-body');
 
       if (!searchId) {
-        statusDiv.textContent = 'No search ID provided.';
-        statusDiv.style.color = 'red';
+        messageEl.textContent = 'No search ID provided.';
         return;
       }
 
       try {
-        // Load search details
-        const searchInfoRes = await fetch('/searches/' + searchId);
-        const searchInfo = await searchInfoRes.json();
+        const response = await fetch(`/searches/${searchId}/results`);
+        if (!response.ok) throw new Error('Failed to fetch results');
 
-        if (searchInfoRes.ok) {
-          document.getElementById('search-title').textContent =
-            'Search Results for: ' + searchInfo.search_item;
-          document.getElementById('search-description').textContent =
-            'Location: ' + (searchInfo.location || 'Any') +
-            ' | Category: ' + (searchInfo.category || 'Any') +
-            ' | Max Price: ' + (searchInfo.max_price || 'None');
-        }
-
-        // Load results list
-        const res = await fetch('/searches/' + searchId + '/results');
-        const data = await res.json();
+        const data = await response.json();
+        const results = Array.isArray(data.results) ? data.results : [];
 
         tbody.innerHTML = '';
 
-        if (!res.ok || !Array.isArray(data.results)) {
-          statusDiv.textContent = 'No results found.';
-          statusDiv.style.color = 'black';
+        if (results.length === 0) {
+          messageEl.textContent = 'No results found yet. GoSnaggit is still hunting!';
           return;
         }
 
-        if (data.results.length === 0) {
-          statusDiv.textContent = 'No results yet. Mock engine may not have run.';
-          statusDiv.style.color = 'black';
-          return;
-        }
+        messageEl.textContent = `Found ${results.length} result(s).`;
 
-        data.results.forEach((r) => {
+        results.forEach(result => {
           const tr = document.createElement('tr');
+
+          const title = result.title || 'Untitled item';
+          const source = result.source || '';
+          const price = result.price ? `$${result.price}` : '—';
+          const url = result.url;
+
           tr.innerHTML = `
-            <td>${r.title}</td>
-            <td>${r.source}</td>
-            <td>${r.price}</td>
-            <td><a href="${r.url}" target="_blank">View</a></td>
+            <td>${title}</td>
+            <td>${source}</td>
+            <td>${price}</td>
+            <td>${url ? `<a href="${url}" target="_blank">View Listing</a>` : 'N/A'}</td>
           `;
+
           tbody.appendChild(tr);
         });
-
-        statusDiv.textContent = 'Loaded ' + data.results.length + ' result(s).';
-        statusDiv.style.color = 'green';
-
       } catch (err) {
         console.error(err);
-        statusDiv.textContent = 'Failed to load results.';
-        statusDiv.style.color = 'red';
+        messageEl.textContent = 'Error loading results.';
       }
     }
 
@@ -143,4 +161,5 @@
   </script>
 
 </body>
+
 </html>

@@ -4,24 +4,40 @@
 <head>
   <meta charset="UTF-8" />
   <title>GoSnaggit – Saved Searches</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #222;
+      color: #fff;
+      padding: 16px;
+      text-align: center;
+    }
+
+    main {
       max-width: 900px;
-      margin: 40px auto;
-      padding: 0 16px;
-      line-height: 1.5;
+      margin: 32px auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     h1 {
-      margin-bottom: 0.5rem;
+      margin-top: 0;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 1rem;
+      margin-top: 16px;
+      font-size: 0.9rem;
     }
 
     th,
@@ -29,160 +45,114 @@
       border: 1px solid #ccc;
       padding: 8px;
       text-align: left;
-      font-size: 0.9rem;
     }
 
     th {
       background: #f0f0f0;
     }
 
-    .buttons {
-      margin-top: 1rem;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    button,
-    a.button-link {
-      padding: 8px 16px;
-      border: 1px solid #333;
-      background: #f0f0f0;
-      text-decoration: none;
-      color: #000;
-      cursor: pointer;
+    .message {
+      margin-top: 16px;
+      padding: 10px;
       border-radius: 4px;
+      background: #e9ecef;
+      color: #333;
     }
 
-    #status {
-      margin-top: 1rem;
-      font-weight: bold;
+    .links {
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 
 <body>
-  <h1>GoSnaggit – Saved Searches</h1>
-  <h2>Your Saved Searches</h2>
-  <p>These are the items GoSnaggit is currently watching for you.<br>
-    Showing the most recent searches first.</p>
+  <header>
+    <h2>GoSnaggit – Saved Searches</h2>
+  </header>
 
-  <div class="buttons">
-    <a href="/" class="button-link">← Back to Home</a>
-    <a href="/search" class="button-link">Create a New Search →</a>
-    <button id="refresh-btn">Refresh List</button>
-  </div>
+  <main>
+    <h1>Your Saved Searches</h1>
+    <p>These are the items GoSnaggit is currently hunting for on your behalf.</p>
 
-  <div id="status"></div>
+    <div id="searches-message" class="message">Loading your searches...</div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Item</th>
-        <th>Location</th>
-        <th>Category</th>
-        <th>Max Price</th>
-        <th>Status</th>
-        <th>Created At</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="searches-body">
-      <!-- rows go here -->
-    </tbody>
-  </table>
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Location</th>
+          <th>Category</th>
+          <th>Max Price</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="searches-body"></tbody>
+    </table>
+
+    <div class="links">
+      <a href="/index.html">&larr; Back to Home</a>
+      <a href="/search.html">Create a New Search &rarr;</a>
+    </div>
+  </main>
 
   <script>
     async function loadSearches() {
-      const statusDiv = document.getElementById('status');
       const tbody = document.getElementById('searches-body');
-      statusDiv.textContent = 'Loading searches...';
-      statusDiv.style.color = 'black';
+      const messageEl = document.getElementById('searches-message');
+
+      tbody.innerHTML = '';
 
       try {
         const response = await fetch('/searches');
-        const data = await response.json();
+        if (!response.ok) throw new Error('Failed to fetch searches');
 
-        tbody.innerHTML = '';
+        const searches = await response.json();
 
-        if (!Array.isArray(data) || data.length === 0) {
-          statusDiv.textContent = 'No searches found yet.';
-          statusDiv.style.color = 'black';
+        if (!Array.isArray(searches) || searches.length === 0) {
+          messageEl.textContent = 'You have no saved searches.';
           return;
         }
 
-        data.forEach((s) => {
+        messageEl.textContent = '';
+
+        searches.forEach(search => {
           const tr = document.createElement('tr');
+
           tr.innerHTML = `
-    <td>${s.id}</td>
-    <td>${s.search_item || ''}</td>
-    <td>${s.location || ''}</td>
-    <td>${s.category || ''}</td>
-    <td>${s.max_price || ''}</td>
-    <td>${s.status || ''}</td>
-    <td>${s.created_at ? new Date(s.created_at).toLocaleString() : ''}</td>
-    <td>
-      <button onclick="window.location.href='/results.html?id=${s.id}'">View Results</button>
-      <button onclick="deleteSearch(${s.id})">Delete</button>
-    </td>
-  `;
+            <td>${search.search_item || ''}</td>
+            <td>${search.location || ''}</td>
+            <td>${search.category || ''}</td>
+            <td>${search.max_price || ''}</td>
+            <td>${search.status || ''}</td>
+            <td>${search.created_at ? new Date(search.created_at).toLocaleString() : ''}</td>
+            <td><a href="/results.html?searchId=${search.id}">View Results</a></td>
+          `;
+
           tbody.appendChild(tr);
         });
-
-
-        statusDiv.textContent = `Loaded ${data.length} search(es).`;
-        statusDiv.style.color = 'green';
       } catch (err) {
         console.error(err);
-        statusDiv.textContent = 'Failed to load searches.';
-        statusDiv.style.color = 'red';
+        messageEl.textContent = 'There was a problem loading your searches.';
       }
     }
 
-    async function deleteSearch(id) {
-      const statusDiv = document.getElementById('status');
-
-      const sure = window.confirm(
-        'Are you sure you want to delete search #' + id + '?'
-      );
-      if (!sure) {
-        return;
-      }
-
-      statusDiv.textContent = 'Deleting search #' + id + '...';
-      statusDiv.style.color = 'black';
-
-      try {
-        const response = await fetch('/searches/' + id, {
-          method: 'DELETE'
-        });
-
-        const body = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          statusDiv.textContent = body.error || 'Failed to delete search.';
-          statusDiv.style.color = 'red';
-          return;
-        }
-
-        statusDiv.textContent = 'Search #' + id + ' deleted.';
-        statusDiv.style.color = 'green';
-
-        // Reload the list
-        loadSearches();
-      } catch (err) {
-        console.error(err);
-        statusDiv.textContent = 'Network error while deleting search.';
-        statusDiv.style.color = 'red';
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('refresh-btn').addEventListener('click', loadSearches);
-      loadSearches();
-    });
+    document.addEventListener('DOMContentLoaded', loadSearches);
   </script>
+
 </body>
 
 </html>
