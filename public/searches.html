@@ -147,17 +147,32 @@
           const tr = document.createElement('tr');
           tr.dataset.searchId = search.id;
 
+          const currentStatus = (search.status || 'active').toLowerCase();
+          const isActive = currentStatus === 'active';
+          const toggleLabel = isActive ? 'Pause' : 'Resume';
+
           tr.innerHTML = `
             <td>${search.search_item || ''}</td>
             <td>${search.location || ''}</td>
             <td>${search.category || ''}</td>
             <td>${search.max_price || ''}</td>
-            <td>${search.status || ''}</td>
+            <td class="status-cell">${currentStatus}</td>
             <td>${search.created_at ? new Date(search.created_at).toLocaleString() : ''}</td>
             <td>
               <a href="/results.html?searchId=${search.id}">View Results</a>
               &nbsp;|&nbsp;
-              <button type="button" class="delete-btn" data-search-id="${search.id}">Delete</button>
+              <button type="button"
+                      class="toggle-status-btn"
+                      data-search-id="${search.id}"
+                      data-status="${currentStatus}">
+                ${toggleLabel}
+              </button>
+              &nbsp;|&nbsp;
+              <button type="button"
+                      class="delete-btn"
+                      data-search-id="${search.id}">
+                Delete
+              </button>
             </td>
           `;
 
@@ -166,6 +181,64 @@
       } catch (err) {
         console.error(err);
         messageEl.textContent = 'There was a problem loading your searches.';
+      }
+    }
+
+    async function handleStatusClick(event) {
+      if (!event.target.matches('.toggle-status-btn')) return;
+
+      const button = event.target;
+      const row = button.closest('tr');
+      const messageEl = document.getElementById('searches-message');
+
+      if (!row) return;
+
+      const searchId = button.getAttribute('data-search-id');
+      const currentStatus = (button.getAttribute('data-status') || 'active').toLowerCase();
+      const isActive = currentStatus === 'active';
+      const newStatus = isActive ? 'paused' : 'active';
+
+      const itemCell = row.querySelector('td');
+      const itemName = itemCell ? itemCell.textContent.trim() : 'this search';
+
+      const ok = window.confirm(
+        `Are you sure you want to ${isActive ? 'pause' : 'resume'} "${itemName}"?`
+      );
+      if (!ok) return;
+
+      if (messageEl) {
+        messageEl.textContent = `${isActive ? 'Pausing' : 'Resuming'} "${itemName}"...`;
+      }
+
+      try {
+        const response = await fetch(`/searches/${searchId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus }),
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to update status');
+        }
+
+        // Update the DOM: status text + button label + data-status
+        const statusCell = row.querySelector('.status-cell');
+        if (statusCell) {
+          statusCell.textContent = newStatus;
+        }
+
+        button.setAttribute('data-status', newStatus);
+        button.textContent = newStatus === 'active' ? 'Pause' : 'Resume';
+
+        if (messageEl) {
+          messageEl.textContent = `Search "${itemName}" is now ${newStatus}.`;
+        }
+      } catch (err) {
+        console.error('Error updating status:', err);
+        if (messageEl) {
+          messageEl.textContent = err.message || 'Error updating status.';
+        }
       }
     }
 
@@ -201,9 +274,8 @@
           throw new Error(errData.error || 'Failed to delete search');
         }
 
-        if (row) {
-          row.remove();
-        }
+        row.remove();
+
         if (messageEl) {
           messageEl.textContent = `Search "${itemName}" deleted.`;
         }
@@ -217,9 +289,11 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       loadSearches();
+      document.addEventListener('click', handleStatusClick);
       document.addEventListener('click', handleDeleteClick);
     });
   </script>
+
 
 </body>
 

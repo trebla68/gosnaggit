@@ -373,6 +373,34 @@ app.get('/test-route-123', (req, res) => {
     file: __filename
   });
 });
+// Update (or toggle) the status of a search
+app.patch('/searches/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body; // expected: 'active' or 'paused'
+
+  if (!status || !['active', 'paused'].includes(status)) {
+    return res.status(400).json({ error: "Invalid status. Use 'active' or 'paused'." });
+  }
+
+  try {
+    const result = await pool.query(
+      'UPDATE searches SET status = $1 WHERE id = $2 RETURNING *',
+      [status, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Search not found' });
+    }
+
+    res.json({
+      message: 'Status updated',
+      search: result.rows[0],
+    });
+  } catch (err) {
+    console.error('Error updating search status:', err);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`GoSnaggit server running at http://localhost:${PORT}`);
