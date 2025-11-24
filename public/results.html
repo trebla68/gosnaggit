@@ -21,7 +21,7 @@
     }
 
     main {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 32px auto;
       background: #fff;
       padding: 24px;
@@ -33,30 +33,109 @@
       margin-top: 0;
     }
 
+    .subheader {
+      font-size: 0.95rem;
+      color: #555;
+      margin-bottom: 16px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      border-radius: 999px;
+      background: #f0f0f0;
+      margin-right: 8px;
+    }
+
     .message {
-      margin-top: 16px;
+      margin-top: 8px;
       padding: 10px;
       border-radius: 4px;
       background: #e9ecef;
       color: #333;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    .results-summary {
       margin-top: 16px;
       font-size: 0.9rem;
+      color: #555;
     }
 
-    th,
-    td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: left;
+    .results-list {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    th {
-      background: #f0f0f0;
+    .result-card {
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      background: #fafafa;
+      align-items: flex-start;
+    }
+
+    .result-image {
+      flex: 0 0 160px;
+      height: 120px;
+      background: #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .result-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .result-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .result-title {
+      font-size: 1.05rem;
+      font-weight: bold;
+      margin: 0;
+    }
+
+    .result-title a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .result-title a:hover {
+      text-decoration: underline;
+    }
+
+    .result-meta {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .result-price {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+
+    .result-tags {
+      margin-top: 4px;
+      font-size: 0.8rem;
+      color: #555;
+    }
+
+    .result-tags span {
+      margin-right: 8px;
     }
 
     .links {
@@ -85,19 +164,14 @@
   <main>
     <h1>Search Results</h1>
 
+    <div id="search-context" class="subheader"></div>
+    <div id="pills"></div>
+
     <p id="results-message" class="message">Loading results...</p>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Source</th>
-          <th>Price</th>
-          <th>Link</th>
-        </tr>
-      </thead>
-      <tbody id="results-body"></tbody>
-    </table>
+    <div class="results-summary" id="results-summary"></div>
+
+    <div class="results-list" id="results-list"></div>
 
     <div class="links">
       <a href="/searches.html">&larr; Back to My Searches</a>
@@ -106,12 +180,21 @@
   </main>
 
   <script>
+    function formatDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+    }
+
     async function loadResults() {
       const params = new URLSearchParams(window.location.search);
       const searchId = params.get('searchId');
 
       const messageEl = document.getElementById('results-message');
-      const tbody = document.getElementById('results-body');
+      const listEl = document.getElementById('results-list');
+      const summaryEl = document.getElementById('results-summary');
+      const contextEl = document.getElementById('search-context');
+      const pillsEl = document.getElementById('pills');
 
       if (!searchId) {
         messageEl.textContent = 'No search ID provided.';
@@ -119,47 +202,105 @@
       }
 
       try {
+        messageEl.textContent = 'Loading results...';
+
         const response = await fetch(`/searches/${searchId}/results`);
-        if (!response.ok) throw new Error('Failed to fetch results');
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to fetch results');
+        }
 
         const data = await response.json();
+
+        const searchItem = data.search_item || 'Your item';
+        const location = data.location || 'Any location';
+        const category = data.category || 'Any category';
         const results = Array.isArray(data.results) ? data.results : [];
 
-        tbody.innerHTML = '';
+        // Show context line and pills
+        contextEl.textContent = `Showing recent listings for “${searchItem}”`;
+        pillsEl.innerHTML = `
+          <span class="pill">Category: ${category}</span>
+          <span class="pill">Location: ${location}</span>
+          <span class="pill">Found: ${results.length}</span>
+        `;
+
+        listEl.innerHTML = '';
 
         if (results.length === 0) {
-          messageEl.textContent = 'No results found yet. GoSnaggit is still hunting!';
+          messageEl.textContent = 'No results found yet for this search. GoSnaggit is still hunting!';
+          summaryEl.textContent = '';
           return;
         }
 
-        messageEl.textContent = `Found ${results.length} result(s).`;
+        messageEl.textContent = '';
+        summaryEl.textContent = `Found ${results.length} result(s) from multiple marketplaces. These are mock listings for demo purposes.`;
 
         results.forEach(result => {
-          const tr = document.createElement('tr');
+          const card = document.createElement('div');
+          card.className = 'result-card';
 
-          const title = result.title || 'Untitled item';
-          const source = result.source || '';
-          const price = result.price ? `$${result.price}` : '—';
-          const url = result.url;
+          const imgWrapper = document.createElement('div');
+          imgWrapper.className = 'result-image';
 
-          tr.innerHTML = `
-            <td>${title}</td>
-            <td>${source}</td>
-            <td>${price}</td>
-            <td>${url ? `<a href="${url}" target="_blank">View Listing</a>` : 'N/A'}</td>
-          `;
+          const img = document.createElement('img');
+          img.src = result.image_url || 'https://via.placeholder.com/160x120?text=Listing';
+          img.alt = result.title || 'Listing image';
 
-          tbody.appendChild(tr);
+          imgWrapper.appendChild(img);
+
+          const main = document.createElement('div');
+          main.className = 'result-main';
+
+          const titleEl = document.createElement('h2');
+          titleEl.className = 'result-title';
+
+          if (result.url) {
+            const link = document.createElement('a');
+            link.href = result.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = result.title || 'Untitled item';
+            titleEl.appendChild(link);
+          } else {
+            titleEl.textContent = result.title || 'Untitled item';
+          }
+
+          const priceEl = document.createElement('div');
+          priceEl.className = 'result-price';
+          priceEl.textContent = result.price ? `$${result.price.toFixed ? result.price.toFixed(2) : result.price}` : 'Price not listed';
+
+          const metaEl = document.createElement('div');
+          metaEl.className = 'result-meta';
+          const source = result.source || 'Marketplace';
+          const loc = result.location || location;
+          const posted = formatDate(result.posted_at);
+          metaEl.textContent = `${source} • ${loc}${posted ? ' • Posted ' + posted : ''}`;
+
+          const tagsEl = document.createElement('div');
+          tagsEl.className = 'result-tags';
+          const condition = result.condition || 'Condition unknown';
+          tagsEl.innerHTML = `<span>${condition}</span>`;
+
+          main.appendChild(titleEl);
+          main.appendChild(priceEl);
+          main.appendChild(metaEl);
+          main.appendChild(tagsEl);
+
+          card.appendChild(imgWrapper);
+          card.appendChild(main);
+
+          listEl.appendChild(card);
         });
       } catch (err) {
         console.error(err);
-        messageEl.textContent = 'Error loading results.';
+        messageEl.textContent = err.message || 'There was a problem loading results.';
+        summaryEl.textContent = '';
       }
     }
 
     document.addEventListener('DOMContentLoaded', loadResults);
   </script>
-
 </body>
 
 </html>
