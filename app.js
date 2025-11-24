@@ -401,6 +401,66 @@ app.patch('/searches/:id/status', async (req, res) => {
     res.status(500).json({ error: 'Failed to update status' });
   }
 });
+// Get a single search by ID
+app.get('/searches/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM searches WHERE id = $1',
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Search not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching search by ID:', err);
+    res.status(500).json({ error: 'Failed to fetch search' });
+  }
+});
+
+// Update an existing search (edit fields)
+app.patch('/searches/:id', async (req, res) => {
+  const { id } = req.params;
+  const {
+    search_item,
+    location,
+    category,
+    max_price
+  } = req.body;
+
+  if (!search_item || search_item.trim() === '') {
+    return res.status(400).json({ error: 'search_item is required' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE searches
+       SET search_item = $1,
+           location    = $2,
+           category    = $3,
+           max_price   = $4
+       WHERE id = $5
+       RETURNING *`,
+      [search_item, location, category, max_price, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Search not found' });
+    }
+
+    res.json({
+      message: 'Search updated',
+      search: result.rows[0],
+    });
+  } catch (err) {
+    console.error('Error updating search:', err);
+    res.status(500).json({ error: 'Failed to update search' });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`GoSnaggit server running at http://localhost:${PORT}`);

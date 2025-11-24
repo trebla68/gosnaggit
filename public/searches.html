@@ -161,6 +161,8 @@
             <td>
               <a href="/results.html?searchId=${search.id}">View Results</a>
               &nbsp;|&nbsp;
+              <a href="/edit-search.html?searchId=${search.id}">Edit</a>
+              &nbsp;|&nbsp;
               <button type="button"
                       class="toggle-status-btn"
                       data-search-id="${search.id}"
@@ -222,7 +224,6 @@
           throw new Error(errData.error || 'Failed to update status');
         }
 
-        // Update the DOM: status text + button label + data-status
         const statusCell = row.querySelector('.status-cell');
         if (statusCell) {
           statusCell.textContent = newStatus;
@@ -293,6 +294,7 @@
       document.addEventListener('click', handleDeleteClick);
     });
   </script>
+
 
 
 </body>
