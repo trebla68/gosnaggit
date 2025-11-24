@@ -195,11 +195,11 @@ app.delete('/searches/:id', async (req, res) => {
   }
 });
 
-// ----------------------------------------------------
-// Enhanced mock results for a specific search
-// ----------------------------------------------------
+// Enhanced mock results for a specific search, with pagination
 app.get('/searches/:id/results', async (req, res) => {
   const { id } = req.params;
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 5;
 
   try {
     // Look up the search so we can tailor the mock results
@@ -234,54 +234,60 @@ app.get('/searches/:id/results', async (req, res) => {
 
     const now = new Date();
 
-    const results = [
-      {
-        title: `${item} – Excellent condition`,
-        source: sources[0],
-        price: around(0.05, 0.02),
-        condition: 'Excellent',
-        location: search.location || 'Online',
-        posted_at: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-        url: 'https://example.com/listing/1',
-        image_url: 'https://via.placeholder.com/160x120?text=Listing+1'
-      },
-      {
-        title: `${item} – Good condition`,
-        source: sources[1],
-        price: around(0.15, 0.0),
-        condition: 'Good',
-        location: search.location || 'Online',
-        posted_at: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-        url: 'https://example.com/listing/2',
-        image_url: 'https://via.placeholder.com/160x120?text=Listing+2'
-      },
-      {
-        title: `${item} – Needs some work`,
-        source: sources[2],
-        price: around(0.3, -0.05),
-        condition: 'Fair',
-        location: search.location || 'Online',
-        posted_at: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
-        url: 'https://example.com/listing/3',
-        image_url: 'https://via.placeholder.com/160x120?text=Listing+3'
-      }
+    // Build a larger pool of mock results (e.g., 12 items)
+    const fullResults = [];
+    const conditions = ['Excellent', 'Good', 'Fair', 'Very good'];
+    const baseTitles = [
+      `${item} – Excellent condition`,
+      `${item} – Good condition`,
+      `${item} – Needs some work`
     ];
+
+    for (let i = 0; i < 12; i++) {
+      const cond = conditions[i % conditions.length];
+      const source = sources[i % sources.length];
+      const title = baseTitles[i % baseTitles.length].replace('condition', cond.toLowerCase() + ' condition');
+
+      fullResults.push({
+        title,
+        source,
+        price: around(0.3, 0.1),
+        condition: cond,
+        location: search.location || 'Online',
+        posted_at: new Date(
+          now.getTime() - (2 + i * 2) * 24 * 60 * 60 * 1000
+        ).toISOString(),
+        url: `https://example.com/listing/${i + 1}`,
+        image_url: `https://via.placeholder.com/160x120?text=Listing+${i + 1}`
+      });
+    }
+
+    const totalResults = fullResults.length;
+    const totalPages = Math.ceil(totalResults / limit);
+
+    // Clamp page to valid range
+    const safePage = Math.min(Math.max(page, 1), totalPages || 1);
+    const start = (safePage - 1) * limit;
+    const pagedResults = fullResults.slice(start, start + limit);
 
     res.json({
       search_id: id,
       search_item: search.search_item,
       category: search.category,
       location: search.location,
-      total_results: results.length,
-      page: 1,
-      limit: results.length,
-      results
+      total_results: totalResults,
+      page: safePage,
+      limit,
+      total_pages: totalPages,
+      results: pagedResults
     });
   } catch (err) {
     console.error('Error getting mock results:', err);
     res.status(500).json({ error: 'Failed to get results' });
   }
 });
+
+
 
 // ----------------------------------------------------
 // Start the server

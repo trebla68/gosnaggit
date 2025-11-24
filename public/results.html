@@ -145,6 +145,58 @@
       font-size: 14px;
     }
 
+    .pagination {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pagination-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pagination a {
+      color: #007bff;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .pagination a:hover {
+      text-decoration: underline;
+    }
+
+    .pagination span {
+      font-size: 0.85rem;
+      color: #555;
+    }
+    #pagination {
+      margin-top: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.9rem;
+    }
+
+    #pagination button {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #f8f8f8;
+      cursor: pointer;
+    }
+
+    #pagination button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
     a {
       color: #007bff;
       text-decoration: none;
@@ -173,28 +225,42 @@
 
     <div class="results-list" id="results-list"></div>
 
+    <div id="pagination"></div>
+
     <div class="links">
       <a href="/searches.html">&larr; Back to My Searches</a>
       <a href="/search.html">Create a New Search &rarr;</a>
     </div>
+
+
   </main>
 
-  <script>
+    <script>
     function formatDate(iso) {
       if (!iso) return '';
       const d = new Date(iso);
       return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
     }
 
+    function updateUrl(searchId, page) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('searchId', searchId);
+      params.set('page', page);
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.location.href = newUrl;
+    }
+
     async function loadResults() {
       const params = new URLSearchParams(window.location.search);
       const searchId = params.get('searchId');
+      const pageParam = parseInt(params.get('page'), 10) || 1;
 
       const messageEl = document.getElementById('results-message');
       const listEl = document.getElementById('results-list');
       const summaryEl = document.getElementById('results-summary');
       const contextEl = document.getElementById('search-context');
       const pillsEl = document.getElementById('pills');
+      const paginationEl = document.getElementById('pagination');
 
       if (!searchId) {
         messageEl.textContent = 'No search ID provided.';
@@ -204,7 +270,8 @@
       try {
         messageEl.textContent = 'Loading results...';
 
-        const response = await fetch(`/searches/${searchId}/results`);
+        // Ask backend for a specific page & limit
+        const response = await fetch(`/searches/${searchId}/results?page=${pageParam}&limit=5`);
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
           throw new Error(errData.error || 'Failed to fetch results');
@@ -216,13 +283,17 @@
         const location = data.location || 'Any location';
         const category = data.category || 'Any category';
         const results = Array.isArray(data.results) ? data.results : [];
+        const total = data.total_results || results.length;
+        const page = data.page || 1;
+        const limit = data.limit || results.length;
+        const totalPages = data.total_pages || Math.ceil(total / (limit || 1));
 
         // Show context line and pills
         contextEl.textContent = `Showing recent listings for “${searchItem}”`;
         pillsEl.innerHTML = `
           <span class="pill">Category: ${category}</span>
           <span class="pill">Location: ${location}</span>
-          <span class="pill">Found: ${results.length}</span>
+          <span class="pill">Found: ${total}</span>
         `;
 
         listEl.innerHTML = '';
@@ -230,11 +301,12 @@
         if (results.length === 0) {
           messageEl.textContent = 'No results found yet for this search. GoSnaggit is still hunting!';
           summaryEl.textContent = '';
+          paginationEl.innerHTML = '';
           return;
         }
 
         messageEl.textContent = '';
-        summaryEl.textContent = `Found ${results.length} result(s) from multiple marketplaces. These are mock listings for demo purposes.`;
+        summaryEl.textContent = `Showing page ${page} of ${totalPages}. Found ${total} result(s) from multiple marketplaces. These are mock listings for demo purposes.`;
 
         results.forEach(result => {
           const card = document.createElement('div');
@@ -268,7 +340,13 @@
 
           const priceEl = document.createElement('div');
           priceEl.className = 'result-price';
-          priceEl.textContent = result.price ? `$${result.price.toFixed ? result.price.toFixed(2) : result.price}` : 'Price not listed';
+          if (typeof result.price === 'number') {
+            priceEl.textContent = `$${result.price.toFixed(2)}`;
+          } else if (result.price) {
+            priceEl.textContent = `$${result.price}`;
+          } else {
+            priceEl.textContent = 'Price not listed';
+          }
 
           const metaEl = document.createElement('div');
           metaEl.className = 'result-meta';
@@ -292,6 +370,34 @@
 
           listEl.appendChild(card);
         });
+
+        // Build pagination controls
+        if (totalPages > 1) {
+          paginationEl.innerHTML = '';
+
+          const prevBtn = document.createElement('button');
+          prevBtn.textContent = 'Previous';
+          prevBtn.disabled = page <= 1;
+          prevBtn.addEventListener('click', () => {
+            if (page > 1) updateUrl(searchId, page - 1);
+          });
+
+          const nextBtn = document.createElement('button');
+          nextBtn.textContent = 'Next';
+          nextBtn.disabled = page >= totalPages;
+          nextBtn.addEventListener('click', () => {
+            if (page < totalPages) updateUrl(searchId, page + 1);
+          });
+
+          const pageInfo = document.createElement('span');
+          pageInfo.textContent = `Page ${page} of ${totalPages}`;
+
+          paginationEl.appendChild(prevBtn);
+          paginationEl.appendChild(pageInfo);
+          paginationEl.appendChild(nextBtn);
+        } else {
+          paginationEl.innerHTML = '';
+        }
       } catch (err) {
         console.error(err);
         messageEl.textContent = err.message || 'There was a problem loading results.';
@@ -301,6 +407,8 @@
 
     document.addEventListener('DOMContentLoaded', loadResults);
   </script>
+
+
 </body>
 
 </html>
