@@ -83,6 +83,11 @@
       background: #d8d8d8;
       color: #333;
     }
+
+    .results-btn {
+      background: #dde9ff;
+      color: #1f3c88;
+    }
   </style>
 </head>
 
@@ -107,6 +112,11 @@
   <script>
     const tableBody = document.querySelector("#searchTable tbody");
 
+    // Go to the results page for this search
+    function viewResults(id) {
+      window.location.href = `/search-results.html?id=${id}`;
+    }
+
     // Fetch and populate table
     async function loadSearches() {
       const response = await fetch('/searches');
@@ -124,6 +134,7 @@
           <td>${search.max_price || '-'}</td>
           <td><span class="status ${search.status}">${search.status}</span></td>
           <td>
+            <button class="results-btn" onclick="viewResults(${search.id})">View Results</button>
             ${search.status !== 'paused' ? `<button class="pause-btn" onclick="updateStatus(${search.id}, 'paused')">Pause</button>` : ''}
             ${search.status !== 'active' ? `<button class="resume-btn" onclick="updateStatus(${search.id}, 'active')">Resume</button>` : ''}
             ${search.status !== 'completed' ? `<button class="completed-btn" onclick="updateStatus(${search.id}, 'completed')">Complete</button>` : ''}
@@ -133,7 +144,7 @@
       });
     }
 
-    // Update status via PATCH
+    // Update status via PATCH (with basic error handling)
     async function updateStatus(id, newStatus) {
       try {
         const response = await fetch(`/searches/${id}/status`, {
@@ -149,17 +160,15 @@
           return;
         }
 
-        loadSearches(); // only refresh if the update succeeded
+        loadSearches(); // refresh if it succeeded
       } catch (error) {
         console.error('Network error updating status:', error);
         alert('Network error updating status');
       }
     }
 
-
     loadSearches();
   </script>
 
 </body>
-
 </html>
