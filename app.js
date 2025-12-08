@@ -143,11 +143,12 @@ app.patch('/searches/:id', async (req, res) => {
 // ----------------------------------------------------
 app.patch('/searches/:id/status', async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body; // expected: 'active' or 'paused'
+  const { status } = req.body; // expected: 'active', 'paused', or 'completed'
 
-  if (!status || !['active', 'paused'].includes(status)) {
-    return res.status(400).json({ error: "Invalid status. Use 'active' or 'paused'." });
+  if (!status || !['active', 'paused', 'completed'].includes(status)) {
+    return res.status(400).json({ error: "Invalid status. Use 'active', 'paused', or 'completed'." });
   }
+
 
   try {
     const result = await pool.query(
