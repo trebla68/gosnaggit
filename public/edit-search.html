@@ -164,6 +164,7 @@
     const maxPriceInput = document.getElementById('max_price');
     const statusSelect = document.getElementById('status');
 
+    // 1) Load existing search details
     if (!searchId) {
       loadingEl.textContent = 'Missing search id in the URL (e.g., ?id=1).';
     } else {
@@ -192,6 +193,7 @@
         });
     }
 
+    // 2) Handle status update
     const form = document.getElementById('edit-status-form');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -212,10 +214,11 @@
           if (!response.ok) {
             throw new Error('Failed to update status');
           }
-          return response.json();
+          // We don't actually need the body here
+          return response.text();
         })
-        .then(data => {
-          messageEl.textContent = 'Status updated successfully to "' + data.status + '".';
+        .then(() => {
+          messageEl.textContent = 'Status updated successfully to "' + newStatus + '".';
           messageEl.className = 'message success';
           messageEl.style.display = 'block';
         })
@@ -226,6 +229,7 @@
         });
     });
 
+    // 3) Back button
     document.getElementById('back-button').addEventListener('click', function () {
       window.location.href = '/searches.html';
     });
