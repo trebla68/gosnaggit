@@ -14,271 +14,131 @@
       line-height: 1.5;
     }
 
+    header {
+      margin-bottom: 1.5rem;
+    }
+
     h1 {
       margin-bottom: 0.25rem;
     }
 
-    .subheading {
-      color: #555;
-      margin-bottom: 1rem;
-    }
-
-    .back-link {
-      display: inline-block;
-      margin-bottom: 1rem;
+    nav a {
+      margin-right: 1rem;
       text-decoration: none;
-      font-size: 0.9rem;
-      color: #1f3c88;
+      color: #0066cc;
     }
 
-    .back-link:hover {
+    nav a:hover {
       text-decoration: underline;
     }
 
-    .results-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+    #message {
       margin-top: 1rem;
+      font-size: 0.9rem;
     }
 
     .result-card {
       border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 10px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    .result-image {
-      width: 120px;
-      height: 90px;
-      object-fit: cover;
       border-radius: 4px;
-      border: 1px solid #ccc;
-      flex-shrink: 0;
-    }
-
-    .result-main {
-      flex: 1;
+      padding: 1rem;
+      margin-top: 1rem;
     }
 
     .result-title {
       font-weight: bold;
-      margin-bottom: 4px;
+      margin-bottom: 0.25rem;
     }
 
     .result-meta {
-      font-size: 0.9rem;
-      color: #555;
-      margin-bottom: 4px;
-    }
-
-    .result-price {
-      font-size: 1rem;
-      font-weight: bold;
-      margin-bottom: 4px;
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 0.5rem;
     }
 
     .result-link a {
-      font-size: 0.9rem;
-      color: #1f3c88;
+      color: #0066cc;
       text-decoration: none;
     }
 
     .result-link a:hover {
       text-decoration: underline;
     }
-
-    .pagination {
-      margin-top: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.9rem;
-    }
-
-    .pagination button {
-      padding: 6px 10px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      cursor: pointer;
-      background: #f7f7f7;
-    }
-
-    .pagination button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-
-    .message {
-      margin-top: 1rem;
-      font-size: 0.95rem;
-      color: #555;
-    }
   </style>
 </head>
 
 <body>
-  <a href="/searches.html" class="back-link">&larr; Back to Saved Searches</a>
+  <header>
+    <h1>Search Results</h1>
+    <p>Mock or real results for this search.</p>
+    <nav>
+      <a href="/index.html">Home</a>
+      <a href="/searches.html">Saved Searches</a>
+    </nav>
+  </header>
 
-  <h1 id="search-title">Search Results</h1>
-  <div id="search-subheading" class="subheading"></div>
-
-  <div id="results" class="results-list"></div>
-  <div id="message" class="message"></div>
-
-  <div class="pagination">
-    <button id="prevBtn">Previous</button>
-    <span id="pageInfo"></span>
-    <button id="nextBtn">Next</button>
-  </div>
+  <div id="message"></div>
+  <div id="results-container"></div>
 
   <script>
-    // Helper to get query params
-    function getQueryParam(name) {
+    function getSearchIdFromUrl() {
       const params = new URLSearchParams(window.location.search);
-      return params.get(name);
+      return params.get('id');
     }
 
-    const searchId = getQueryParam('id');
-    const resultsContainer = document.getElementById('results');
     const messageEl = document.getElementById('message');
-    const pageInfoEl = document.getElementById('pageInfo');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const searchTitleEl = document.getElementById('search-title');
-    const searchSubheadingEl = document.getElementById('search-subheading');
-
-    let currentPage = 1;
-    const limit = 5; // results per page
+    const resultsContainer = document.getElementById('results-container');
+    const searchId = getSearchIdFromUrl();
 
     if (!searchId) {
-      messageEl.textContent = 'No search ID provided in the URL.';
-      document.querySelector('.pagination').style.display = 'none';
+      messageEl.textContent = 'Missing search id in the URL (e.g., ?id=1).';
     } else {
-      // Load the search details first (for heading)
-      loadSearchDetails();
-      // Then load results
-      loadResults(currentPage);
-    }
+      fetch('/searches/' + searchId + '/results')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to load results');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Support either an array or an object like { results: [...] }
+          const results = Array.isArray(data) ? data : (data.results || []);
 
-    async function loadSearchDetails() {
-      try {
-        const response = await fetch(`/searches/${searchId}`);
-        if (!response.ok) {
-          searchTitleEl.textContent = 'Search not found';
-          searchSubheadingEl.textContent = '';
-          return;
-        }
-        const search = await response.json();
-        searchTitleEl.textContent = search.search_item || 'Search Results';
-        const location = search.location ? ` in ${search.location}` : '';
-        const category = search.category ? ` • Category: ${search.category}` : '';
-        const maxPrice = search.max_price ? ` • Max Price: $${search.max_price}` : '';
-        searchSubheadingEl.textContent = `GoSnaggit is showing mock matches${location}${category}${maxPrice}`;
-      } catch (err) {
-        console.error('Error loading search details:', err);
-      }
-    }
+          if (!results || results.length === 0) {
+            messageEl.textContent = 'No results yet for this search (or mock engine has not generated any).';
+            return;
+          }
 
-    async function loadResults(page) {
-      try {
-        messageEl.textContent = 'Loading results...';
-        resultsContainer.innerHTML = '';
-
-        const response = await fetch(`/searches/${searchId}/results?page=${page}&limit=${limit}`);
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({}));
-          messageEl.textContent = err.error || 'Failed to load results.';
-          document.querySelector('.pagination').style.display = 'none';
-          return;
-        }
-
-        const data = await response.json();
-        const results = data.results || [];
-
-        if (results.length === 0) {
-          messageEl.textContent = 'No results found yet. Try again later.';
-        } else {
           messageEl.textContent = '';
-        }
 
-        results.forEach(item => {
-          const card = document.createElement('div');
-          card.className = 'result-card';
+          results.forEach((r, index) => {
+            const card = document.createElement('div');
+            card.className = 'result-card';
 
-          const img = document.createElement('img');
-          img.className = 'result-image';
-          img.src = item.image_url || 'https://via.placeholder.com/160x120?text=No+Image';
-          img.alt = item.title || 'Listing';
+            const title = r.title || r.name || ('Result #' + (index + 1));
+            const price = r.price ? ('$' + r.price) : '';
+            const location = r.location || '';
+            const source = r.source || '';
 
-          const main = document.createElement('div');
-          main.className = 'result-main';
+            card.innerHTML = `
+              <div class="result-title">${title}</div>
+              <div class="result-meta">
+                ${price ? 'Price: ' + price + ' • ' : ''}
+                ${location ? 'Location: ' + location + ' • ' : ''}
+                ${source ? 'Source: ' + source : ''}
+              </div>
+              <div class="result-link">
+                ${r.url ? '<a href="' + r.url + '" target="_blank" rel="noopener noreferrer">View Listing</a>' : ''}
+              </div>
+            `;
 
-          const title = document.createElement('div');
-          title.className = 'result-title';
-          title.textContent = item.title || 'Listing';
-
-          const meta = document.createElement('div');
-          meta.className = 'result-meta';
-          const date = item.posted_at ? new Date(item.posted_at).toLocaleDateString() : '';
-          meta.textContent = `${item.source || 'Marketplace'} • ${item.condition || 'Condition unknown'}${date ? ' • Posted ' + date : ''}`;
-
-          const price = document.createElement('div');
-          price.className = 'result-price';
-          price.textContent = item.price ? `$${item.price}` : 'Price not listed';
-
-          const link = document.createElement('div');
-          link.className = 'result-link';
-          if (item.url) {
-            const a = document.createElement('a');
-            a.href = item.url;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            a.textContent = 'View listing';
-            link.appendChild(a);
-          }
-
-          main.appendChild(title);
-          main.appendChild(meta);
-          main.appendChild(price);
-          main.appendChild(link);
-
-          card.appendChild(img);
-          card.appendChild(main);
-
-          resultsContainer.appendChild(card);
+            resultsContainer.appendChild(card);
+          });
+        })
+        .catch(err => {
+          messageEl.textContent = 'Error loading results: ' + err.message;
         });
-
-        currentPage = data.page || page;
-        const totalPages = data.total_pages || 1;
-
-        pageInfoEl.textContent = `Page ${currentPage} of ${totalPages}`;
-
-        prevBtn.disabled = currentPage <= 1;
-        nextBtn.disabled = currentPage >= totalPages;
-
-        prevBtn.onclick = () => {
-          if (currentPage > 1) {
-            loadResults(currentPage - 1);
-          }
-        };
-
-        nextBtn.onclick = () => {
-          if (currentPage < totalPages) {
-            loadResults(currentPage + 1);
-          }
-        };
-
-      } catch (err) {
-        console.error('Error loading results:', err);
-        messageEl.textContent = 'An error occurred while loading results.';
-      }
     }
   </script>
-
 </body>
 
 </html>

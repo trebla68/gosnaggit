@@ -3,25 +3,84 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>GoSnaggit</title>
+  <title>GoSnaggit – Find Hard-to-Find Items</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 16px;
+      line-height: 1.5;
+    }
+
+    header {
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .tagline {
+      font-size: 1rem;
+      color: #444;
+      max-width: 700px;
+    }
+
+    .actions {
+      margin-top: 2rem;
+    }
+
+    .actions a {
+      display: inline-block;
+      margin-right: 1rem;
+      padding: 0.75rem 1.5rem;
+      text-decoration: none;
+      border-radius: 4px;
+      border: 1px solid #0066cc;
+      background-color: #0066cc;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    .actions a.secondary {
+      background-color: #fff;
+      color: #0066cc;
+    }
+
+    .actions a:hover {
+      opacity: 0.9;
+    }
+
+    footer {
+      margin-top: 3rem;
+      font-size: 0.85rem;
+      color: #666;
+    }
+  </style>
 </head>
 
 <body>
-  <h1>Are you on the hunt for hard-to-find items?</h1>
-  <p>
-    Don't let somebody else beat you to it. GoSnaggit finds your items for you
-    by continuously searching hundreds of classified sites and hidden
-    marketplaces and sending you scheduled alerts when your item is found,
-    so you can snag it first.
-  </p>
+  <header>
+    <h1>On the hunt for hard-to-find items?</h1>
+    <p class="tagline">
+      Don’t let somebody else beat you to it. GoSnaggit finds your items for you
+      by continuously searching hundreds of classified sites and hidden
+      marketplaces and sending you scheduled alerts when your item is found,
+      so you can snag it first.
+    </p>
+  </header>
 
-  <button onclick="window.location.href = '/search.html';">
-    Search a Product
-  </button>
+  <section class="actions">
+    <a href="/search.html">Search a Product</a>
+    <a class="secondary" href="/searches.html">View My Searches</a>
+  </section>
 
-  <button onclick="window.location.href = '/searches';">
-    View My Searches
-  </button>
+  <footer>
+    <p>GoSnaggit – early prototype / MVP interface</p>
+  </footer>
 </body>
 
 </html>

@@ -4,376 +4,144 @@
 <head>
     <meta charset="UTF-8" />
     <title>GoSnaggit – Search Details</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            margin: 0;
-            padding: 0;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 16px;
+            line-height: 1.5;
         }
 
         header {
-            background: #222;
-            color: #fff;
-            padding: 16px;
-            text-align: center;
-        }
-
-        main {
-            max-width: 900px;
-            margin: 32px auto;
-            background: #fff;
-            padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
         }
 
         h1 {
-            margin-top: 0;
+            margin-bottom: 0.25rem;
         }
 
-        h2 {
-            margin-top: 24px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 4px;
-        }
-
-        .message {
-            margin-top: 12px;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-            font-size: 14px;
-        }
-
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .message.info {
-            background: #e2e3e5;
-            color: #383d41;
-        }
-
-        .details-grid {
-            display: grid;
-            grid-template-columns: 150px 1fr;
-            row-gap: 6px;
-            column-gap: 12px;
-            font-size: 14px;
-            margin-top: 8px;
-        }
-
-        .label {
-            font-weight: bold;
-            color: #555;
-        }
-
-        .value {
-            color: #222;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 999px;
-            font-size: 12px;
-            text-transform: uppercase;
-        }
-
-        .status-active {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-other {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-        }
-
-        th,
-        td {
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
-            font-size: 14px;
-        }
-
-        th {
-            background: #f0f0f0;
-        }
-
-        tr:nth-child(even) {
-            background: #fafafa;
-        }
-
-        .links {
-            margin-top: 24px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-        }
-
-        a {
-            color: #007bff;
+        nav a {
+            margin-right: 1rem;
             text-decoration: none;
+            color: #0066cc;
         }
 
-        a:hover {
+        nav a:hover {
             text-decoration: underline;
         }
 
-        .small {
-            font-size: 12px;
-            color: #666;
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .field-label {
+            font-weight: bold;
+        }
+
+        .field {
+            margin-bottom: 0.75rem;
+        }
+
+        #message {
+            margin-top: 1rem;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 
 <body>
     <header>
-        <h2>GoSnaggit – Search Details</h2>
+        <h1>Search Details</h1>
+        <p>View the full details for this saved search.</p>
+        <nav>
+            <a href="/index.html">Home</a>
+            <a href="/searches.html">Saved Searches</a>
+        </nav>
     </header>
 
-    <main>
-        <div id="message" class="message"></div>
+    <div id="message"></div>
 
-        <section id="search-section" style="display:none;">
-            <h1 id="search-title">Search Details</h1>
-            <p class="small" id="search-subtitle"></p>
-
-            <div class="details-grid">
-                <div class="label">ID:</div>
-                <div class="value" id="detail-id"></div>
-
-                <div class="label">Item:</div>
-                <div class="value" id="detail-item"></div>
-
-                <div class="label">Location:</div>
-                <div class="value" id="detail-location"></div>
-
-                <div class="label">Category:</div>
-                <div class="value" id="detail-category"></div>
-
-                <div class="label">Max Price:</div>
-                <div class="value" id="detail-max_price"></div>
-
-                <div class="label">Status:</div>
-                <div class="value" id="detail-status"></div>
-
-                <div class="label">Created At:</div>
-                <div class="value" id="detail-created_at"></div>
-            </div>
-        </section>
-
-        <section id="results-section" style="display:none;">
-            <h2>Results Found for This Search</h2>
-            <p class="small">
-                These results come from the mock search engine and represent example matches.
-            </p>
-
-            <table id="results-table">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Source</th>
-                        <th>Price</th>
-                        <th>URL</th>
-                        <th>Found At</th>
-                    </tr>
-                </thead>
-                <tbody id="results-body">
-                    <!-- Populated by JS -->
-                </tbody>
-            </table>
-        </section>
-
-        <div class="links">
-            <a href="/searches.html">&larr; Back to All Searches</a>
-            <a href="/search.html">Create a New Search &rarr;</a>
+    <section id="details" class="card" style="display:none;">
+        <div class="field">
+            <span class="field-label">ID:</span>
+            <span id="field-id"></span>
         </div>
-    </main>
+        <div class="field">
+            <span class="field-label">Search Item:</span>
+            <span id="field-item"></span>
+        </div>
+        <div class="field">
+            <span class="field-label">Location:</span>
+            <span id="field-location"></span>
+        </div>
+        <div class="field">
+            <span class="field-label">Category:</span>
+            <span id="field-category"></span>
+        </div>
+        <div class="field">
+            <span class="field-label">Max Price:</span>
+            <span id="field-max-price"></span>
+        </div>
+        <div class="field">
+            <span class="field-label">Status:</span>
+            <span id="field-status"></span>
+        </div>
+        <div class="field">
+            <span class="field-label">Created At:</span>
+            <span id="field-created"></span>
+        </div>
+    </section>
 
     <script>
-        const messageBox = document.getElementById('message');
-        const searchSection = document.getElementById('search-section');
-        const resultsSection = document.getElementById('results-section');
-
-        const titleEl = document.getElementById('search-title');
-        const subtitleEl = document.getElementById('search-subtitle');
-        const idEl = document.getElementById('detail-id');
-        const itemEl = document.getElementById('detail-item');
-        const locationEl = document.getElementById('detail-location');
-        const categoryEl = document.getElementById('detail-category');
-        const maxPriceEl = document.getElementById('detail-max_price');
-        const statusEl = document.getElementById('detail-status');
-        const createdAtEl = document.getElementById('detail-created_at');
-
-        const resultsBody = document.getElementById('results-body');
-
-        function showMessage(text, type = 'info') {
-            messageBox.textContent = text;
-            messageBox.className = 'message ' + type;
-            messageBox.style.display = 'block';
-        }
-
-        function hideMessage() {
-            messageBox.style.display = 'none';
-            messageBox.textContent = '';
-            messageBox.className = 'message';
-        }
-
-        function formatDate(isoString) {
-            if (!isoString) return '';
-            try {
-                const d = new Date(isoString);
-                return d.toLocaleString();
-            } catch {
-                return isoString;
-            }
-        }
-
-        function createStatusBadge(status) {
-            const span = document.createElement('span');
-            const value = (status || '').toLowerCase();
-
-            span.textContent = status || 'unknown';
-            span.classList.add('status-badge');
-
-            if (value === 'active') {
-                span.classList.add('status-active');
-            } else if (value === 'pending') {
-                span.classList.add('status-pending');
-            } else {
-                span.classList.add('status-other');
-            }
-
-            return span;
-        }
-
-        async function loadSearchDetails(searchId) {
-            hideMessage();
-            searchSection.style.display = 'none';
-
-            try {
-                const response = await fetch(`/searches/${encodeURIComponent(searchId)}`);
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error('Search not found.');
-                    }
-                    throw new Error('Failed to fetch search details.');
-                }
-
-                const search = await response.json();
-
-                titleEl.textContent = search.search_item || 'Search Details';
-                subtitleEl.textContent = `Search ID ${search.id}, created ${formatDate(search.created_at)}.`;
-
-                idEl.textContent = search.id;
-                itemEl.textContent = search.search_item || '';
-                locationEl.textContent = search.location || '';
-                categoryEl.textContent = search.category || '';
-                maxPriceEl.textContent = search.max_price != null ? search.max_price : '';
-
-                statusEl.innerHTML = '';
-                statusEl.appendChild(createStatusBadge(search.status));
-
-                createdAtEl.textContent = formatDate(search.created_at);
-
-                searchSection.style.display = 'block';
-            } catch (err) {
-                console.error('Error loading search details:', err);
-                showMessage(err.message || 'Something went wrong while loading search details.', 'error');
-            }
-        }
-
-        async function loadSearchResults(searchId) {
-            resultsSection.style.display = 'none';
-            resultsBody.innerHTML = '';
-
-            try {
-                const response = await fetch(`/searches/${encodeURIComponent(searchId)}/results?limit=50&page=1`);
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch search results.');
-                }
-
-                const data = await response.json();
-                const results = data.results || [];
-
-                if (!Array.isArray(results) || results.length === 0) {
-                    showMessage('No results have been found for this search yet. (If you run the mock engine, they will appear here.)', 'info');
-                    return;
-                }
-
-                for (const r of results) {
-                    const tr = document.createElement('tr');
-
-                    const tdTitle = document.createElement('td');
-                    tdTitle.textContent = r.title || '';
-
-                    const tdSource = document.createElement('td');
-                    tdSource.textContent = r.source || '';
-
-                    const tdPrice = document.createElement('td');
-                    tdPrice.textContent = r.price != null ? r.price : '';
-
-                    const tdUrl = document.createElement('td');
-                    if (r.url) {
-                        const link = document.createElement('a');
-                        link.href = r.url;
-                        link.target = '_blank';
-                        link.rel = 'noopener noreferrer';
-                        link.textContent = 'View listing';
-                        tdUrl.appendChild(link);
-                    } else {
-                        tdUrl.textContent = '';
-                    }
-
-                    const tdCreatedAt = document.createElement('td');
-                    tdCreatedAt.textContent = formatDate(r.created_at);
-
-                    tr.appendChild(tdTitle);
-                    tr.appendChild(tdSource);
-                    tr.appendChild(tdPrice);
-                    tr.appendChild(tdUrl);
-                    tr.appendChild(tdCreatedAt);
-
-                    resultsBody.appendChild(tr);
-                }
-
-                resultsSection.style.display = 'block';
-            } catch (err) {
-                console.error('Error loading search results:', err);
-                showMessage(err.message || 'Something went wrong while loading search results.', 'error');
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
+        function getSearchIdFromUrl() {
             const params = new URLSearchParams(window.location.search);
-            const id = params.get('id');
+            return params.get('id');
+        }
 
-            if (!id) {
-                showMessage('No search ID was provided in the URL.', 'error');
-                return;
-            }
+        const messageEl = document.getElementById('message');
+        const detailsEl = document.getElementById('details');
 
-            loadSearchDetails(id);
-            loadSearchResults(id);
-        });
+        const fieldId = document.getElementById('field-id');
+        const fieldItem = document.getElementById('field-item');
+        const fieldLocation = document.getElementById('field-location');
+        const fieldCategory = document.getElementById('field-category');
+        const fieldMaxPrice = document.getElementById('field-max-price');
+        const fieldStatus = document.getElementById('field-status');
+        const fieldCreated = document.getElementById('field-created');
+
+        const searchId = getSearchIdFromUrl();
+
+        if (!searchId) {
+            messageEl.textContent = 'Missing search id in the URL (e.g., ?id=1).';
+        } else {
+            fetch('/searches/' + searchId)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load search');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    detailsEl.style.display = 'block';
+                    messageEl.textContent = '';
+
+                    fieldId.textContent = data.id;
+                    fieldItem.textContent = data.search_item || '';
+                    fieldLocation.textContent = data.location || '';
+                    fieldCategory.textContent = data.category || '';
+                    fieldMaxPrice.textContent = data.max_price || '';
+                    fieldStatus.textContent = data.status || '';
+                    fieldCreated.textContent = data.created_at ? new Date(data.created_at).toLocaleString() : '';
+                })
+                .catch(err => {
+                    messageEl.textContent = 'Error loading search: ' + err.message;
+                });
+        }
     </script>
 </body>
 
