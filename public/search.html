@@ -6,137 +6,419 @@
   <title>GoSnaggit – Create a Search</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --accent-soft: rgba(255, 179, 71, 0.15);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --danger: #ff4b5c;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 16px;
-      line-height: 1.5;
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1040px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 24px 22px 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 2.3fr);
+      gap: 22px;
+    }
+
+    @media (max-width: 840px) {
+      .inner {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 20px 16px 18px;
+      }
     }
 
     header {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      gap: 10px;
+    }
+
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1b1206;
+      font-weight: 800;
+      font-size: 1rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-text span:first-child {
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .logo-text span:last-child {
+      font-size: 0.98rem;
+      font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.12);
+      background-color: rgba(9, 13, 32, 0.9);
     }
 
     h1 {
-      margin-bottom: 0.25rem;
+      font-size: clamp(1.4rem, 1.8vw + 0.9rem, 1.9rem);
+      margin: 0 0 0.4rem;
+      line-height: 1.2;
     }
 
-    nav a {
-      margin-right: 1rem;
-      text-decoration: none;
-      color: #0066cc;
+    .subtitle {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      max-width: 360px;
     }
 
-    nav a:hover {
-      text-decoration: underline;
+    .hint-pills {
+      margin-top: 0.9rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      font-size: 0.78rem;
+    }
+
+    .hint-pill {
+      border-radius: 999px;
+      padding: 4px 9px;
+      border: 1px solid rgba(255, 179, 71, 0.35);
+      background-color: rgba(8, 10, 25, 0.9);
+      color: var(--text-muted);
+    }
+
+    .callout {
+      margin-top: 1.1rem;
+      font-size: 0.82rem;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background-color: rgba(12, 156, 104, 0.08);
+      border: 1px solid rgba(84, 236, 176, 0.35);
+      color: #c5fbe2;
+    }
+
+    .callout span {
+      font-weight: 600;
+      color: #84ffd6;
+    }
+
+    /* Form card */
+    .form-card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
+      border: 1px solid rgba(80, 97, 183, 0.55);
+      padding: 16px 16px 14px;
     }
 
     form {
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 1rem;
-      margin-top: 1rem;
+      margin: 0;
     }
 
     label {
       display: block;
-      margin-top: 0.75rem;
-      font-weight: bold;
+      margin-top: 0.6rem;
+      margin-bottom: 0.15rem;
+      font-weight: 500;
+      font-size: 0.86rem;
     }
 
+    .field-hint {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    textarea,
     input[type="text"],
-    input[type="number"],
-    textarea {
+    input[type="number"] {
       width: 100%;
-      padding: 8px;
-      margin-top: 0.25rem;
-      box-sizing: border-box;
+      padding: 8px 9px;
+      border-radius: 10px;
+      border: 1px solid rgba(48, 60, 120, 0.95);
+      background-color: rgba(6, 8, 22, 0.96);
+      color: var(--text-main);
+      font-size: 0.88rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 54px;
     }
 
-    textarea {
-      min-height: 60px;
+    textarea::placeholder,
+    input::placeholder {
+      color: rgba(162, 167, 196, 0.75);
     }
 
-    .hint {
-      font-size: 0.85rem;
-      color: #666;
+    textarea:focus,
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(255, 179, 71, 0.35);
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 0.35rem;
+    }
+
+    @media (max-width: 840px) {
+      .field-row {
+        grid-template-columns: minmax(0, 1fr);
+      }
     }
 
     .actions {
-      margin-top: 1.25rem;
+      margin-top: 1.1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      align-items: center;
     }
 
-    button {
-      padding: 0.5rem 1.25rem;
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.65rem 1.4rem;
+      border-radius: 999px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 500;
       cursor: pointer;
-      border-radius: 4px;
-      border: 1px solid #0066cc;
-      background-color: #0066cc;
-      color: #fff;
-      font-size: 0.95rem;
+      text-decoration: none;
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.12s ease-out;
+      white-space: nowrap;
     }
 
-    button:hover {
-      opacity: 0.9;
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #1a1306;
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.6);
+    }
+
+    .btn-secondary-link {
+      background: transparent;
+      color: var(--text-muted);
+      padding-left: 0;
+      padding-right: 0;
+      box-shadow: none;
+    }
+
+    .btn-secondary-link:hover {
+      color: var(--text-main);
+      text-decoration: underline;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.5);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+    }
+
+    .status-text {
+      font-size: 0.78rem;
+      color: var(--text-muted);
     }
 
     .message {
-      margin-top: 1rem;
-      padding: 0.75rem;
-      border-radius: 4px;
-      font-size: 0.9rem;
+      margin-top: 0.8rem;
+      padding: 0.7rem 0.8rem;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      display: none;
     }
 
     .message.error {
-      background-color: #ffe6e6;
-      border: 1px solid #cc0000;
-      color: #660000;
+      background-color: rgba(255, 75, 92, 0.12);
+      border: 1px solid rgba(255, 75, 92, 0.65);
+      color: #ffc5cb;
     }
 
     .message.success {
-      background-color: #e6ffea;
-      border: 1px solid #149214;
-      color: #145214;
+      background-color: rgba(84, 236, 176, 0.1);
+      border: 1px solid rgba(84, 236, 176, 0.6);
+      color: #c4ffe5;
+    }
+
+    .small-note {
+      margin-top: 0.4rem;
+      font-size: 0.76rem;
+      color: var(--text-muted);
     }
   </style>
 </head>
 
 <body>
-  <header>
-    <h1>Create a New Search</h1>
-    <p>Tell GoSnaggit what you’re hunting for.</p>
-    <nav>
-      <a href="/index.html">Home</a>
-      <a href="/searches.html">Saved Searches</a>
-    </nav>
-  </header>
+  <div class="shell">
+    <div class="inner">
+      <!-- Left: text + guidance -->
+      <div>
+        <header>
+          <div class="logo-row">
+            <div class="logo-left">
+              <div class="logo-mark">G</div>
+              <div class="logo-text">
+                <span>GoSnaggit</span>
+                <span>Create a new hunt</span>
+              </div>
+            </div>
+            <nav class="nav-links">
+              <a href="/index.html">Home</a>
+              <a href="/searches.html">Saved searches</a>
+            </nav>
+          </div>
+          <h1>Tell GoSnaggit what you’re hunting for.</h1>
+          <p class="subtitle">
+            The more detail you add here, the smarter your future search engine can be about
+            where and how to look.
+          </p>
+        </header>
 
-  <form id="search-form">
-    <label for="search_item">Search Item</label>
-    <textarea id="search_item" name="search_item" required
-      placeholder="e.g., 1960 Porsche, vintage car radio, antique oak writing desk"></textarea>
-    <p class="hint">Describe the item as you would search for it online.</p>
+        <div class="hint-pills">
+          <div class="hint-pill">“Vintage car radio, Blaupunkt, working or repairable”</div>
+          <div class="hint-pill">“1960 Porsche 356 project, roller, East Coast only”</div>
+          <div class="hint-pill">“Antique oak writing desk, mission style, under $500”</div>
+        </div>
 
-    <label for="location">Location (optional)</label>
-    <input id="location" name="location" type="text" placeholder="e.g., New York, Los Angeles">
+        <div class="callout">
+          Background searching and alerts are still a <span>concept stage</span> feature.
+          This page is your MVP for capturing the kinds of searches GoSnaggit will automate.
+        </div>
+      </div>
 
-    <label for="category">Category (optional)</label>
-    <input id="category" name="category" type="text" placeholder="e.g., Electronics, Furniture">
+      <!-- Right: form -->
+      <div class="form-card">
+        <form id="search-form">
+          <label for="search_item">Search item</label>
+          <p class="field-hint">Describe what you’re looking for as if you were typing into your favorite marketplace.
+          </p>
+          <textarea id="search_item" name="search_item" required
+            placeholder="e.g., 1960 Porsche 356 project, vintage car radio, antique oak writing desk"></textarea>
 
-    <label for="max_price">Max Price Limit (optional)</label>
-    <input id="max_price" name="max_price" type="number" min="0" step="0.01" placeholder="e.g., 500">
+          <div class="field-row">
+            <div>
+              <label for="location">Location (optional)</label>
+              <p class="field-hint">City, region, or “online only”.</p>
+              <input id="location" name="location" type="text" placeholder="e.g., New York, Los Angeles, Mid-Atlantic">
+            </div>
+            <div>
+              <label for="category">Category (optional)</label>
+              <p class="field-hint">Just for your own organization.</p>
+              <input id="category" name="category" type="text" placeholder="e.g., Electronics, Furniture, Classic cars">
+            </div>
+          </div>
 
-    <div class="actions">
-      <button type="submit">Start Search</button>
+          <label for="max_price">Max price limit (optional)</label>
+          <p class="field-hint">Set a rough cap so you can quickly see which finds are in range.</p>
+          <input id="max_price" name="max_price" type="number" min="0" step="0.01" placeholder="e.g., 500">
+
+          <div class="actions">
+            <button type="submit" class="btn btn-primary">
+              <span>Start search prototype</span>
+            </button>
+            <button type="button" class="btn btn-secondary-link" id="view-searches-btn">
+              View saved searches
+            </button>
+            <div class="status-text">
+              Saved searches appear in your MVP table view.
+            </div>
+          </div>
+
+          <div id="message" class="message"></div>
+          <p class="small-note">
+            Note: In this MVP, searches are stored and listed. The “engine” that runs them in the background
+            is the next layer you’ll be designing.
+          </p>
+        </form>
+      </div>
     </div>
-
-    <div id="message" class="message" style="display: none;"></div>
-  </form>
+  </div>
 
   <script>
     const form = document.getElementById('search-form');
     const messageEl = document.getElementById('message');
+    const viewSearchesBtn = document.getElementById('view-searches-btn');
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -146,10 +428,11 @@
         search_item: document.getElementById('search_item').value.trim(),
         location: document.getElementById('location').value.trim() || null,
         category: document.getElementById('category').value.trim() || null,
-        max_price: document.getElementById('max_price').value ? document.getElementById('max_price').value : null
+        max_price: document.getElementById('max_price').value
+          ? document.getElementById('max_price').value
+          : null
       };
 
-      // Basic required field check
       if (!payload.search_item) {
         messageEl.textContent = 'Please describe the item you are searching for.';
         messageEl.className = 'message error';
@@ -171,7 +454,9 @@
           return response.json();
         })
         .then(data => {
-          messageEl.textContent = 'Search created! ID: ' + data.id + '. You can view it on the Saved Searches page.';
+          messageEl.textContent =
+            'Search created! ID: ' + data.id +
+            '. You can view it on the Saved searches page.';
           messageEl.className = 'message success';
           messageEl.style.display = 'block';
           form.reset();
@@ -181,6 +466,10 @@
           messageEl.className = 'message error';
           messageEl.style.display = 'block';
         });
+    });
+
+    viewSearchesBtn.addEventListener('click', function () {
+      window.location.href = '/searches.html';
     });
   </script>
 </body>

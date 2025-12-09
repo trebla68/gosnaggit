@@ -6,78 +6,295 @@
   <title>GoSnaggit – Search Results</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --accent-soft: rgba(255, 179, 71, 0.15);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 16px;
-      line-height: 1.5;
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1040px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 24px 22px 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 2.2fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .inner {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 20px 16px 18px;
+      }
     }
 
     header {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      gap: 10px;
+    }
+
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1b1206;
+      font-weight: 800;
+      font-size: 1rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-text span:first-child {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .logo-text span:last-child {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.82rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.12);
+      background-color: rgba(9, 13, 32, 0.9);
     }
 
     h1 {
-      margin-bottom: 0.25rem;
+      margin: 0 0 0.35rem;
+      font-size: 1.4rem;
     }
 
-    nav a {
-      margin-right: 1rem;
-      text-decoration: none;
-      color: #0066cc;
-    }
-
-    nav a:hover {
-      text-decoration: underline;
-    }
-
-    #message {
-      margin-top: 1rem;
+    .subtitle {
       font-size: 0.9rem;
+      color: var(--text-muted);
+      max-width: 380px;
     }
 
-    .result-card {
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 1rem;
-      margin-top: 1rem;
+    .subtitle strong {
+      color: var(--accent);
+    }
+
+    .meta-note {
+      margin-top: 0.8rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .meta-note span {
+      color: #b4b9ff;
+    }
+
+    /* Right: results list */
+    .results-card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
+      border: 1px solid rgba(80, 97, 183, 0.6);
+      padding: 14px 13px 12px;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      gap: 8px;
+      font-size: 0.84rem;
+    }
+
+    .results-title {
+      font-weight: 500;
+    }
+
+    .results-count-pill {
+      border-radius: 999px;
+      padding: 3px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    .results-list {
+      margin-top: 0.4rem;
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .result-tile {
+      border-radius: 12px;
+      background-color: rgba(6, 8, 22, 0.96);
+      border: 1px solid rgba(50, 61, 112, 0.9);
+      padding: 9px 9px 8px;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
     }
 
     .result-title {
-      font-weight: bold;
-      margin-bottom: 0.25rem;
+      font-weight: 500;
+      margin-bottom: 2px;
     }
 
     .result-meta {
-      font-size: 0.85rem;
-      color: #666;
-      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .result-price {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .result-source-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.74rem;
+      margin-top: 2px;
+    }
+
+    .result-source {
+      color: var(--text-muted);
     }
 
     .result-link a {
-      color: #0066cc;
+      color: #9ae6ff;
       text-decoration: none;
+      font-size: 0.76rem;
     }
 
     .result-link a:hover {
       text-decoration: underline;
     }
+
+    #message {
+      margin-top: 0.6rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .message-error {
+      color: #ffc5cb;
+    }
   </style>
 </head>
 
 <body>
-  <header>
-    <h1>Search Results</h1>
-    <p>Mock or real results for this search.</p>
-    <nav>
-      <a href="/index.html">Home</a>
-      <a href="/searches.html">Saved Searches</a>
-    </nav>
-  </header>
+  <div class="shell">
+    <div class="inner">
+      <!-- Left side: info -->
+      <div>
+        <header>
+          <div class="logo-row">
+            <div class="logo-left">
+              <div class="logo-mark">G</div>
+              <div class="logo-text">
+                <span>GoSnaggit</span>
+                <span>Search results preview</span>
+              </div>
+            </div>
+            <nav class="nav-links">
+              <a href="/index.html">Home</a>
+              <a href="/searches.html">Saved searches</a>
+            </nav>
+          </div>
+          <h1>Results for this saved search.</h1>
+          <p class="subtitle">
+            This page shows <strong>mock or real listings</strong> connected to a single saved search.
+            In future, this will be filled by the background search engine.
+          </p>
+        </header>
 
-  <div id="message"></div>
-  <div id="results-container"></div>
+        <p class="meta-note">
+          Note: For now, this is a <span>visual MVP</span>. Any results shown are mock data or whatever
+          your backend returns from <code>/searches/:id/results</code>.
+        </p>
+      </div>
+
+      <!-- Right side: results list -->
+      <div class="results-card">
+        <div class="results-header">
+          <div class="results-title">Listings found</div>
+          <div class="results-count-pill" id="results-count-pill">0 results</div>
+        </div>
+
+        <div id="results-container" class="results-list">
+          <!-- Filled by JS -->
+        </div>
+
+        <div id="message"></div>
+      </div>
+    </div>
+  </div>
 
   <script>
     function getSearchIdFromUrl() {
@@ -87,10 +304,12 @@
 
     const messageEl = document.getElementById('message');
     const resultsContainer = document.getElementById('results-container');
+    const countPill = document.getElementById('results-count-pill');
     const searchId = getSearchIdFromUrl();
 
     if (!searchId) {
       messageEl.textContent = 'Missing search id in the URL (e.g., ?id=1).';
+      messageEl.classList.add('message-error');
     } else {
       fetch('/searches/' + searchId + '/results')
         .then(response => {
@@ -100,34 +319,39 @@
           return response.json();
         })
         .then(data => {
-          // Support either an array or an object like { results: [...] }
           const results = Array.isArray(data) ? data : (data.results || []);
 
+          resultsContainer.innerHTML = '';
+
           if (!results || results.length === 0) {
-            messageEl.textContent = 'No results yet for this search (or mock engine has not generated any).';
+            messageEl.textContent = 'No results yet for this search (or the mock engine has not generated any).';
+            countPill.textContent = '0 results';
             return;
           }
 
           messageEl.textContent = '';
+          countPill.textContent = results.length + (results.length === 1 ? ' result' : ' results');
 
           results.forEach((r, index) => {
             const card = document.createElement('div');
-            card.className = 'result-card';
+            card.className = 'result-tile';
 
             const title = r.title || r.name || ('Result #' + (index + 1));
             const price = r.price ? ('$' + r.price) : '';
             const location = r.location || '';
-            const source = r.source || '';
+            const source = r.source || 'Unknown source';
 
             card.innerHTML = `
               <div class="result-title">${title}</div>
               <div class="result-meta">
-                ${price ? 'Price: ' + price + ' • ' : ''}
-                ${location ? 'Location: ' + location + ' • ' : ''}
-                ${source ? 'Source: ' + source : ''}
+                <span>${location || ''}</span>
+                <span class="result-price">${price}</span>
               </div>
-              <div class="result-link">
-                ${r.url ? '<a href="' + r.url + '" target="_blank" rel="noopener noreferrer">View Listing</a>' : ''}
+              <div class="result-source-row">
+                <span class="result-source">${source}</span>
+                <span class="result-link">
+                  ${r.url ? '<a href="' + r.url + '" target="_blank" rel="noopener noreferrer">View listing</a>' : ''}
+                </span>
               </div>
             `;
 
@@ -136,6 +360,7 @@
         })
         .catch(err => {
           messageEl.textContent = 'Error loading results: ' + err.message;
+          messageEl.classList.add('message-error');
         });
     }
   </script>

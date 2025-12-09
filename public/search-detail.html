@@ -6,96 +6,245 @@
     <title>GoSnaggit – Search Details</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
+        :root {
+            --bg: #0b1020;
+            --card-bg: #151a2b;
+            --accent: #ffb347;
+            --accent-soft: rgba(255, 179, 71, 0.15);
+            --accent-strong: #ff9f1c;
+            --text-main: #f7f7ff;
+            --text-muted: #a2a7c4;
+            --border-subtle: #262b3f;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+            --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text-main);
+            background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .shell {
+            width: 100%;
             max-width: 900px;
-            margin: 40px auto;
-            padding: 0 16px;
-            line-height: 1.5;
+            border-radius: var(--radius-xl);
+            background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+            padding: 2px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .inner {
+            border-radius: calc(var(--radius-xl) - 2px);
+            background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+            padding: 24px 22px 22px;
         }
 
         header {
-            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.3rem;
+        }
+
+        .logo-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-mark {
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1b1206;
+            font-weight: 800;
+            font-size: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-text span:first-child {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .logo-text span:last-child {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.82rem;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+            border-color: rgba(255, 255, 255, 0.12);
+            background-color: rgba(9, 13, 32, 0.9);
         }
 
         h1 {
-            margin-bottom: 0.25rem;
+            margin-top: 0.2rem;
+            margin-bottom: 0.2rem;
+            font-size: 1.35rem;
         }
 
-        nav a {
-            margin-right: 1rem;
-            text-decoration: none;
-            color: #0066cc;
-        }
-
-        nav a:hover {
-            text-decoration: underline;
-        }
-
-        .card {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 1rem;
+        .details-card {
+            border-radius: var(--radius-lg);
+            background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
+            border: 1px solid rgba(80, 97, 183, 0.6);
+            padding: 20px;
             margin-top: 1rem;
         }
 
-        .field-label {
-            font-weight: bold;
+        .details-row {
+            margin-bottom: 1rem;
         }
 
-        .field {
-            margin-bottom: 0.75rem;
+        .label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-bottom: 0.2rem;
+        }
+
+        .value {
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .actions {
+            margin-top: 1.4rem;
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.1s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: #1b1206;
+            border: none;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
         }
 
         #message {
             margin-top: 1rem;
-            font-size: 0.9rem;
+            font-size: 0.83rem;
+            color: #ffc5cb;
+            display: none;
         }
     </style>
 </head>
 
 <body>
-    <header>
-        <h1>Search Details</h1>
-        <p>View the full details for this saved search.</p>
-        <nav>
-            <a href="/index.html">Home</a>
-            <a href="/searches.html">Saved Searches</a>
-        </nav>
-    </header>
+    <div class="shell">
+        <div class="inner">
+            <header>
+                <div class="logo-left">
+                    <div class="logo-mark">G</div>
+                    <div class="logo-text">
+                        <span>GoSnaggit</span>
+                        <span>Search details</span>
+                    </div>
+                </div>
 
-    <div id="message"></div>
+                <nav class="nav-links">
+                    <a href="/index.html">Home</a>
+                    <a href="/searches.html">Saved searches</a>
+                </nav>
+            </header>
 
-    <section id="details" class="card" style="display:none;">
-        <div class="field">
-            <span class="field-label">ID:</span>
-            <span id="field-id"></span>
+            <h1 id="details-title">Search Details</h1>
+
+            <div id="message"></div>
+
+            <div class="details-card" id="details-card" style="display:none;">
+                <div class="details-row">
+                    <div class="label">Search item</div>
+                    <div class="value" id="detail-item"></div>
+                </div>
+
+                <div class="details-row">
+                    <div class="label">Location</div>
+                    <div class="value" id="detail-location"></div>
+                </div>
+
+                <div class="details-row">
+                    <div class="label">Category</div>
+                    <div class="value" id="detail-category"></div>
+                </div>
+
+                <div class="details-row">
+                    <div class="label">Max price</div>
+                    <div class="value" id="detail-price"></div>
+                </div>
+
+                <div class="details-row">
+                    <div class="label">Status</div>
+                    <div class="value" id="detail-status"></div>
+                </div>
+
+                <div class="details-row">
+                    <div class="label">Created at</div>
+                    <div class="value" id="detail-created"></div>
+                </div>
+
+                <div class="actions">
+                    <a id="edit-btn" class="btn btn-primary">Edit status</a>
+                    <a id="results-btn" class="btn btn-secondary">View results</a>
+                </div>
+            </div>
         </div>
-        <div class="field">
-            <span class="field-label">Search Item:</span>
-            <span id="field-item"></span>
-        </div>
-        <div class="field">
-            <span class="field-label">Location:</span>
-            <span id="field-location"></span>
-        </div>
-        <div class="field">
-            <span class="field-label">Category:</span>
-            <span id="field-category"></span>
-        </div>
-        <div class="field">
-            <span class="field-label">Max Price:</span>
-            <span id="field-max-price"></span>
-        </div>
-        <div class="field">
-            <span class="field-label">Status:</span>
-            <span id="field-status"></span>
-        </div>
-        <div class="field">
-            <span class="field-label">Created At:</span>
-            <span id="field-created"></span>
-        </div>
-    </section>
+    </div>
 
     <script>
         function getSearchIdFromUrl() {
@@ -103,43 +252,36 @@
             return params.get('id');
         }
 
+        const id = getSearchIdFromUrl();
         const messageEl = document.getElementById('message');
-        const detailsEl = document.getElementById('details');
+        const card = document.getElementById('details-card');
 
-        const fieldId = document.getElementById('field-id');
-        const fieldItem = document.getElementById('field-item');
-        const fieldLocation = document.getElementById('field-location');
-        const fieldCategory = document.getElementById('field-category');
-        const fieldMaxPrice = document.getElementById('field-max-price');
-        const fieldStatus = document.getElementById('field-status');
-        const fieldCreated = document.getElementById('field-created');
-
-        const searchId = getSearchIdFromUrl();
-
-        if (!searchId) {
-            messageEl.textContent = 'Missing search id in the URL (e.g., ?id=1).';
+        if (!id) {
+            messageEl.textContent = 'Missing search id in the URL.';
+            messageEl.style.display = 'block';
         } else {
-            fetch('/searches/' + searchId)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to load search');
-                    }
-                    return response.json();
+            fetch('/searches/' + id)
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to load search details');
+                    return res.json();
                 })
                 .then(data => {
-                    detailsEl.style.display = 'block';
-                    messageEl.textContent = '';
+                    document.getElementById('detail-item').textContent = data.search_item || '(none)';
+                    document.getElementById('detail-location').textContent = data.location || '(not set)';
+                    document.getElementById('detail-category').textContent = data.category || '(not set)';
+                    document.getElementById('detail-price').textContent = data.max_price ? '$' + data.max_price : '(none)';
+                    document.getElementById('detail-status').textContent = data.status || '(none)';
+                    document.getElementById('detail-created').textContent = data.created_at ? new Date(data.created_at).toLocaleString() : '(unknown)';
 
-                    fieldId.textContent = data.id;
-                    fieldItem.textContent = data.search_item || '';
-                    fieldLocation.textContent = data.location || '';
-                    fieldCategory.textContent = data.category || '';
-                    fieldMaxPrice.textContent = data.max_price || '';
-                    fieldStatus.textContent = data.status || '';
-                    fieldCreated.textContent = data.created_at ? new Date(data.created_at).toLocaleString() : '';
+                    // Update buttons
+                    document.getElementById('edit-btn').href = 'edit-search.html?id=' + id;
+                    document.getElementById('results-btn').href = 'search-results.html?id=' + id;
+
+                    card.style.display = 'block';
                 })
                 .catch(err => {
-                    messageEl.textContent = 'Error loading search: ' + err.message;
+                    messageEl.textContent = 'Error: ' + err.message;
+                    messageEl.style.display = 'block';
                 });
         }
     </script>

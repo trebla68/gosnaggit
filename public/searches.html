@@ -6,106 +6,492 @@
   <title>GoSnaggit – Saved Searches</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 16px;
-      line-height: 1.5;
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --accent-soft: rgba(255, 179, 71, 0.15);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --danger: #ff4b5c;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
     }
 
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1120px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 24px 22px 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 2.3fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .inner {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 20px 16px 18px;
+      }
+    }
+
+    /* Left column: header and summary */
     header {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.3rem;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      gap: 10px;
+    }
+
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1b1206;
+      font-weight: 800;
+      font-size: 1rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-text span:first-child {
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .logo-text span:last-child {
+      font-size: 0.98rem;
+      font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.12);
+      background-color: rgba(9, 13, 32, 0.9);
     }
 
     h1 {
-      margin-bottom: 0.25rem;
+      font-size: clamp(1.45rem, 1.9vw + 0.9rem, 2rem);
+      margin: 0 0 0.5rem;
+      line-height: 1.2;
     }
 
-    nav a {
-      margin-right: 1rem;
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      max-width: 380px;
+    }
+
+    .subtitle strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .summary-card {
+      margin-top: 1.1rem;
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
+      border: 1px solid rgba(80, 97, 183, 0.6);
+      padding: 12px 13px 10px;
+      font-size: 0.82rem;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.4rem;
+    }
+
+    .summary-label {
+      color: var(--text-muted);
+    }
+
+    .summary-value {
+      font-weight: 600;
+    }
+
+    .summary-pills {
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .summary-pill {
+      border-radius: 999px;
+      padding: 3px 8px;
+      background-color: rgba(8, 10, 25, 0.95);
+      border: 1px solid rgba(52, 64, 132, 0.85);
+      color: var(--text-muted);
+      font-size: 0.76rem;
+    }
+
+    .summary-footer {
+      margin-top: 0.6rem;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .summary-footer span {
+      color: #b0b6ff;
+    }
+
+    /* Right column: table card */
+    .table-card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
+      border: 1px solid rgba(80, 97, 183, 0.6);
+      padding: 14px 13px 12px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+      gap: 8px;
+    }
+
+    .table-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .table-controls {
+      display: flex;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+    }
+
+    .tiny-pill {
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      cursor: default;
+    }
+
+    .add-link {
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid transparent;
+      color: var(--accent);
       text-decoration: none;
-      color: #0066cc;
     }
 
-    nav a:hover {
-      text-decoration: underline;
+    .add-link:hover {
+      background-color: rgba(12, 16, 36, 0.92);
+      border-color: rgba(255, 179, 71, 0.45);
+    }
+
+    .table-wrapper {
+      border-radius: 10px;
+      border: 1px solid rgba(46, 57, 118, 0.9);
+      background-color: rgba(6, 8, 22, 0.96);
+      overflow: auto;
+      max-height: 440px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 1rem;
+      font-size: 0.8rem;
+      min-width: 680px;
+    }
+
+    thead {
+      background: linear-gradient(90deg,
+          rgba(24, 33, 78, 0.95),
+          rgba(19, 25, 61, 0.95));
     }
 
     th,
     td {
-      border: 1px solid #ccc;
-      padding: 8px;
+      padding: 7px 8px;
       text-align: left;
-      font-size: 0.9rem;
+      border-bottom: 1px solid rgba(30, 38, 88, 0.9);
+      color: var(--text-main);
+      vertical-align: top;
     }
 
     th {
-      background-color: #f5f5f5;
+      font-weight: 500;
+      color: var(--text-muted);
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
 
-    .actions a {
-      margin-right: 0.5rem;
+    tbody tr:hover {
+      background-color: rgba(19, 25, 55, 0.9);
+    }
+
+    td.small {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid transparent;
+    }
+
+    .status-active {
+      background-color: rgba(94, 234, 212, 0.13);
+      border-color: rgba(34, 197, 154, 0.6);
+      color: #a7ffeb;
+    }
+
+    .status-paused {
+      background-color: rgba(251, 191, 36, 0.13);
+      border-color: rgba(245, 158, 11, 0.7);
+      color: #fde68a;
+    }
+
+    .status-completed {
+      background-color: rgba(52, 211, 153, 0.13);
+      border-color: rgba(16, 185, 129, 0.7);
+      color: #bbf7d0;
+    }
+
+    .status-cancelled {
+      background-color: rgba(248, 113, 113, 0.13);
+      border-color: rgba(239, 68, 68, 0.7);
+      color: #fecaca;
+    }
+
+    .actions-cell a {
+      display: inline-block;
+      margin-right: 0.4rem;
+      font-size: 0.76rem;
       text-decoration: none;
-      color: #0066cc;
-      font-size: 0.85rem;
+      color: var(--accent);
     }
 
-    .actions a:hover {
+    .actions-cell a:hover {
       text-decoration: underline;
     }
 
     #message {
-      margin-top: 1rem;
-      font-size: 0.9rem;
+      margin-top: 0.6rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .message-error {
+      color: #ffc5cb;
     }
   </style>
 </head>
 
 <body>
-  <header>
-    <h1>Saved Searches</h1>
-    <p>View and manage your GoSnaggit searches.</p>
-    <nav>
-      <a href="/index.html">Home</a>
-      <a href="/search.html">Create New Search</a>
-    </nav>
-  </header>
+  <div class="shell">
+    <div class="inner">
+      <!-- Left: overview / summary -->
+      <div>
+        <header>
+          <div class="logo-row">
+            <div class="logo-left">
+              <div class="logo-mark">G</div>
+              <div class="logo-text">
+                <span>GoSnaggit</span>
+                <span>Saved searches dashboard</span>
+              </div>
+            </div>
+            <nav class="nav-links">
+              <a href="/index.html">Home</a>
+              <a href="/search.html">New search</a>
+            </nav>
+          </div>
+          <h1>Your current hunts at a glance.</h1>
+          <p class="subtitle">
+            This table is your MVP control center for <strong>all active, paused, and completed searches</strong>.
+          </p>
+        </header>
 
-  <div id="message"></div>
+        <div class="summary-card">
+          <div class="summary-row">
+            <span class="summary-label">Total saved searches</span>
+            <span class="summary-value" id="summary-total">0</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Currently active</span>
+            <span class="summary-value" id="summary-active">0</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Completed / cancelled</span>
+            <span class="summary-value" id="summary-done">0</span>
+          </div>
 
-  <table id="searches-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Item</th>
-        <th>Location</th>
-        <th>Category</th>
-        <th>Max Price</th>
-        <th>Status</th>
-        <th>Created At</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="searches-body">
-      <!-- Filled by JS -->
-    </tbody>
-  </table>
+          <div class="summary-pills">
+            <div class="summary-pill" id="summary-sample-1">—</div>
+            <div class="summary-pill" id="summary-sample-2">—</div>
+          </div>
+
+          <div class="summary-footer">
+            As this evolves, this panel can become a
+            <span>search health overview</span> with trends and alerts.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: table card -->
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">Saved searches (MVP data table)</div>
+          <div class="table-controls">
+            <div class="tiny-pill" id="tiny-count-pill">0 searches</div>
+            <a href="/search.html" class="add-link">+ Add a new search</a>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Item</th>
+                <th>Location / Category</th>
+                <th>Max price</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="searches-body">
+              <!-- Filled by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="message"></div>
+      </div>
+    </div>
+  </div>
 
   <script>
     const tableBody = document.getElementById('searches-body');
     const messageEl = document.getElementById('message');
 
+    const summaryTotalEl = document.getElementById('summary-total');
+    const summaryActiveEl = document.getElementById('summary-active');
+    const summaryDoneEl = document.getElementById('summary-done');
+    const summarySample1 = document.getElementById('summary-sample-1');
+    const summarySample2 = document.getElementById('summary-sample-2');
+    const tinyCountPill = document.getElementById('tiny-count-pill');
+
     function formatDate(isoString) {
       if (!isoString) return '';
       const date = new Date(isoString);
       return date.toLocaleString();
+    }
+
+    function statusClass(status) {
+      if (!status) return '';
+      const s = status.toLowerCase();
+      if (s === 'active') return 'status-pill status-active';
+      if (s === 'paused') return 'status-pill status-paused';
+      if (s === 'completed') return 'status-pill status-completed';
+      if (s === 'cancelled') return 'status-pill status-cancelled';
+      return 'status-pill';
+    }
+
+    function updateSummary(data) {
+      const total = Array.isArray(data) ? data.length : 0;
+      const active = data.filter(s => (s.status || '').toLowerCase() === 'active').length;
+      const done = data.filter(s => {
+        const st = (s.status || '').toLowerCase();
+        return st === 'completed' || st === 'cancelled';
+      }).length;
+
+      summaryTotalEl.textContent = total;
+      summaryActiveEl.textContent = active;
+      summaryDoneEl.textContent = done;
+      tinyCountPill.textContent = total + (total === 1 ? ' search' : ' searches');
+
+      if (total > 0) {
+        const first = data[0];
+        summarySample1.textContent = first.search_item || 'First saved search';
+      } else {
+        summarySample1.textContent = 'No searches yet. Start with your first hunt.';
+      }
+
+      if (total > 1) {
+        const activeExample = data.find(s => (s.status || '').toLowerCase() === 'active') || data[1];
+        summarySample2.textContent = (activeExample.status || 'active') + ' • ' + (activeExample.location || 'No location');
+      } else if (total === 1) {
+        summarySample2.textContent = (data[0].location || 'No location set');
+      } else {
+        summarySample2.textContent = 'Statuses and locations will appear here.';
+      }
     }
 
     function loadSearches() {
@@ -120,36 +506,50 @@
           tableBody.innerHTML = '';
 
           if (!Array.isArray(data) || data.length === 0) {
-            messageEl.textContent = 'No saved searches yet. Create one from the "Create New Search" page.';
+            messageEl.textContent = 'No saved searches yet. Use “New search” to create your first GoSnaggit hunt.';
+            messageEl.classList.remove('message-error');
+            updateSummary([]);
             return;
           }
 
           messageEl.textContent = '';
+          updateSummary(data);
 
           data.forEach(search => {
             const tr = document.createElement('tr');
 
-            tr.innerHTML = `
-  <td>${search.id}</td>
-  <td>${search.search_item || ''}</td>
-  <td>${search.location || ''}</td>
-  <td>${search.category || ''}</td>
-  <td>${search.max_price || ''}</td>
-  <td>${search.status || ''}</td>
-  <td>${formatDate(search.created_at)}</td>
-  <td class="actions">
-    <a href="search-detail.html?id=${search.id}">View Details</a>
-    <a href="search-results.html?id=${search.id}">View Results</a>
-    <a href="edit-search.html?id=${search.id}">Edit Status</a>
-  </td>
-`;
+            const maxPrice = search.max_price || '';
+            const status = search.status || '';
 
+            tr.innerHTML = `
+              <td>${search.id}</td>
+              <td>${search.search_item || ''}</td>
+              <td class="small">
+                ${search.location || '<span style="opacity:0.6;">(no location)</span>'}
+                <br>
+                <span style="opacity:0.7;">${search.category || '(no category)'}</span>
+              </td>
+              <td>${maxPrice ? '$' + maxPrice : ''}</td>
+              <td>
+                <span class="${statusClass(status)}">
+                  ${status || '—'}
+                </span>
+              </td>
+              <td class="small">${formatDate(search.created_at)}</td>
+              <td class="actions-cell">
+                <a href="search-detail.html?id=${search.id}">Details</a>
+                <a href="search-results.html?id=${search.id}">Results</a>
+                <a href="edit-search.html?id=${search.id}">Edit status</a>
+              </td>
+            `;
 
             tableBody.appendChild(tr);
           });
         })
         .catch(err => {
           messageEl.textContent = 'Error loading searches: ' + err.message;
+          messageEl.classList.add('message-error');
+          updateSummary([]);
         });
     }
 
