@@ -328,17 +328,68 @@
       color: #fecaca;
     }
 
-    .actions-cell a {
-      display: inline-block;
-      margin-right: 0.4rem;
-      font-size: 0.76rem;
-      text-decoration: none;
-      color: var(--accent);
+    /* Action buttons container */
+    .actions-cell {
+      white-space: nowrap;
     }
 
-    .actions-cell a:hover {
-      text-decoration: underline;
+    /* Base pill-style button */
+    .action-btn {
+      display: inline-block;
+      padding: 6px 14px;
+      margin-right: 6px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
     }
+
+    /* Normal action buttons */
+    .action-btn {
+      background-color: #1e293b;
+      /* slate-800 */
+      color: #f1f5f9;
+      /* slate-100 */
+      border-color: #334155;
+      /* slate-700 */
+    }
+
+    .action-btn:hover {
+      background-color: #334155;
+      /* slate-700 */
+    }
+
+    /* Duplicate button (blue accent) */
+    .action-duplicate {
+      background-color: #0ea5e9;
+      /* sky-500 */
+      color: white;
+      border-color: #0284c7;
+      /* sky-600 */
+    }
+
+    .action-duplicate:hover {
+      background-color: #0284c7;
+      /* sky-600 */
+    }
+
+    /* Delete button (red accent) */
+    .action-delete {
+      background-color: #dc2626;
+      /* red-600 */
+      color: white;
+      border-color: #b91c1c;
+      /* red-700 */
+    }
+
+    .action-delete:hover {
+      background-color: #b91c1c;
+      /* red-700 */
+    }
+
+
 
     #message {
       margin-top: 0.6rem;
@@ -369,7 +420,9 @@
             <nav class="nav-links">
               <a href="/index.html">Home</a>
               <a href="/search.html">New search</a>
+              <a href="/deleted-searches.html">Deleted</a>
             </nav>
+
           </div>
           <h1>Your current hunts at a glance.</h1>
           <p class="subtitle">
@@ -537,11 +590,11 @@
     </td>
     <td class="small">${formatDate(search.created_at)}</td>
     <td class="actions-cell">
-      <a href="search-detail.html?id=${search.id}">Details</a>
-      <a href="search-results.html?id=${search.id}">Results</a>
-      <a href="edit-search.html?id=${search.id}">Edit status</a>
-      <a href="#" class="duplicate-link" data-id="${search.id}">Duplicate</a>
-      <a href="#" class="delete-link" data-id="${search.id}">Delete</a>
+      <a href="search-detail.html?id=${search.id}" class="action-btn">Details</a>
+      <a href="search-results.html?id=${search.id}" class="action-btn">Results</a>
+      <a href="edit-search.html?id=${search.id}" class="action-btn">Edit</a>
+      <a href="#" class="action-btn action-duplicate duplicate-link" data-id="${search.id}">Duplicate</a>
+      <a href="#" class="action-btn action-delete delete-link" data-id="${search.id}">Delete</a>
     </td>
   `;
 

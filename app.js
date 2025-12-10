@@ -77,6 +77,25 @@ app.get('/searches', async (req, res) => {
   }
 });
 
+// ----------------------------------------------------
+// Get deleted searches (recycle bin / restore view)
+// ----------------------------------------------------
+app.get('/searches/deleted', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT *
+       FROM searches
+       WHERE status = 'deleted'
+       ORDER BY created_at DESC`
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching deleted searches:', err);
+    res.status(500).json({ error: 'Failed to fetch deleted searches' });
+  }
+});
+
 
 // ----------------------------------------------------
 // Get a single search by ID (used by edit-search.html)
