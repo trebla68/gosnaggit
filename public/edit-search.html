@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>GoSnaggit – Edit Search Status</title>
+  <title>GoSnaggit – Edit Search</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -56,6 +56,7 @@
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 1.2rem;
+      gap: 1rem;
     }
 
     .logo-left {
@@ -112,13 +113,17 @@
 
     h1 {
       margin: 0 0 0.4rem;
-      font-size: 1.4rem;
+      font-size: 1.45rem;
     }
 
     .subtitle {
       font-size: 0.9rem;
       color: var(--text-muted);
       max-width: 420px;
+    }
+
+    .subtitle strong {
+      color: var(--accent);
     }
 
     .card {
@@ -138,6 +143,7 @@
     }
 
     input[type="text"],
+    input[type="number"],
     select {
       width: 100%;
       padding: 8px 9px;
@@ -147,14 +153,6 @@
       color: var(--text-main);
       font-size: 0.88rem;
       font-family: inherit;
-    }
-
-    input[disabled] {
-      opacity: 0.7;
-    }
-
-    .readonly {
-      background-color: rgba(10, 12, 30, 0.95);
     }
 
     select:focus,
@@ -242,12 +240,18 @@
   <div class="shell">
     <div class="inner">
       <header>
-        <div class="logo-left">
-          <div class="logo-mark">G</div>
-          <div class="logo-text">
-            <span>GoSnaggit</span>
-            <span>Edit search status</span>
+        <div>
+          <div class="logo-left">
+            <div class="logo-mark">G</div>
+            <div class="logo-text">
+              <span>GoSnaggit</span>
+              <span>Edit saved search</span>
+            </div>
           </div>
+          <h1>Edit your saved search.</h1>
+          <p class="subtitle">
+            Update the <strong>item details, location, category, max price, and status</strong> for this hunt.
+          </p>
         </div>
 
         <nav class="nav-links">
@@ -256,27 +260,21 @@
         </nav>
       </header>
 
-      <h1>Edit Search Status</h1>
-      <p class="subtitle">
-        Adjust whether this search is <strong>active</strong>, temporarily paused, or
-        marked as completed/cancelled in your MVP dashboard.
-      </p>
-
       <section class="card">
         <div id="loading">Loading search details…</div>
         <div id="form-container" style="display:none;">
-          <form id="edit-status-form">
+          <form id="edit-search-form">
             <label for="search_item">Search item</label>
-            <input id="search_item" type="text" class="readonly" disabled />
+            <input id="search_item" type="text" required />
 
             <label for="location">Location</label>
-            <input id="location" type="text" class="readonly" disabled />
+            <input id="location" type="text" placeholder="Optional" />
 
             <label for="category">Category</label>
-            <input id="category" type="text" class="readonly" disabled />
+            <input id="category" type="text" placeholder="Optional" />
 
             <label for="max_price">Max price</label>
-            <input id="max_price" type="text" class="readonly" disabled />
+            <input id="max_price" type="number" min="0" step="0.01" placeholder="Optional (e.g., 500.00)" />
 
             <label for="status">Status</label>
             <select id="status" name="status">
@@ -286,12 +284,12 @@
               <option value="cancelled">Cancelled</option>
             </select>
             <div class="inline-note">
-              “Active” searches can be treated as candidates for future background scanning.
+              “Active” searches are candidates for background scanning in future versions of GoSnaggit.
             </div>
 
             <div class="actions">
               <button type="submit">
-                Save status
+                Save changes
               </button>
               <button type="button" class="secondary" id="back-button">
                 Back to saved searches
@@ -321,10 +319,10 @@
     const maxPriceInput = document.getElementById('max_price');
     const statusSelect = document.getElementById('status');
 
-    // 1) Load existing search details
     if (!searchId) {
       loadingEl.textContent = 'Missing search id in the URL (e.g., ?id=1).';
     } else {
+      // Load current search details
       fetch('/searches/' + searchId)
         .then(response => {
           if (!response.ok) {
@@ -350,42 +348,58 @@
         });
     }
 
-    // 2) Handle status update
-    const form = document.getElementById('edit-status-form');
+    // Handle full edit submit
+    const form = document.getElementById('edit-search-form');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       messageEl.style.display = 'none';
 
       if (!searchId) return;
 
-      const newStatus = statusSelect.value;
+      const search_item = searchItemInput.value.trim();
+      if (!search_item) {
+        messageEl.textContent = 'Search item is required.';
+        messageEl.className = 'message error';
+        messageEl.style.display = 'block';
+        return;
+      }
 
-      fetch('/searches/' + searchId + '/status', {
+      const payload = {
+        search_item,
+        location: locationInput.value.trim() || null,
+        category: categoryInput.value.trim() || null,
+        max_price: maxPriceInput.value.trim() || null,
+        status: statusSelect.value
+      };
+
+      fetch('/searches/' + searchId, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify(payload)
       })
         .then(response => {
           if (!response.ok) {
-            throw new Error('Failed to update status');
+            return response.json().then(err => {
+              throw new Error(err.error || 'Failed to update search');
+            });
           }
-          return response.text();
+          return response.json();
         })
-        .then(() => {
-          messageEl.textContent = 'Status updated successfully to "' + newStatus + '".';
+        .then(data => {
+          messageEl.textContent = 'Search updated successfully.';
           messageEl.className = 'message success';
           messageEl.style.display = 'block';
         })
         .catch(err => {
-          messageEl.textContent = 'Error updating status: ' + err.message;
+          messageEl.textContent = 'Error updating search: ' + err.message;
           messageEl.className = 'message error';
           messageEl.style.display = 'block';
         });
     });
 
-    // 3) Back button
+    // Back button
     document.getElementById('back-button').addEventListener('click', function () {
       window.location.href = '/searches.html';
     });

@@ -123,17 +123,28 @@ app.get('/searches/:id', async (req, res) => {
 // ----------------------------------------------------
 // Update an existing search (Edit Search)
 // ----------------------------------------------------
+// ----------------------------------------------------
+// Update an existing search (full edit: fields + optional status)
+// ----------------------------------------------------
 app.patch('/searches/:id', async (req, res) => {
   const { id } = req.params;
   const {
     search_item,
     location,
     category,
-    max_price
+    max_price,
+    status
   } = req.body;
 
   if (!search_item || search_item.trim() === '') {
     return res.status(400).json({ error: 'search_item is required' });
+  }
+
+  const allowedStatuses = ['active', 'paused', 'completed', 'cancelled', 'deleted'];
+  if (status && !allowedStatuses.includes(status)) {
+    return res.status(400).json({
+      error: "Invalid status. Use 'active', 'paused', 'completed', 'cancelled', or 'deleted'."
+    });
   }
 
   try {
@@ -142,10 +153,18 @@ app.patch('/searches/:id', async (req, res) => {
        SET search_item = $1,
            location    = $2,
            category    = $3,
-           max_price   = $4
-       WHERE id = $5
+           max_price   = $4,
+           status      = COALESCE($5, status)
+       WHERE id = $6
        RETURNING *`,
-      [search_item, location, category, max_price, id]
+      [
+        search_item,
+        location,
+        category,
+        max_price,
+        status || null,
+        id
+      ]
     );
 
     if (result.rowCount === 0) {
@@ -161,6 +180,7 @@ app.patch('/searches/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update search' });
   }
 });
+
 
 // ----------------------------------------------------
 // Update (or toggle) the status of a search (active/paused)
