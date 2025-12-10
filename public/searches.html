@@ -522,26 +522,28 @@
             const status = search.status || '';
 
             tr.innerHTML = `
-              <td>${search.id}</td>
-              <td>${search.search_item || ''}</td>
-              <td class="small">
-                ${search.location || '<span style="opacity:0.6;">(no location)</span>'}
-                <br>
-                <span style="opacity:0.7;">${search.category || '(no category)'}</span>
-              </td>
-              <td>${maxPrice ? '$' + maxPrice : ''}</td>
-              <td>
-                <span class="${statusClass(status)}">
-                  ${status || '—'}
-                </span>
-              </td>
-              <td class="small">${formatDate(search.created_at)}</td>
-              <td class="actions-cell">
-                <a href="search-detail.html?id=${search.id}">Details</a>
-                <a href="search-results.html?id=${search.id}">Results</a>
-                <a href="edit-search.html?id=${search.id}">Edit status</a>
-              </td>
-            `;
+    <td>${search.id}</td>
+    <td>${search.search_item || ''}</td>
+    <td class="small">
+      ${search.location || '<span style="opacity:0.6;">(no location)</span>'}
+      <br>
+      <span style="opacity:0.7;">${search.category || '(no category)'}</span>
+    </td>
+    <td>${maxPrice ? '$' + maxPrice : ''}</td>
+    <td>
+      <span class="${statusClass(status)}">
+        ${status || '—'}
+      </span>
+    </td>
+    <td class="small">${formatDate(search.created_at)}</td>
+    <td class="actions-cell">
+      <a href="search-detail.html?id=${search.id}">Details</a>
+      <a href="search-results.html?id=${search.id}">Results</a>
+      <a href="edit-search.html?id=${search.id}">Edit status</a>
+      <a href="#" class="duplicate-link" data-id="${search.id}">Duplicate</a>
+      <a href="#" class="delete-link" data-id="${search.id}">Delete</a>
+    </td>
+  `;
 
             tableBody.appendChild(tr);
           });
@@ -554,6 +556,71 @@
     }
 
     loadSearches();
+
+    // Handle delete clicks
+    tableBody.addEventListener('click', (event) => {
+      const deleteLink = event.target.closest('.delete-link');
+      if (!deleteLink) return;
+
+      event.preventDefault();
+
+      const id = deleteLink.getAttribute('data-id');
+      if (!id) return;
+
+      const confirmed = window.confirm('Are you sure you want to delete this search?');
+      if (!confirmed) return;
+
+      fetch('/searches/' + id, {
+        method: 'DELETE'
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to delete search');
+          }
+          return response.json();
+        })
+        .then(() => {
+          loadSearches();
+        })
+        .catch(err => {
+          messageEl.textContent = 'Error deleting search: ' + err.message;
+          messageEl.classList.add('message-error');
+        });
+    });
+
+    // Handle duplicate clicks
+    tableBody.addEventListener('click', (event) => {
+      const duplicateLink = event.target.closest('.duplicate-link');
+      if (!duplicateLink) return;
+
+      event.preventDefault();
+
+      const id = duplicateLink.getAttribute('data-id');
+      if (!id) return;
+
+      const confirmed = window.confirm('Duplicate this search?');
+      if (!confirmed) return;
+
+      fetch('/searches/' + id + '/duplicate', {
+        method: 'POST'
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to duplicate search');
+          }
+          return response.json();
+        })
+        .then((newSearch) => {
+          loadSearches();
+          messageEl.textContent = 'Search duplicated as ID ' + newSearch.id + '.';
+          messageEl.classList.remove('message-error');
+        })
+        .catch(err => {
+          messageEl.textContent = 'Error duplicating search: ' + err.message;
+          messageEl.classList.add('message-error');
+        });
+    });
+
   </script>
 </body>
 

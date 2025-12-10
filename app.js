@@ -58,11 +58,15 @@ app.post('/searches', async (req, res) => {
 // ----------------------------------------------------
 // Get all searches (used by searches.html)
 // ----------------------------------------------------
+// ----------------------------------------------------
+// Get all searches (used by searches.html)
+// ----------------------------------------------------
 app.get('/searches', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT *
        FROM searches
+       WHERE status IS NULL OR status <> 'deleted'
        ORDER BY created_at DESC`
     );
 
@@ -72,6 +76,7 @@ app.get('/searches', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch searches' });
   }
 });
+
 
 // ----------------------------------------------------
 // Get a single search by ID (used by edit-search.html)
@@ -145,9 +150,11 @@ app.patch('/searches/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body; // expected: 'active', 'paused', or 'completed'
 
-  if (!status || !['active', 'paused', 'completed'].includes(status)) {
-    return res.status(400).json({ error: "Invalid status. Use 'active', 'paused', or 'completed'." });
+  if (!status || !['active', 'paused', 'completed', 'cancelled', 'deleted'].includes(status)) {
+    return res.status(400).json({ error: "Invalid status. Use 'active', 'paused', 'completed', 'cancelled', or 'deleted'." });
   }
+
+
 
 
   try {
@@ -173,12 +180,18 @@ app.patch('/searches/:id/status', async (req, res) => {
 // ----------------------------------------------------
 // Delete a search by ID
 // ----------------------------------------------------
+// ----------------------------------------------------
+// Delete a search by ID (soft delete: mark as 'deleted')
+// ----------------------------------------------------
 app.delete('/searches/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
     const result = await pool.query(
-      'DELETE FROM searches WHERE id = $1 RETURNING *',
+      `UPDATE searches
+       SET status = 'deleted'
+       WHERE id = $1
+       RETURNING *`,
       [id]
     );
 
@@ -187,14 +200,45 @@ app.delete('/searches/:id', async (req, res) => {
     }
 
     res.json({
-      message: 'Search deleted',
-      deleted: result.rows[0],
+      message: 'Search soft-deleted (status set to "deleted")',
+      search: result.rows[0],
     });
   } catch (err) {
-    console.error('Error deleting search:', err);
+    console.error('Error soft-deleting search:', err);
     res.status(500).json({ error: 'Failed to delete search' });
   }
 });
+
+
+// ----------------------------------------------------
+// Duplicate a search by ID
+// ----------------------------------------------------
+app.post('/searches/:id/duplicate', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `
+      INSERT INTO searches (search_item, location, category, max_price, status)
+      SELECT search_item, location, category, max_price, status
+      FROM searches
+      WHERE id = $1
+      RETURNING *;
+      `,
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Search not found' });
+    }
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error duplicating search:', err);
+    res.status(500).json({ error: 'Failed to duplicate search' });
+  }
+});
+
 
 // Enhanced mock results for a specific search, with pagination
 app.get('/searches/:id/results', async (req, res) => {
