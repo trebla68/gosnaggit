@@ -38,7 +38,7 @@
 
     .shell {
       width: 100%;
-      max-width: 840px;
+      max-width: 900px;
       border-radius: var(--radius-xl);
       background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
       padding: 2px;
@@ -48,7 +48,7 @@
     .inner {
       border-radius: calc(var(--radius-xl) - 2px);
       background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
-      padding: 22px 22px 20px;
+      padding: 22px 22px 18px;
       display: flex;
       flex-direction: column;
       gap: 18px;
@@ -59,7 +59,6 @@
       justify-content: space-between;
       align-items: center;
       gap: 16px;
-      margin-bottom: 4px;
     }
 
     .logo-left {
@@ -129,138 +128,128 @@
       margin: 0;
       font-size: 0.9rem;
       color: var(--text-muted);
-      max-width: 520px;
+      max-width: 560px;
     }
 
     .card {
       border-radius: var(--radius-lg);
       background: radial-gradient(circle at top left, #151827, #050712 70%);
       border: 1px solid rgba(80, 97, 183, 0.6);
-      padding: 14px 14px 12px;
+      padding: 16px 16px 14px;
     }
 
     form {
       display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-      gap: 14px 18px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
     }
 
-    @media (max-width: 720px) {
-      form {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-
-    .form-group {
+    .field-group {
       display: flex;
       flex-direction: column;
       gap: 4px;
       font-size: 0.86rem;
     }
 
-    .form-group.full {
-      grid-column: 1 / -1;
-    }
-
     label {
-      font-size: 0.8rem;
       color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
 
-    input,
-    select,
-    textarea {
+    input[type="text"],
+    input[type="number"],
+    select {
       border-radius: 10px;
-      border: 1px solid rgba(76, 86, 143, 0.9);
+      border: 1px solid rgba(75, 85, 99, 0.8);
       background-color: rgba(6, 8, 22, 0.96);
-      color: var(--text-main);
       padding: 7px 9px;
-      font-size: 0.9rem;
-      font-family: inherit;
+      color: var(--text-main);
+      font-size: 0.88rem;
       outline: none;
     }
 
+    input::placeholder {
+      color: rgba(148, 163, 184, 0.8);
+    }
+
     input:focus,
-    select:focus,
-    textarea:focus {
-      border-color: rgba(255, 179, 71, 0.7);
-      box-shadow: 0 0 0 1px rgba(255, 179, 71, 0.3);
+    select:focus {
+      border-color: rgba(129, 140, 248, 0.9);
+      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.55);
     }
 
-    textarea {
-      min-height: 70px;
-      resize: vertical;
+    .field-inline {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 10px;
     }
 
-    .helper {
-      font-size: 0.78rem;
+    @media (max-width: 720px) {
+      .field-inline {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .hint {
+      font-size: 0.76rem;
       color: var(--text-muted);
     }
 
-    .status-row {
+    .buttons-row {
+      margin-top: 8px;
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
+      align-items: center;
     }
 
-    .status-pill {
+    .btn {
       display: inline-flex;
       align-items: center;
-      padding: 2px 8px;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 13px;
       border-radius: 999px;
-      font-size: 0.72rem;
-      border: 1px solid rgba(148, 163, 184, 0.8);
-      color: #e2e8f0;
-    }
-
-    .status-pill span {
-      margin-left: 4px;
-      color: var(--text-muted);
-      font-size: 0.7rem;
-    }
-
-    .actions-row {
-      grid-column: 1 / -1;
-      margin-top: 4px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .primary-btn {
-      border-radius: 999px;
-      padding: 7px 15px;
       border: none;
-      font-size: 0.9rem;
+      font-size: 0.86rem;
       font-weight: 500;
       cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
       background: linear-gradient(135deg, var(--accent), var(--accent-strong));
       color: #1a1306;
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
     }
 
-    .primary-btn:hover {
+    .btn-secondary {
+      background: rgba(14, 19, 42, 0.9);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid rgba(75, 85, 99, 0.8);
+    }
+
+    .btn:hover {
       transform: translateY(-1px);
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.55);
     }
 
-    .secondary-link {
-      color: var(--text-muted);
-      text-decoration: none;
-    }
-
-    .secondary-link:hover {
-      text-decoration: underline;
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 0 5px 14px rgba(0, 0, 0, 0.55);
     }
 
     .message {
-      margin-top: 8px;
+      margin-top: 6px;
       font-size: 0.8rem;
       color: var(--text-muted);
     }
@@ -300,43 +289,40 @@
       </header>
 
       <div>
-        <h1>Edit search</h1>
-        <p class="subtitle">
-          Update the details for this saved search. In a future version, changes here will influence background search
-          behavior and alert rules.
+        <h1 id="page-title">Edit search</h1>
+        <p class="subtitle" id="page-subtitle">
+          Adjust the item, price ceiling, location, or status for this saved hunt.
         </p>
       </div>
 
       <div class="card">
         <form id="edit-form">
-          <div class="form-group full">
-            <label for="search_item">Search item *</label>
-            <input id="search_item" name="search_item" required />
-            <div class="helper">Describe what you’re hunting for (e.g. “vintage car radio – Blaupunkt,” “antique oak
-              writing desk”).</div>
+          <div class="field-group">
+            <label for="search_item">Search item</label>
+            <input id="search_item" name="search_item" type="text" required
+              placeholder="e.g. Vintage car radio – Blaupunkt" />
+            <div class="hint">This is the anchor description for this hunt.</div>
           </div>
 
-          <div class="form-group">
-            <label for="location">Location</label>
-            <input id="location" name="location" />
-            <div class="helper">Optional city/region focus for this hunt.</div>
+          <div class="field-inline">
+            <div class="field-group">
+              <label for="location">Location</label>
+              <input id="location" name="location" type="text" placeholder="e.g. Los Angeles, CA" />
+            </div>
+            <div class="field-group">
+              <label for="category">Category</label>
+              <input id="category" name="category" type="text" placeholder="e.g. Vintage Audio" />
+            </div>
           </div>
 
-          <div class="form-group">
-            <label for="category">Category</label>
-            <input id="category" name="category" />
-            <div class="helper">Optional category or type (e.g. “Electronics”, “Furniture”).</div>
-          </div>
-
-          <div class="form-group">
-            <label for="max_price">Max price (USD)</label>
-            <input id="max_price" name="max_price" type="number" step="0.01" min="0" />
-            <div class="helper">Set an upper bound for what you’re willing to spend.</div>
-          </div>
-
-          <div class="form-group">
-            <label for="status">Status</label>
-            <div class="status-row">
+          <div class="field-inline">
+            <div class="field-group">
+              <label for="max_price">Max price</label>
+              <input id="max_price" name="max_price" type="number" step="0.01" min="0" placeholder="e.g. 350.00" />
+              <div class="hint">Optional price ceiling. You can tweak this as you refine the search.</div>
+            </div>
+            <div class="field-group">
+              <label for="status">Status</label>
               <select id="status" name="status">
                 <option value="active">Active</option>
                 <option value="paused">Paused</option>
@@ -344,27 +330,21 @@
                 <option value="cancelled">Cancelled</option>
                 <option value="deleted">Deleted</option>
               </select>
-              <div class="status-pill">
-                Status
-                <span id="status-pill-text">active</span>
-              </div>
             </div>
-            <div class="helper">Use “active” for live hunts; “paused” to temporarily stop; “completed” or “cancelled”
-              for finished hunts.</div>
           </div>
 
-          <div class="actions-row">
-            <a href="/searches.html" class="secondary-link">← Back to saved searches</a>
-            <button type="submit" class="primary-btn">
-              Save changes
-            </button>
+          <div class="buttons-row">
+            <button type="submit" class="btn btn-primary">Save changes</button>
+            <a href="#" id="view-details-link" class="btn btn-secondary">View details</a>
+            <a href="/searches.html" class="btn btn-ghost">← Back to saved searches</a>
           </div>
+
+          <div id="message" class="message"></div>
         </form>
-        <div id="message" class="message"></div>
       </div>
 
       <footer>
-        GoSnaggit – internal MVP prototype. Edit view writes directly to your local “searches” table via the API.
+        GoSnaggit – internal MVP prototype. This edit form sends a PATCH request to your <code>/searches/:id</code> API.
       </footer>
     </div>
   </div>
@@ -380,27 +360,17 @@
     const { id: searchId } = getParams();
 
     const form = document.getElementById('edit-form');
+    const messageEl = document.getElementById('message');
+    const viewDetailsLink = document.getElementById('view-details-link');
+
     const searchItemInput = document.getElementById('search_item');
     const locationInput = document.getElementById('location');
     const categoryInput = document.getElementById('category');
     const maxPriceInput = document.getElementById('max_price');
     const statusSelect = document.getElementById('status');
-    const statusPillText = document.getElementById('status-pill-text');
-    const messageEl = document.getElementById('message');
-
-    if (!searchId) {
-      messageEl.textContent = 'Missing search id in URL (e.g., ?id=1).';
-      messageEl.classList.add('error');
-    } else {
-      loadSearch();
-    }
-
-    statusSelect.addEventListener('change', () => {
-      statusPillText.textContent = statusSelect.value;
-    });
 
     function setMessage(text, type) {
-      messageEl.textContent = text;
+      messageEl.textContent = text || '';
       messageEl.className = 'message';
       if (type) {
         messageEl.classList.add(type);
@@ -408,43 +378,66 @@
     }
 
     async function loadSearch() {
+      if (!searchId) {
+        setMessage('Missing search id in URL (e.g., edit-search.html?id=1).', 'error');
+        form.querySelector('button[type="submit"]').disabled = true;
+        return;
+      }
+
+      viewDetailsLink.href = '/search-detail.html?id=' + encodeURIComponent(searchId);
+
+      setMessage('Loading search details…');
+
       try {
         const res = await fetch('/searches/' + searchId);
         if (!res.ok) {
-          throw new Error('Failed to load search');
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || 'Failed to load search');
         }
+
         const data = await res.json();
 
         searchItemInput.value = data.search_item || '';
         locationInput.value = data.location || '';
         categoryInput.value = data.category || '';
-        maxPriceInput.value = data.max_price || '';
-        statusSelect.value = data.status || 'active';
-        statusPillText.textContent = statusSelect.value;
+        if (data.max_price !== null && data.max_price !== undefined) {
+          maxPriceInput.value = data.max_price;
+        }
+        if (data.status) {
+          statusSelect.value = data.status;
+        }
 
-        setMessage('Loaded current values for this search.', 'success');
+        document.getElementById('page-title').textContent = `Edit “${data.search_item || 'Saved search'}”`;
+        setMessage('Search loaded. Make your changes and click Save.', 'success');
       } catch (err) {
         console.error(err);
         setMessage('Error loading search: ' + err.message, 'error');
       }
     }
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      setMessage('Saving changes…');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
 
-      const payload = {
-        search_item: searchItemInput.value.trim(),
-        location: locationInput.value.trim() || null,
-        category: categoryInput.value.trim() || null,
-        max_price: maxPriceInput.value ? Number(maxPriceInput.value) : null,
-        status: statusSelect.value
-      };
-
-      if (!payload.search_item) {
-        setMessage('Search item is required.', 'error');
+      if (!searchId) {
+        setMessage('Missing search id – cannot save.', 'error');
         return;
       }
+
+      const search_item = searchItemInput.value.trim();
+      const location = locationInput.value.trim() || null;
+      const category = categoryInput.value.trim() || null;
+      const max_price_raw = maxPriceInput.value;
+      const status = statusSelect.value;
+
+      if (!search_item) {
+        setMessage('Search item is required.', 'error');
+        searchItemInput.focus();
+        return;
+      }
+
+      const max_price = max_price_raw === '' ? null : Number(max_price_raw);
+
+      setMessage('Saving changes…');
 
       try {
         const res = await fetch('/searches/' + searchId, {
@@ -452,26 +445,29 @@
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            search_item,
+            location,
+            category,
+            max_price,
+            status
+          })
         });
 
         if (!res.ok) {
-          const errBody = await res.json().catch(() => ({}));
-          const msg = errBody.error || 'Failed to save changes';
-          throw new Error(msg);
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || 'Failed to update search');
         }
 
         const data = await res.json();
-        setMessage('Changes saved. Redirecting back to saved searches…', 'success');
-
-        setTimeout(() => {
-          window.location.href = '/searches.html';
-        }, 900);
+        setMessage('Changes saved. You can return to Saved searches or view details.', 'success');
       } catch (err) {
         console.error(err);
-        setMessage('Error saving search: ' + err.message, 'error');
+        setMessage('Error saving changes: ' + err.message, 'error');
       }
     });
+
+    document.addEventListener('DOMContentLoaded', loadSearch);
   </script>
 </body>
 

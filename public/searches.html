@@ -358,6 +358,21 @@
       font-size: 0.78rem;
     }
 
+    .flash {
+      margin-top: 6px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      min-height: 1em;
+    }
+
+    .flash.success {
+      color: #bbf7d0;
+    }
+
+    .flash.error {
+      color: #fecaca;
+    }
+
     footer {
       margin-top: 4px;
       font-size: 0.74rem;
@@ -464,6 +479,8 @@
         </div>
       </div>
 
+      <div id="flash-message" class="flash"></div>
+
       <footer>
         GoSnaggit – internal MVP prototype. Table, counts, and pagination are powered by your local database; search
         engine and background alerts still in development.
@@ -488,6 +505,21 @@
     const nextBtn = document.getElementById('next-page');
     const newSearchBtn = document.getElementById('new-search-btn');
     const pageSizeSelect = document.getElementById('page-size');
+    const flashEl = document.getElementById('flash-message');
+
+    function setFlash(text, type) {
+      flashEl.textContent = text || '';
+      flashEl.className = 'flash';
+      if (type) {
+        flashEl.classList.add(type);
+      }
+      if (text) {
+        setTimeout(() => {
+          flashEl.textContent = '';
+          flashEl.className = 'flash';
+        }, 4000);
+      }
+    }
 
     newSearchBtn.addEventListener('click', () => {
       window.location.href = '/search.html';
@@ -604,17 +636,48 @@
         const duplicateLink = document.createElement('a');
         duplicateLink.textContent = 'Duplicate';
         duplicateLink.href = '#';
-        duplicateLink.addEventListener('click', (e) => {
+        duplicateLink.addEventListener('click', async (e) => {
           e.preventDefault();
-          alert('Duplicate action not wired up yet in this MVP.');
+          setFlash('Duplicating search…');
+          try {
+            const res = await fetch(`/searches/${search.id}/duplicate`, {
+              method: 'POST'
+            });
+            if (!res.ok) {
+              const body = await res.json().catch(() => ({}));
+              throw new Error(body.error || 'Failed to duplicate search');
+            }
+            await reloadSearches();
+            setFlash('Search duplicated.', 'success');
+          } catch (err) {
+            console.error(err);
+            setFlash('Error duplicating search: ' + err.message, 'error');
+          }
         });
 
         const deleteLink = document.createElement('a');
         deleteLink.textContent = 'Delete';
         deleteLink.href = '#';
-        deleteLink.addEventListener('click', (e) => {
+        deleteLink.addEventListener('click', async (e) => {
           e.preventDefault();
-          alert('Delete action not wired up yet in this MVP.');
+          const confirmed = window.confirm('Move this search to Deleted? It will no longer appear in this list.');
+          if (!confirmed) return;
+
+          setFlash('Deleting search…');
+          try {
+            const res = await fetch(`/searches/${search.id}`, {
+              method: 'DELETE'
+            });
+            if (!res.ok) {
+              const body = await res.json().catch(() => ({}));
+              throw new Error(body.error || 'Failed to delete search');
+            }
+            await reloadSearches();
+            setFlash('Search moved to Deleted.', 'success');
+          } catch (err) {
+            console.error(err);
+            setFlash('Error deleting search: ' + err.message, 'error');
+          }
         });
 
         actionsTd.appendChild(detailsLink);
@@ -659,14 +722,13 @@
       }
     });
 
-    async function init() {
+    async function reloadSearches() {
       try {
         const res = await fetch('/searches');
         if (!res.ok) {
           throw new Error('Failed to fetch searches');
         }
         allSearches = await res.json();
-
         updateSummary(allSearches);
         updatePagination();
       } catch (err) {
@@ -682,7 +744,12 @@
         pageInfoEl.textContent = '';
         prevBtn.disabled = true;
         nextBtn.disabled = true;
+        setFlash('Error loading searches: ' + err.message, 'error');
       }
+    }
+
+    async function init() {
+      await reloadSearches();
     }
 
     document.addEventListener('DOMContentLoaded', init);
