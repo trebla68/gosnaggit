@@ -224,12 +224,6 @@
       color: var(--text-muted);
     }
 
-    .meta-row span {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
     .meta-dot {
       width: 4px;
       height: 4px;
@@ -237,7 +231,7 @@
       background: var(--border-subtle);
     }
 
-    /* Right-hand “radar” / preview column */
+    /* RIGHT SIDE: RESULTS PREVIEW CARD */
     .side-card {
       border-radius: var(--radius-lg);
       background: radial-gradient(circle at top left, var(--card-bg), #0c1120 60%);
@@ -268,6 +262,18 @@
       gap: 5px;
     }
 
+    /* CLICKABLE PILL FIX — restores proportions */
+    .side-tag-link {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .side-tag-link:hover {
+      text-decoration: underline;
+    }
+
     .side-tag-dot {
       width: 6px;
       height: 6px;
@@ -292,12 +298,6 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
       font-size: 0.78rem;
-    }
-
-    @media (max-width: 840px) {
-      .results-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
     }
 
     .result-tile {
@@ -391,7 +391,7 @@
 <body>
   <div class="shell">
     <div class="inner">
-      <!-- Left: main hero content -->
+      <!-- LEFT SIDE -->
       <div>
         <header>
           <div class="logo-row">
@@ -412,18 +412,10 @@
         </header>
 
         <div class="pill-row">
-          <div class="pill">
-            <span class="pill-dot"></span> Vintage audio & hi-fi
-          </div>
-          <div class="pill">
-            <span class="pill-dot"></span> Classic cars & parts
-          </div>
-          <div class="pill">
-            <span class="pill-dot"></span> Antique furniture
-          </div>
-          <div class="pill">
-            <span class="pill-dot"></span> One-of-a-kind collectibles
-          </div>
+          <div class="pill"><span class="pill-dot"></span> Vintage audio & hi-fi</div>
+          <div class="pill"><span class="pill-dot"></span> Classic cars & parts</div>
+          <div class="pill"><span class="pill-dot"></span> Antique furniture</div>
+          <div class="pill"><span class="pill-dot"></span> One-of-a-kind collectibles</div>
         </div>
 
         <div class="actions">
@@ -431,31 +423,25 @@
             <span class="icon">🔍</span>
             <span>Search a Product</span>
           </a>
-          <a href="/searches.html" class="btn btn-secondary">
-            View My Searches
-          </a>
+          <a href="/searches.html" class="btn btn-secondary">View My Searches</a>
         </div>
 
         <div class="meta-row">
-          <span>
-            <span class="meta-dot"></span>
-            Early MVP preview – data is sample only
-          </span>
-          <span>
-            <span class="meta-dot"></span>
-            Background searching concept in progress
-          </span>
+          <span><span class="meta-dot"></span> Early MVP preview – data is sample only</span>
+          <span><span class="meta-dot"></span> Background searching concept in progress</span>
         </div>
       </div>
 
-      <!-- Right: “live preview” style mock results / radar -->
+      <!-- RIGHT SIDE -->
       <aside class="side-card">
         <div class="side-header">
           <span>Live hunt preview</span>
-          <span class="side-tag">
+
+          <!-- CLICKABLE PILL -->
+          <a href="/searches.html" class="side-tag side-tag-link">
             <span class="side-tag-dot"></span>
             3 active searches
-          </span>
+          </a>
         </div>
 
         <div class="side-title">You’re tracking:</div>
@@ -466,10 +452,7 @@
         <div class="results-grid">
           <div class="result-tile">
             <div class="result-title">Vintage car radio – Blaupunkt</div>
-            <div class="result-meta">
-              <span>Berlin</span>
-              <span class="result-price">$185</span>
-            </div>
+            <div class="result-meta"><span>Berlin</span><span class="result-price">$185</span></div>
             <div class="result-badge-row">
               <span class="result-badge">New listing</span>
               <span class="result-source">Mock • Local classifieds</span>
@@ -478,10 +461,7 @@
 
           <div class="result-tile">
             <div class="result-title">1960 Porsche 356 – project</div>
-            <div class="result-meta">
-              <span>Los Angeles</span>
-              <span class="result-price">$32,000</span>
-            </div>
+            <div class="result-meta"><span>Los Angeles</span><span class="result-price">$32,000</span></div>
             <div class="result-badge-row">
               <span class="result-badge">Price drop</span>
               <span class="result-source">Mock • Specialty forum</span>
@@ -490,10 +470,7 @@
 
           <div class="result-tile">
             <div class="result-title">Antique oak writing desk</div>
-            <div class="result-meta">
-              <span>New York</span>
-              <span class="result-price">$420</span>
-            </div>
+            <div class="result-meta"><span>New York</span><span class="result-price">$420</span></div>
             <div class="result-badge-row">
               <span class="result-badge">Matches max price</span>
               <span class="result-source">Mock • Marketplace</span>
@@ -502,10 +479,7 @@
 
           <div class="result-tile">
             <div class="result-title">Tube amp receiver (1960s)</div>
-            <div class="result-meta">
-              <span>Chicago</span>
-              <span class="result-price">$610</span>
-            </div>
+            <div class="result-meta"><span>Chicago</span><span class="result-price">$610</span></div>
             <div class="result-badge-row">
               <span class="result-badge">Rare find</span>
               <span class="result-source">Mock • Auction site</span>
@@ -517,15 +491,13 @@
           <div class="side-progress">
             <div class="side-progress-fill"></div>
           </div>
-          <div class="side-count">
-            Mock scan: 68% of sources checked
-          </div>
+          <div class="side-count">Mock scan: 68% of sources checked</div>
         </div>
       </aside>
 
       <footer>
-        GoSnaggit – internal MVP prototype. UI concepts only; search engine and
-        background alerts are under active development.
+        GoSnaggit – internal MVP prototype. UI concepts only; search engine and background alerts are under active
+        development.
       </footer>
     </div>
   </div>

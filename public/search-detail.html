@@ -10,7 +10,6 @@
             --bg: #0b1020;
             --card-bg: #151a2b;
             --accent: #ffb347;
-            --accent-soft: rgba(255, 179, 71, 0.15);
             --accent-strong: #ff9f1c;
             --text-main: #f7f7ff;
             --text-muted: #a2a7c4;
@@ -48,14 +47,17 @@
         .inner {
             border-radius: calc(var(--radius-xl) - 2px);
             background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
-            padding: 24px 22px 22px;
+            padding: 22px 22px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1.3rem;
+            align-items: center;
+            gap: 16px;
         }
 
         .logo-left {
@@ -65,9 +67,9 @@
         }
 
         .logo-mark {
-            width: 30px;
-            height: 30px;
-            border-radius: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
             background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
             display: flex;
             align-items: center;
@@ -84,21 +86,27 @@
         }
 
         .logo-text span:first-child {
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
             font-size: 0.78rem;
             color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
         }
 
         .logo-text span:last-child {
-            font-size: 1rem;
+            font-size: 0.98rem;
             font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.6rem;
+            font-size: 0.8rem;
         }
 
         .nav-links a {
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 0.82rem;
             padding: 4px 10px;
             border-radius: 999px;
             border: 1px solid transparent;
@@ -111,76 +119,200 @@
         }
 
         h1 {
-            margin-top: 0.2rem;
-            margin-bottom: 0.2rem;
-            font-size: 1.35rem;
+            margin: 0 0 0.3rem;
+            font-size: clamp(1.4rem, 1.9vw + 0.9rem, 1.9rem);
         }
 
-        .details-card {
-            border-radius: var(--radius-lg);
-            background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
-            border: 1px solid rgba(80, 97, 183, 0.6);
-            padding: 20px;
-            margin-top: 1rem;
-        }
-
-        .details-row {
-            margin-bottom: 1rem;
-        }
-
-        .label {
-            font-size: 0.82rem;
+        .subtitle {
+            margin: 0;
+            font-size: 0.9rem;
             color: var(--text-muted);
-            margin-bottom: 0.2rem;
+            max-width: 560px;
         }
 
-        .value {
-            font-size: 0.95rem;
-            line-height: 1.4;
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+            gap: 16px;
         }
 
-        .actions {
-            margin-top: 1.4rem;
+        @media (max-width: 780px) {
+            .layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        .card {
+            border-radius: var(--radius-lg);
+            background: radial-gradient(circle at top left, #151827, #050712 70%);
+            border: 1px solid rgba(80, 97, 183, 0.6);
+            padding: 14px 14px 12px;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin: 0 0 0.5rem;
+        }
+
+        dl {
+            margin: 0;
+            display: grid;
+            grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+            row-gap: 6px;
+            column-gap: 10px;
+            font-size: 0.86rem;
+        }
+
+        dt {
+            color: var(--text-muted);
+        }
+
+        dd {
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .muted {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            border: 1px solid transparent;
+        }
+
+        .status-active {
+            background-color: rgba(22, 163, 74, 0.2);
+            border-color: rgba(34, 197, 94, 0.6);
+            color: #bbf7d0;
+        }
+
+        .status-paused {
+            background-color: rgba(253, 224, 71, 0.15);
+            border-color: rgba(250, 204, 21, 0.7);
+            color: #fef9c3;
+        }
+
+        .status-cancelled,
+        .status-completed,
+        .status-deleted {
+            background-color: rgba(248, 113, 113, 0.15);
+            border-color: rgba(248, 113, 113, 0.8);
+            color: #fecaca;
+        }
+
+        .chips-row {
             display: flex;
-            gap: 0.8rem;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 0.5rem;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .chip {
+            border-radius: 999px;
+            padding: 3px 9px;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            background-color: rgba(6, 8, 22, 0.96);
+        }
+
+        .actions-row {
+            margin-top: 0.6rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            font-size: 0.82rem;
         }
 
         .btn {
-            padding: 0.6rem 1.2rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 13px;
             border-radius: 999px;
-            font-size: 0.88rem;
-            text-decoration: none;
+            border: none;
+            font-size: 0.86rem;
             font-weight: 500;
             cursor: pointer;
-            transition: 0.1s ease;
+            text-decoration: none;
+            white-space: nowrap;
         }
 
         .btn-primary {
             background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-            color: #1b1206;
-            border: none;
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+            color: #1a1306;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(14, 19, 42, 0.9);
             color: var(--text-main);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid rgba(75, 85, 99, 0.8);
         }
 
         .btn:hover {
             transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.55);
         }
 
         .btn:active {
             transform: translateY(0);
+            box-shadow: 0 5px 14px rgba(0, 0, 0, 0.55);
         }
 
-        #message {
-            margin-top: 1rem;
-            font-size: 0.83rem;
-            color: #ffc5cb;
-            display: none;
+        .meta-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .meta-list li {
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .meta-label {
+            opacity: 0.9;
+        }
+
+        .meta-value {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .message {
+            margin-top: 6px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .message.error {
+            color: #fecaca;
+        }
+
+        footer {
+            margin-top: 4px;
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            opacity: 0.9;
         }
     </style>
 </head>
@@ -196,94 +328,209 @@
                         <span>Search details</span>
                     </div>
                 </div>
-
                 <nav class="nav-links">
                     <a href="/index.html">Home</a>
                     <a href="/searches.html">Saved searches</a>
                 </nav>
             </header>
 
-            <h1 id="details-title">Search Details</h1>
+            <div>
+                <h1 id="title">Search details</h1>
+                <p class="subtitle" id="subtitle">
+                    Reviewing one saved hunt. In future, this view can expand into a full activity log and alert
+                    history.
+                </p>
+            </div>
 
-            <div id="message"></div>
+            <div class="layout">
+                <!-- LEFT: main detail fields -->
+                <div class="card">
+                    <div class="section-title">Core search details</div>
+                    <dl>
+                        <dt>Search item</dt>
+                        <dd id="field-item" class="muted">—</dd>
 
-            <div class="details-card" id="details-card" style="display:none;">
-                <div class="details-row">
-                    <div class="label">Search item</div>
-                    <div class="value" id="detail-item"></div>
+                        <dt>Location</dt>
+                        <dd id="field-location" class="muted">—</dd>
+
+                        <dt>Category</dt>
+                        <dd id="field-category" class="muted">—</dd>
+
+                        <dt>Max price</dt>
+                        <dd id="field-max-price" class="muted">—</dd>
+
+                        <dt>Status</dt>
+                        <dd id="field-status">
+                            <span id="status-pill" class="status-pill status-active">active</span>
+                        </dd>
+                    </dl>
+
+                    <div class="chips-row">
+                        <span class="chip" id="chip-id">ID: —</span>
+                        <span class="chip" id="chip-created">Created: —</span>
+                    </div>
+
+                    <div class="actions-row">
+                        <a href="/searches.html" class="btn btn-ghost">← Back to saved searches</a>
+                        <a href="#" id="view-results-link" class="btn btn-secondary">View results</a>
+                        <a href="#" id="edit-search-link" class="btn btn-primary">Edit this search</a>
+                    </div>
+
+                    <div id="message" class="message"></div>
                 </div>
 
-                <div class="details-row">
-                    <div class="label">Location</div>
-                    <div class="value" id="detail-location"></div>
-                </div>
-
-                <div class="details-row">
-                    <div class="label">Category</div>
-                    <div class="value" id="detail-category"></div>
-                </div>
-
-                <div class="details-row">
-                    <div class="label">Max price</div>
-                    <div class="value" id="detail-price"></div>
-                </div>
-
-                <div class="details-row">
-                    <div class="label">Status</div>
-                    <div class="value" id="detail-status"></div>
-                </div>
-
-                <div class="details-row">
-                    <div class="label">Created at</div>
-                    <div class="value" id="detail-created"></div>
-                </div>
-
-                <div class="actions">
-                    <a id="edit-btn" class="btn btn-primary">Edit status</a>
-                    <a id="results-btn" class="btn btn-secondary">View results</a>
+                <!-- RIGHT: meta / context -->
+                <div class="card">
+                    <div class="section-title">Meta & context</div>
+                    <ul class="meta-list">
+                        <li>
+                            <span class="meta-label">Internal ID</span>
+                            <span class="meta-value" id="meta-id">—</span>
+                        </li>
+                        <li>
+                            <span class="meta-label">Created at</span>
+                            <span class="meta-value" id="meta-created">—</span>
+                        </li>
+                        <li>
+                            <span class="meta-label">Current status</span>
+                            <span class="meta-value" id="meta-status">—</span>
+                        </li>
+                        <li>
+                            <span class="meta-label">Max price</span>
+                            <span class="meta-value" id="meta-max-price">—</span>
+                        </li>
+                    </ul>
+                    <div class="message" id="meta-note">
+                        This search’s status and price ceiling will later influence how often your background engine
+                        looks for new
+                        matches.
+                    </div>
                 </div>
             </div>
+
+            <footer>
+                GoSnaggit – internal MVP prototype. Details view is driven from your local “searches” table via the API.
+            </footer>
         </div>
     </div>
 
     <script>
-        function getSearchIdFromUrl() {
+        function getParams() {
             const params = new URLSearchParams(window.location.search);
-            return params.get('id');
+            return {
+                id: params.get('id')
+            };
         }
 
-        const id = getSearchIdFromUrl();
+        const { id: searchId } = getParams();
+
+        const fieldItem = document.getElementById('field-item');
+        const fieldLocation = document.getElementById('field-location');
+        const fieldCategory = document.getElementById('field-category');
+        const fieldMaxPrice = document.getElementById('field-max-price');
+        const fieldStatus = document.getElementById('field-status');
+        const statusPill = document.getElementById('status-pill');
+
+        const chipId = document.getElementById('chip-id');
+        const chipCreated = document.getElementById('chip-created');
+
+        const metaId = document.getElementById('meta-id');
+        const metaCreated = document.getElementById('meta-created');
+        const metaStatus = document.getElementById('meta-status');
+        const metaMaxPrice = document.getElementById('meta-max-price');
+
+        const viewResultsLink = document.getElementById('view-results-link');
+        const editSearchLink = document.getElementById('edit-search-link');
         const messageEl = document.getElementById('message');
-        const card = document.getElementById('details-card');
 
-        if (!id) {
-            messageEl.textContent = 'Missing search id in the URL.';
-            messageEl.style.display = 'block';
-        } else {
-            fetch('/searches/' + id)
-                .then(res => {
-                    if (!res.ok) throw new Error('Failed to load search details');
-                    return res.json();
-                })
-                .then(data => {
-                    document.getElementById('detail-item').textContent = data.search_item || '(none)';
-                    document.getElementById('detail-location').textContent = data.location || '(not set)';
-                    document.getElementById('detail-category').textContent = data.category || '(not set)';
-                    document.getElementById('detail-price').textContent = data.max_price ? '$' + data.max_price : '(none)';
-                    document.getElementById('detail-status').textContent = data.status || '(none)';
-                    document.getElementById('detail-created').textContent = data.created_at ? new Date(data.created_at).toLocaleString() : '(unknown)';
-
-                    // Update buttons
-                    document.getElementById('edit-btn').href = 'edit-search.html?id=' + id;
-                    document.getElementById('results-btn').href = 'search-results.html?id=' + id;
-
-                    card.style.display = 'block';
-                })
-                .catch(err => {
-                    messageEl.textContent = 'Error: ' + err.message;
-                    messageEl.style.display = 'block';
-                });
+        function setMessage(text, type) {
+            messageEl.textContent = text || '';
+            messageEl.className = 'message';
+            if (type) {
+                messageEl.classList.add(type);
+            }
         }
+
+        function applyStatusPill(status) {
+            const s = (status || 'unknown').toLowerCase();
+            statusPill.textContent = s;
+            statusPill.className = 'status-pill';
+
+            if (s === 'active') {
+                statusPill.classList.add('status-active');
+            } else if (s === 'paused') {
+                statusPill.classList.add('status-paused');
+            } else if (s === 'cancelled' || s === 'completed' || s === 'deleted') {
+                statusPill.classList.add('status-cancelled', 'status-' + s);
+            } else {
+                // leave it neutral
+            }
+        }
+
+        function formatPrice(value) {
+            if (value === null || value === undefined || value === '') return '—';
+            const num = Number(value);
+            if (Number.isNaN(num)) return String(value);
+            return '$' + num.toFixed(2);
+        }
+
+        async function loadDetails() {
+            if (!searchId) {
+                setMessage('Missing search id in URL (e.g., ?id=1).', 'error');
+                return;
+            }
+
+            setMessage('Loading search details…');
+
+            try {
+                const res = await fetch('/searches/' + searchId);
+                if (!res.ok) {
+                    const errBody = await res.json().catch(() => ({}));
+                    const msg = errBody.error || 'Failed to load search';
+                    throw new Error(msg);
+                }
+
+                const data = await res.json();
+
+                const item = data.search_item || 'Saved search';
+                const location = data.location || '—';
+                const category = data.category || '—';
+                const maxPrice = formatPrice(data.max_price);
+                const status = data.status || 'unknown';
+
+                const createdDate = data.created_at ? new Date(data.created_at) : null;
+                const createdLabel = createdDate ? createdDate.toLocaleString() : '—';
+
+                document.getElementById('title').textContent = item;
+                document.getElementById('subtitle').textContent =
+                    'Detailed view for this saved hunt. Use Edit to adjust item, price ceiling, or status.';
+
+                fieldItem.textContent = item;
+                fieldLocation.textContent = location;
+                fieldCategory.textContent = category;
+                fieldMaxPrice.textContent = maxPrice;
+
+                applyStatusPill(status);
+
+                chipId.textContent = 'ID: ' + (data.id ?? '—');
+                chipCreated.textContent = 'Created: ' + createdLabel;
+
+                metaId.textContent = data.id ?? '—';
+                metaCreated.textContent = createdLabel;
+                metaStatus.textContent = status;
+                metaMaxPrice.textContent = maxPrice;
+
+                viewResultsLink.href = '/search-results.html?id=' + encodeURIComponent(searchId);
+                editSearchLink.href = '/edit-search.html?id=' + encodeURIComponent(searchId);
+
+                setMessage('Loaded search details.', 'success');
+            } catch (err) {
+                console.error(err);
+                setMessage('Error loading search: ' + err.message, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDetails);
     </script>
 </body>
 

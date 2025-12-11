@@ -38,7 +38,7 @@
 
     .shell {
       width: 100%;
-      max-width: 1040px;
+      max-width: 1120px;
       border-radius: var(--radius-xl);
       background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
       padding: 2px;
@@ -48,9 +48,9 @@
     .inner {
       border-radius: calc(var(--radius-xl) - 2px);
       background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
-      padding: 24px 22px 20px;
+      padding: 22px 22px 18px;
       display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(0, 2.2fr);
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 2.1fr);
       gap: 20px;
     }
 
@@ -62,7 +62,7 @@
     }
 
     header {
-      margin-bottom: 1.2rem;
+      margin-bottom: 1rem;
     }
 
     .logo-row {
@@ -99,21 +99,27 @@
     }
 
     .logo-text span:first-child {
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
       font-size: 0.78rem;
       color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
     }
 
     .logo-text span:last-child {
-      font-size: 1rem;
+      font-size: 0.98rem;
       font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.6rem;
+      font-size: 0.8rem;
     }
 
     .nav-links a {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 0.82rem;
       padding: 4px 10px;
       border-radius: 999px;
       border: 1px solid transparent;
@@ -126,8 +132,9 @@
     }
 
     h1 {
+      font-size: clamp(1.45rem, 1.9vw + 0.9rem, 2rem);
       margin: 0 0 0.35rem;
-      font-size: 1.4rem;
+      line-height: 1.2;
     }
 
     .subtitle {
@@ -138,107 +145,236 @@
 
     .subtitle strong {
       color: var(--accent);
+      font-weight: 600;
     }
 
-    .meta-note {
-      margin-top: 0.8rem;
-      font-size: 0.8rem;
+    .info-card {
+      margin-top: 1.1rem;
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
+      border: 1px solid rgba(80, 97, 183, 0.6);
+      padding: 12px 13px 10px;
+      font-size: 0.82rem;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 0.35rem;
+    }
+
+    .info-label {
       color: var(--text-muted);
     }
 
-    .meta-note span {
-      color: #b4b9ff;
+    .info-value {
+      font-weight: 500;
     }
 
-    /* Right: results list */
+    .info-pills {
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .info-pill {
+      border-radius: 999px;
+      padding: 3px 8px;
+      background-color: rgba(8, 10, 25, 0.95);
+      border: 1px solid rgba(52, 64, 132, 0.85);
+      color: var(--text-muted);
+      font-size: 0.76rem;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid transparent;
+      background-color: rgba(94, 234, 212, 0.13);
+      border-color: rgba(34, 197, 154, 0.6);
+      color: #a7ffeb;
+    }
+
+    /* Right: results grid */
     .results-card {
       border-radius: var(--radius-lg);
       background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
       border: 1px solid rgba(80, 97, 183, 0.6);
       padding: 14px 13px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
     }
 
     .results-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 0.5rem;
-      gap: 8px;
-      font-size: 0.84rem;
+      gap: 10px;
     }
 
     .results-title {
+      font-size: 0.9rem;
       font-weight: 500;
     }
 
-    .results-count-pill {
-      border-radius: 999px;
-      padding: 3px 9px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
+    .results-meta {
+      font-size: 0.78rem;
       color: var(--text-muted);
+    }
+
+    .results-controls {
+      display: flex;
+      gap: 0.4rem;
       font-size: 0.78rem;
     }
 
-    .results-list {
-      margin-top: 0.4rem;
-      max-height: 420px;
-      overflow-y: auto;
-      padding-right: 4px;
+    .tiny-pill {
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      cursor: default;
     }
 
-    .result-tile {
-      border-radius: 12px;
+    .refresh-btn {
+      border-radius: 999px;
+      padding: 3px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: var(--accent);
+      background-color: transparent;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .refresh-btn:hover {
+      background-color: rgba(12, 16, 36, 0.92);
+      border-color: rgba(255, 179, 71, 0.45);
+    }
+
+    .grid-wrapper {
+      margin-top: 0.4rem;
+      border-radius: 10px;
+      border: 1px solid rgba(46, 57, 118, 0.9);
       background-color: rgba(6, 8, 22, 0.96);
-      border: 1px solid rgba(50, 61, 112, 0.9);
-      padding: 9px 9px 8px;
-      margin-bottom: 8px;
+      padding: 10px;
+      max-height: 440px;
+      overflow: auto;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 10px;
+    }
+
+    .result-card {
+      border-radius: 10px;
+      background: radial-gradient(circle at top left, #151827, #050712 70%);
+      border: 1px solid rgba(46, 57, 118, 0.9);
+      padding: 8px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       font-size: 0.8rem;
     }
 
-    .result-title {
+    .result-header {
       font-weight: 500;
       margin-bottom: 2px;
     }
 
-    .result-meta {
-      display: flex;
-      justify-content: space-between;
-      gap: 6px;
-      font-size: 0.76rem;
+    .result-source {
+      font-size: 0.78rem;
       color: var(--text-muted);
-      margin-bottom: 2px;
     }
 
-    .result-price {
-      color: var(--accent);
-      font-weight: 600;
+    .result-price-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.86rem;
     }
 
-    .result-source-row {
+    .price-pill {
+      border-radius: 999px;
+      padding: 3px 9px;
+      background-color: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.7);
+      color: #bbf7d0;
+      font-size: 0.8rem;
+    }
+
+    .condition-pill {
+      border-radius: 999px;
+      padding: 2px 7px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      color: #e2e8f0;
+      font-size: 0.75rem;
+    }
+
+    .result-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.74rem;
-      margin-top: 2px;
-    }
-
-    .result-source {
+      margin-top: 4px;
+      font-size: 0.75rem;
       color: var(--text-muted);
     }
 
-    .result-link a {
-      color: #9ae6ff;
+    .result-link {
+      font-size: 0.78rem;
       text-decoration: none;
-      font-size: 0.76rem;
+      color: var(--accent);
     }
 
-    .result-link a:hover {
+    .result-link:hover {
       text-decoration: underline;
+    }
+
+    .empty-state {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      padding: 10px 4px;
+    }
+
+    .pagination {
+      margin-top: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .pagination-controls {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .page-btn {
+      border-radius: 999px;
+      padding: 3px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background-color: transparent;
+      color: #e2e8f0;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .page-btn[disabled] {
+      opacity: 0.4;
+      cursor: default;
     }
 
     #message {
       margin-top: 0.6rem;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
     }
 
@@ -251,7 +387,7 @@
 <body>
   <div class="shell">
     <div class="inner">
-      <!-- Left side: info -->
+      <!-- Left: search context/info -->
       <div>
         <header>
           <div class="logo-row">
@@ -259,7 +395,7 @@
               <div class="logo-mark">G</div>
               <div class="logo-text">
                 <span>GoSnaggit</span>
-                <span>Search results preview</span>
+                <span>Results for this hunt</span>
               </div>
             </div>
             <nav class="nav-links">
@@ -267,28 +403,67 @@
               <a href="/searches.html">Saved searches</a>
             </nav>
           </div>
-          <h1>Results for this saved search.</h1>
-          <p class="subtitle">
-            This page shows <strong>mock or real listings</strong> connected to a single saved search.
-            In future, this will be filled by the background search engine.
+          <h1 id="search-title">Search results</h1>
+          <p class="subtitle" id="search-subtitle">
+            Viewing mock marketplace results for this saved search.
           </p>
         </header>
 
-        <p class="meta-note">
-          Note: For now, this is a <span>visual MVP</span>. Any results shown are mock data or whatever
-          your backend returns from <code>/searches/:id/results</code>.
-        </p>
+        <div class="info-card">
+          <div class="info-row">
+            <span class="info-label">Item</span>
+            <span class="info-value" id="info-item">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Location</span>
+            <span class="info-value" id="info-location">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Category</span>
+            <span class="info-value" id="info-category">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Max price</span>
+            <span class="info-value" id="info-max-price">—</span>
+          </div>
+
+          <div class="info-pills">
+            <span class="info-pill" id="info-status-pill">Status: —</span>
+            <span class="info-pill" id="info-count-pill">Results: —</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Right side: results list -->
+      <!-- Right: results panel -->
       <div class="results-card">
         <div class="results-header">
-          <div class="results-title">Listings found</div>
-          <div class="results-count-pill" id="results-count-pill">0 results</div>
+          <div>
+            <div class="results-title">Mock results preview</div>
+            <div class="results-meta" id="results-meta">
+              Loading…
+            </div>
+          </div>
+          <div class="results-controls">
+            <button type="button" class="refresh-btn" id="refresh-button">Refresh</button>
+          </div>
         </div>
 
-        <div id="results-container" class="results-list">
-          <!-- Filled by JS -->
+        <div class="grid-wrapper">
+          <div id="results-grid" class="results-grid">
+            <!-- cards go here -->
+          </div>
+          <div id="empty-state" class="empty-state" style="display:none;">
+            No results to show yet. When your background engine runs,
+            results for this search will appear here.
+          </div>
+        </div>
+
+        <div class="pagination">
+          <div id="page-summary">Page 1 of 1</div>
+          <div class="pagination-controls">
+            <button type="button" class="page-btn" id="prev-page">Previous</button>
+            <button type="button" class="page-btn" id="next-page">Next</button>
+          </div>
         </div>
 
         <div id="message"></div>
@@ -297,21 +472,81 @@
   </div>
 
   <script>
-    function getSearchIdFromUrl() {
+    function getParams() {
       const params = new URLSearchParams(window.location.search);
-      return params.get('id');
+      return {
+        id: params.get('id'),
+        page: parseInt(params.get('page') || '1', 10)
+      };
     }
 
+    const { id: searchId, page: initialPage } = getParams();
+
+    const searchTitleEl = document.getElementById('search-title');
+    const searchSubtitleEl = document.getElementById('search-subtitle');
+    const infoItemEl = document.getElementById('info-item');
+    const infoLocationEl = document.getElementById('info-location');
+    const infoCategoryEl = document.getElementById('info-category');
+    const infoMaxPriceEl = document.getElementById('info-max-price');
+    const infoStatusPill = document.getElementById('info-status-pill');
+    const infoCountPill = document.getElementById('info-count-pill');
+
+    const resultsGrid = document.getElementById('results-grid');
+    const emptyStateEl = document.getElementById('empty-state');
+    const resultsMetaEl = document.getElementById('results-meta');
+    const pageSummaryEl = document.getElementById('page-summary');
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
+    const refreshBtn = document.getElementById('refresh-button');
     const messageEl = document.getElementById('message');
-    const resultsContainer = document.getElementById('results-container');
-    const countPill = document.getElementById('results-count-pill');
-    const searchId = getSearchIdFromUrl();
+
+    let currentPage = initialPage || 1;
+    const limitPerPage = 6;
+    let totalPages = 1;
+    let totalResults = 0;
 
     if (!searchId) {
-      messageEl.textContent = 'Missing search id in the URL (e.g., ?id=1).';
-      messageEl.classList.add('message-error');
+      resultsMetaEl.textContent = 'Missing search id in URL (e.g., ?id=1).';
     } else {
-      fetch('/searches/' + searchId + '/results')
+      loadSearchContext();
+      loadResults();
+    }
+
+    // Load basic info about the search itself for the left panel
+    function loadSearchContext() {
+      fetch('/searches/' + searchId)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to load search details');
+          }
+          return response.json();
+        })
+        .then(data => {
+          const item = data.search_item || 'Saved search';
+          searchTitleEl.textContent = item;
+          searchSubtitleEl.textContent = 'Viewing mock marketplace results for this saved search.';
+          infoItemEl.textContent = item;
+          infoLocationEl.textContent = data.location || '—';
+          infoCategoryEl.textContent = data.category || '—';
+          infoMaxPriceEl.textContent = data.max_price ? '$' + data.max_price : '—';
+
+          const status = (data.status || '—').toLowerCase();
+          infoStatusPill.textContent = 'Status: ' + (data.status || '—');
+        })
+        .catch(err => {
+          resultsMetaEl.textContent = 'Error loading search details: ' + err.message;
+        });
+    }
+
+    // Load paginated mock results for this search
+    function loadResults() {
+      if (!searchId) return;
+
+      resultsMetaEl.textContent = 'Loading results…';
+      messageEl.textContent = '';
+      messageEl.className = '';
+
+      fetch(`/searches/${searchId}/results?page=${currentPage}&limit=${limitPerPage}`)
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to load results');
@@ -319,49 +554,89 @@
           return response.json();
         })
         .then(data => {
-          const results = Array.isArray(data) ? data : (data.results || []);
+          const results = Array.isArray(data.results) ? data.results : [];
+          totalResults = data.total_results || results.length;
+          totalPages = data.total_pages || 1;
+          currentPage = data.page || 1;
 
-          resultsContainer.innerHTML = '';
+          infoCountPill.textContent = `Results: ${totalResults}`;
+          resultsMetaEl.textContent = `Showing ${results.length} of ${totalResults} results (page ${currentPage} of ${totalPages}).`;
 
-          if (!results || results.length === 0) {
-            messageEl.textContent = 'No results yet for this search (or the mock engine has not generated any).';
-            countPill.textContent = '0 results';
-            return;
+          resultsGrid.innerHTML = '';
+
+          if (results.length === 0) {
+            emptyStateEl.style.display = 'block';
+          } else {
+            emptyStateEl.style.display = 'none';
+
+            results.forEach((r, index) => {
+              const card = document.createElement('div');
+              card.className = 'result-card';
+
+              const price = r.price != null ? `$${r.price}` : '—';
+              const title = r.title || 'Listing';
+              const source = r.source || 'Marketplace';
+              const condition = r.condition || 'Unknown';
+              const location = r.location || 'Online';
+              const postedAt = r.posted_at ? new Date(r.posted_at).toLocaleDateString() : '—';
+              const url = r.url || '#';
+
+              card.innerHTML = `
+                <div class="result-header">${title}</div>
+                <div class="result-source">${source}</div>
+                <div class="result-price-row">
+                  <span class="price-pill">${price}</span>
+                  <span class="condition-pill">${condition}</span>
+                </div>
+                <div class="result-footer">
+                  <span>${location} • ${postedAt}</span>
+                  <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
+                </div>
+              `;
+
+              resultsGrid.appendChild(card);
+            });
           }
 
-          messageEl.textContent = '';
-          countPill.textContent = results.length + (results.length === 1 ? ' result' : ' results');
-
-          results.forEach((r, index) => {
-            const card = document.createElement('div');
-            card.className = 'result-tile';
-
-            const title = r.title || r.name || ('Result #' + (index + 1));
-            const price = r.price ? ('$' + r.price) : '';
-            const location = r.location || '';
-            const source = r.source || 'Unknown source';
-
-            card.innerHTML = `
-              <div class="result-title">${title}</div>
-              <div class="result-meta">
-                <span>${location || ''}</span>
-                <span class="result-price">${price}</span>
-              </div>
-              <div class="result-source-row">
-                <span class="result-source">${source}</span>
-                <span class="result-link">
-                  ${r.url ? '<a href="' + r.url + '" target="_blank" rel="noopener noreferrer">View listing</a>' : ''}
-                </span>
-              </div>
-            `;
-
-            resultsContainer.appendChild(card);
-          });
+          updatePagination();
         })
         .catch(err => {
+          resultsMetaEl.textContent = 'Error loading results: ' + err.message;
           messageEl.textContent = 'Error loading results: ' + err.message;
-          messageEl.classList.add('message-error');
+          messageEl.className = 'message-error';
         });
+    }
+
+    function updatePagination() {
+      pageSummaryEl.textContent = `Page ${currentPage} of ${totalPages}`;
+      prevPageBtn.disabled = currentPage <= 1;
+      nextPageBtn.disabled = currentPage >= totalPages;
+    }
+
+    prevPageBtn.addEventListener('click', function () {
+      if (currentPage <= 1) return;
+      currentPage -= 1;
+      loadResults();
+      updateUrl();
+    });
+
+    nextPageBtn.addEventListener('click', function () {
+      if (currentPage >= totalPages) return;
+      currentPage += 1;
+      loadResults();
+      updateUrl();
+    });
+
+    refreshBtn.addEventListener('click', function () {
+      loadResults();
+    });
+
+    function updateUrl() {
+      const params = new URLSearchParams(window.location.search);
+      params.set('id', searchId);
+      params.set('page', String(currentPage));
+      const newUrl = window.location.pathname + '?' + params.toString();
+      window.history.replaceState({}, '', newUrl);
     }
   </script>
 </body>
