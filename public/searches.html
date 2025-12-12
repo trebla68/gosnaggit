@@ -494,6 +494,9 @@
     let currentPage = 1;
     let totalPages = 1;
 
+    // Prevent multiple duplicate POSTs for the same search id at the same time
+    const duplicateInFlight = new Set();
+
     const tbody = document.getElementById('searches-tbody');
     const summaryTotal = document.getElementById('summary-total');
     const summaryActive = document.getElementById('summary-active');
@@ -638,20 +641,40 @@
         duplicateLink.href = '#';
         duplicateLink.addEventListener('click', async (e) => {
           e.preventDefault();
+
+          // Absolute guard: one duplicate request per search.id at a time
+          if (duplicateInFlight.has(search.id)) return;
+          duplicateInFlight.add(search.id);
+
+          const originalText = duplicateLink.textContent;
+          duplicateLink.textContent = 'Duplicating…';
+          duplicateLink.style.pointerEvents = 'none';
+          duplicateLink.style.opacity = '0.6';
+
           setFlash('Duplicating search…');
+
           try {
             const res = await fetch(`/searches/${search.id}/duplicate`, {
               method: 'POST'
             });
+
             if (!res.ok) {
               const body = await res.json().catch(() => ({}));
               throw new Error(body.error || 'Failed to duplicate search');
             }
+
             await reloadSearches();
             setFlash('Search duplicated.', 'success');
           } catch (err) {
             console.error(err);
             setFlash('Error duplicating search: ' + err.message, 'error');
+
+            // Re-enable on error so user can try again
+            duplicateLink.textContent = originalText;
+            duplicateLink.style.pointerEvents = '';
+            duplicateLink.style.opacity = '';
+          } finally {
+            duplicateInFlight.delete(search.id);
           }
         });
 
