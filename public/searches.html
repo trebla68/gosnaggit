@@ -637,18 +637,25 @@
         const detailsLink = document.createElement('a');
         detailsLink.textContent = 'Details';
         detailsLink.href = `/search-detail.html?id=${search.id}`;
+        detailsLink.title = 'View search details';
 
         const resultsLink = document.createElement('a');
         resultsLink.textContent = 'Results';
         resultsLink.href = `/search-results.html?id=${search.id}`;
+        resultsLink.title = 'View results found for this search';
 
         const editLink = document.createElement('a');
         editLink.textContent = 'Edit';
         editLink.href = `/edit-search.html?id=${search.id}`;
+        editLink.title = 'Edit this search';
 
         const duplicateLink = document.createElement('a');
         duplicateLink.textContent = 'Duplicate';
+        duplicateLink.title = 'Duplicating…';
+
         duplicateLink.href = '#';
+        duplicateLink.title = 'Duplicate this search (creates a new active copy)';
+
         duplicateLink.addEventListener('click', async (e) => {
           e.preventDefault();
 
@@ -693,7 +700,11 @@
 
         const deleteLink = document.createElement('a');
         deleteLink.textContent = 'Delete';
+        deleteLink.title = 'Deleting…';
+
         deleteLink.href = '#';
+        deleteLink.title = 'Move this search to Deleted';
+
         deleteLink.addEventListener('click', async (e) => {
           e.preventDefault();
 
