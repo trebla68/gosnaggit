@@ -496,6 +496,8 @@
 
     // Prevent multiple duplicate POSTs for the same search id at the same time
     const duplicateInFlight = new Set();
+    const deleteInFlight = new Set();
+
 
     const tbody = document.getElementById('searches-tbody');
     const summaryTotal = document.getElementById('summary-total');
@@ -522,6 +524,9 @@
           flashEl.className = 'flash';
         }, 4000);
       }
+    }
+    function nextPaint() {
+      return new Promise(resolve => requestAnimationFrame(resolve));
     }
 
     newSearchBtn.addEventListener('click', () => {
@@ -652,6 +657,7 @@
           duplicateLink.style.opacity = '0.6';
 
           setFlash('Duplicating search…');
+          await nextPaint();
 
           try {
             const res = await fetch(`/searches/${search.id}/duplicate`, {
@@ -683,25 +689,50 @@
         deleteLink.href = '#';
         deleteLink.addEventListener('click', async (e) => {
           e.preventDefault();
+
+          // Prevent double-deletes
+          if (deleteInFlight.has(search.id)) return;
+
           const confirmed = window.confirm('Move this search to Deleted? It will no longer appear in this list.');
           if (!confirmed) return;
 
+          deleteInFlight.add(search.id);
+
+          const originalText = deleteLink.textContent;
+          deleteLink.textContent = 'Deleting…';
+          deleteLink.style.pointerEvents = 'none';
+          deleteLink.style.opacity = '0.6';
+
           setFlash('Deleting search…');
+          await nextPaint();
+          await new Promise(r => setTimeout(r, 200)); // <-- ensures you can actually see “Deleting…”
+
           try {
             const res = await fetch(`/searches/${search.id}`, {
               method: 'DELETE'
             });
+
+
             if (!res.ok) {
               const body = await res.json().catch(() => ({}));
               throw new Error(body.error || 'Failed to delete search');
             }
+
             await reloadSearches();
             setFlash('Search moved to Deleted.', 'success');
           } catch (err) {
             console.error(err);
             setFlash('Error deleting search: ' + err.message, 'error');
+
+            // Re-enable on error
+            deleteLink.textContent = originalText;
+            deleteLink.style.pointerEvents = '';
+            deleteLink.style.opacity = '';
+          } finally {
+            deleteInFlight.delete(search.id);
           }
         });
+
 
         actionsTd.appendChild(detailsLink);
         actionsTd.appendChild(document.createTextNode(' '));
