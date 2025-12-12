@@ -489,7 +489,8 @@
   </div>
 
   <script>
-    let pageSize = 5; // default rows per page
+    let pageSize = 5; // will be synced from dropdown on init
+
     let allSearches = [];
     let currentPage = 1;
     let totalPages = 1;
@@ -527,6 +528,10 @@
     }
     function nextPaint() {
       return new Promise(resolve => requestAnimationFrame(resolve));
+    }
+    function setRowBusy(actionsTd, busy) {
+      actionsTd.style.pointerEvents = busy ? 'none' : '';
+      actionsTd.style.opacity = busy ? '0.5' : '';
     }
 
     newSearchBtn.addEventListener('click', () => {
@@ -655,6 +660,7 @@
           duplicateLink.textContent = 'Duplicating…';
           duplicateLink.style.pointerEvents = 'none';
           duplicateLink.style.opacity = '0.6';
+          setRowBusy(actionsTd, true);
 
           setFlash('Duplicating search…');
           await nextPaint();
@@ -681,6 +687,7 @@
             duplicateLink.style.opacity = '';
           } finally {
             duplicateInFlight.delete(search.id);
+            setRowBusy(actionsTd, false);
           }
         });
 
@@ -702,6 +709,7 @@
           deleteLink.textContent = 'Deleting…';
           deleteLink.style.pointerEvents = 'none';
           deleteLink.style.opacity = '0.6';
+          setRowBusy(actionsTd, true);
 
           setFlash('Deleting search…');
           await nextPaint();
@@ -730,6 +738,8 @@
             deleteLink.style.opacity = '';
           } finally {
             deleteInFlight.delete(search.id);
+            setRowBusy(actionsTd, false);
+
           }
         });
 
@@ -803,8 +813,12 @@
     }
 
     async function init() {
+      const initialSize = parseInt(pageSizeSelect.value, 10);
+      pageSize = Number.isNaN(initialSize) ? 5 : initialSize;
+      currentPage = 1;
       await reloadSearches();
     }
+
 
     document.addEventListener('DOMContentLoaded', init);
   </script>
