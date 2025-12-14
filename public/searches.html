@@ -728,6 +728,7 @@
 
             // Re-enable on error so user can try again
             duplicateLink.textContent = originalText;
+            duplicateLink.title = 'Duplicate';
             duplicateLink.style.pointerEvents = '';
             duplicateLink.style.opacity = '';
           } finally {
@@ -787,6 +788,7 @@
 
             // Re-enable on error
             deleteLink.textContent = originalText;
+            deleteLink.title = 'Delete';
             deleteLink.style.pointerEvents = '';
             deleteLink.style.opacity = '';
           } finally {
