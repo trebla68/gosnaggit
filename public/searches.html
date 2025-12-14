@@ -238,6 +238,43 @@
       animation: rowPulse 1.2s ease-out;
     }
 
+    @keyframes fadeInText {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .action-working {
+      animation: fadeInText 0.2s ease-out;
+    }
+
+    @keyframes flashFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Make the fade much more noticeable */
+    .flash.fade-in {
+      animation: flashFadeIn 0.6s ease-out;
+    }
+
+
+    .flash.fade-in {
+      animation: flashFadeIn 0.22s ease-out;
+    }
+
+
     .primary-btn {
       border-radius: 999px;
       padding: 6px 13px;
@@ -563,13 +600,29 @@
       flashEl.className = 'flash';
       if (type) flashEl.classList.add(type);
 
+      // trigger fade-in whenever we set new text
       if (text) {
+        // Remove and re-add the class so the animation restarts every time
+        flashEl.classList.remove('fade-in');
+
+        // Force it to start invisible so your eye can see the fade
+        flashEl.style.opacity = '0';
+
+        // Force reflow, then animate in
+        void flashEl.offsetWidth;
+
+        flashEl.style.opacity = '';
+        flashEl.classList.add('fade-in');
+
         setTimeout(() => {
           flashEl.textContent = '';
           flashEl.className = 'flash';
+          flashEl.style.opacity = '';
         }, 4000);
       }
     }
+
+
 
     function setRowBusy(actionsTd, busy) {
       actionsTd.style.pointerEvents = busy ? 'none' : '';
@@ -585,7 +638,7 @@
 
       setRowBusy(actionsTd, true);
 
-      linkEl.innerHTML = `${workingText} <span class="mini-spinner" aria-hidden="true"></span>`;
+      linkEl.innerHTML = `<span class="action-working">${workingText}</span> <span class="mini-spinner" aria-hidden="true"></span>`;
       linkEl.title = workingText;
 
       const minWait = sleep(MIN_SPINNER_MS);
