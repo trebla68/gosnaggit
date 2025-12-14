@@ -235,8 +235,20 @@
 
     .row-pulse {
       outline-offset: -2px;
-      animation: rowPulse 1.2s ease-out;
+      /* keep the outline placement */
+      /* DO NOT set animation here */
     }
+
+
+    /* If a row is both fading in and pulsing, delay the pulse slightly */
+    /* When the row has BOTH classes, run BOTH animations (fade first, then pulse) */
+    .row-fade-in.row-pulse {
+      animation: rowFadeIn 0.55s ease-out, rowPulse 1.2s ease-out;
+      animation-delay: 0s, 0.2s;
+      /* fade immediately, pulse slightly later */
+    }
+
+
 
     @keyframes fadeInText {
       from {
@@ -269,9 +281,20 @@
       animation: flashFadeIn 0.6s ease-out;
     }
 
+    @keyframes rowFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-2px);
+      }
 
-    .flash.fade-in {
-      animation: flashFadeIn 0.22s ease-out;
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .row-fade-in {
+      animation: rowFadeIn 0.55s ease-out;
     }
 
 
@@ -446,6 +469,12 @@
 
     .flash.error {
       color: #fecaca;
+    }
+
+    tr.busy {
+      opacity: 0.85;
+      filter: saturate(0.9);
+      box-shadow: inset 0 0 0 1px rgba(255, 179, 71, 0.35);
     }
 
     footer {
@@ -638,18 +667,20 @@
 
       setRowBusy(actionsTd, true);
 
+      const tr = actionsTd.closest('tr');
+      tr?.classList.add('busy');
+
       linkEl.innerHTML = `<span class="action-working">${workingText}</span> <span class="mini-spinner" aria-hidden="true"></span>`;
       linkEl.title = workingText;
 
       const minWait = sleep(MIN_SPINNER_MS);
 
       const stop = () => {
-        // If the table re-rendered, this link element might no longer exist.
-        // Only try to restore if it’s still in the DOM.
         if (linkEl && linkEl.isConnected) {
           linkEl.textContent = originalText;
           linkEl.title = originalTitle;
         }
+        tr?.classList.remove('busy');
         setRowBusy(actionsTd, false);
       };
 
@@ -721,9 +752,13 @@
         const tr = document.createElement('tr');
 
         if (pulseSearchId === search.id) {
-          tr.classList.add('row-pulse');
+          tr.classList.add('row-fade-in');
+          tr.classList.add('row-pulse'); // add immediately (CSS will delay it)
           pulseSearchId = null;
         }
+
+
+
 
         const idTd = document.createElement('td');
         idTd.textContent = search.id;
