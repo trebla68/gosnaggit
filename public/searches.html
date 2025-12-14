@@ -770,86 +770,138 @@
 
 
         deleteLink.addEventListener('click', async (e) => {
+          e.preventDefault();
 
+          // Prevent double-deletes
+          if (deleteInFlight.has(search.id)) return;
 
+          const confirmed = window.confirm('Move this search to Deleted? It will no longer appear in this list.');
+          if (!confirmed) return;
 
-          actionsTd.appendChild(detailsLink);
-          actionsTd.appendChild(document.createTextNode(' '));
-          actionsTd.appendChild(resultsLink);
-          actionsTd.appendChild(document.createTextNode(' '));
-          actionsTd.appendChild(editLink);
-          actionsTd.appendChild(document.createTextNode(' '));
-          actionsTd.appendChild(duplicateLink);
-          actionsTd.appendChild(document.createTextNode(' '));
-          actionsTd.appendChild(deleteLink);
+          deleteInFlight.add(search.id);
 
-          tr.appendChild(actionsTd);
-          tbody.appendChild(tr);
+          const originalText = deleteLink.textContent;
+          const originalTitle = deleteLink.title;
+
+          deleteLink.innerHTML = `Deleting… <span class="mini-spinner" aria-hidden="true"></span>`;
+          deleteLink.title = 'Deleting…';
+          deleteLink.style.pointerEvents = 'none';
+          deleteLink.style.opacity = '0.6';
+          setRowBusy(actionsTd, true);
+
+          setFlash('Deleting search…');
+          await nextPaint();
+          await new Promise(r => setTimeout(r, 200));
+
+          try {
+            const res = await fetch(`/searches/${search.id}`, { method: 'DELETE' });
+
+            if (!res.ok) {
+              const body = await res.json().catch(() => ({}));
+              throw new Error(body.error || 'Failed to delete search');
+            }
+
+            await reloadSearches();
+            setFlash('Search moved to Deleted.', 'success');
+          } catch (err) {
+            console.error(err);
+            setFlash('Error deleting search: ' + err.message, 'error');
+
+            // Restore link if there was an error
+            deleteLink.textContent = originalText;
+            deleteLink.title = originalTitle;
+            deleteLink.style.pointerEvents = '';
+            deleteLink.style.opacity = '';
+          } finally {
+            deleteInFlight.delete(search.id);
+            setRowBusy(actionsTd, false);
+          }
         });
 
-        rangeTextEl.textContent = `Showing ${startIndex + 1}–${endIndex} of ${allSearches.length}`;
-        pageInfoEl.textContent = `Page ${currentPage} of ${totalPages}`;
-        prevBtn.disabled = currentPage === 1;
-        nextBtn.disabled = currentPage === totalPages;
-      }
+        // --- PUT ACTION LINKS INTO THE "Actions" CELL ---
+        actionsTd.appendChild(detailsLink);
+        actionsTd.appendChild(document.createTextNode(' '));
+        actionsTd.appendChild(resultsLink);
+        actionsTd.appendChild(document.createTextNode(' '));
+        actionsTd.appendChild(editLink);
+        actionsTd.appendChild(document.createTextNode(' '));
+        actionsTd.appendChild(duplicateLink);
+        actionsTd.appendChild(document.createTextNode(' '));
+        actionsTd.appendChild(deleteLink);
 
-    function updatePagination() {
-          totalPages = Math.max(1, Math.ceil(allSearches.length / pageSize));
-          if (currentPage > totalPages) {
-            currentPage = totalPages;
-          }
-          renderTablePage(currentPage);
-        }
+        // --- PUT THE ACTIONS CELL INTO THE ROW ---
+        tr.appendChild(actionsTd);
 
-    prevBtn.addEventListener('click', () => {
-          if (currentPage > 1) {
-            currentPage--;
-            renderTablePage(currentPage);
-          }
-        });
+        // --- PUT THE ROW INTO THE TABLE BODY ---
+        tbody.appendChild(tr);
 
-      nextBtn.addEventListener('click', () => {
-        if (currentPage < totalPages) {
-          currentPage++;
-          renderTablePage(currentPage);
-        }
+
       });
 
-      async function reloadSearches() {
-        try {
-          const res = await fetch('/searches');
-          if (!res.ok) {
-            throw new Error('Failed to fetch searches');
-          }
-          allSearches = await res.json();
-          updateSummary(allSearches);
-          updatePagination();
-        } catch (err) {
-          console.error(err);
-          tbody.innerHTML = '';
-          const tr = document.createElement('tr');
-          const td = document.createElement('td');
-          td.colSpan = 7;
-          td.textContent = 'Error loading searches.';
-          tr.appendChild(td);
-          tbody.appendChild(tr);
-          rangeTextEl.textContent = '';
-          pageInfoEl.textContent = '';
-          prevBtn.disabled = true;
-          nextBtn.disabled = true;
-          setFlash('Error loading searches: ' + err.message, 'error');
+      rangeTextEl.textContent = `Showing ${startIndex + 1}–${endIndex} of ${allSearches.length}`;
+      pageInfoEl.textContent = `Page ${currentPage} of ${totalPages}`;
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage === totalPages;
+    }
+
+
+    function updatePagination() {
+      totalPages = Math.max(1, Math.ceil(allSearches.length / pageSize));
+      if (currentPage > totalPages) {
+        currentPage = totalPages;
+      }
+      renderTablePage(currentPage);
+    }
+
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTablePage(currentPage);
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderTablePage(currentPage);
+      }
+    });
+
+    async function reloadSearches() {
+      try {
+        const res = await fetch('/searches');
+        if (!res.ok) {
+          throw new Error('Failed to fetch searches');
         }
+        allSearches = await res.json();
+        updateSummary(allSearches);
+        updatePagination();
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = '';
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 7;
+        td.textContent = 'Error loading searches.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        rangeTextEl.textContent = '';
+        pageInfoEl.textContent = '';
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        setFlash('Error loading searches: ' + err.message, 'error');
       }
+    }
 
-      async function init() {
-        const initialSize = parseInt(pageSizeSelect.value, 10);
-        pageSize = Number.isNaN(initialSize) ? 5 : initialSize;
-        currentPage = 1;
-        await reloadSearches();
-      }
+    async function init() {
+      const initialSize = parseInt(pageSizeSelect.value, 10);
+      pageSize = Number.isNaN(initialSize) ? 5 : initialSize;
+      currentPage = 1;
+      await reloadSearches();
+    }
 
 
-      document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 
