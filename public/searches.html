@@ -200,6 +200,25 @@
       color: var(--text-muted);
     }
 
+    @keyframes rowPulse {
+      0% {
+        outline: 2px solid rgba(255, 179, 71, 0.0);
+      }
+
+      30% {
+        outline: 2px solid rgba(255, 179, 71, 0.9);
+      }
+
+      100% {
+        outline: 2px solid rgba(255, 179, 71, 0.0);
+      }
+    }
+
+    .row-pulse {
+      outline-offset: -2px;
+      animation: rowPulse 1.2s ease-out;
+    }
+
     .primary-btn {
       border-radius: 999px;
       padding: 6px 13px;
@@ -389,6 +408,10 @@
       .nav-links {
         align-self: flex-start;
       }
+
+
+
+
     }
   </style>
 </head>
@@ -498,6 +521,8 @@
     // Prevent multiple duplicate POSTs for the same search id at the same time
     const duplicateInFlight = new Set();
     const deleteInFlight = new Set();
+    let pulseSearchId = null;
+
 
 
     const tbody = document.getElementById('searches-tbody');
@@ -590,6 +615,7 @@
         td.textContent = 'No saved searches yet.';
         tr.appendChild(td);
         tbody.appendChild(tr);
+
         rangeTextEl.textContent = 'Showing 0 of 0';
         pageInfoEl.textContent = 'Page 1 of 1';
         prevBtn.disabled = true;
@@ -597,12 +623,18 @@
         return;
       }
 
+
       const startIndex = (page - 1) * pageSize;
       const endIndex = Math.min(startIndex + pageSize, allSearches.length);
       const pageItems = allSearches.slice(startIndex, endIndex);
 
       pageItems.forEach(search => {
         const tr = document.createElement('tr');
+        if (pulseSearchId === search.id) {
+          tr.classList.add('row-pulse');
+          pulseSearchId = null; // pulse once
+        }
+
 
         const idTd = document.createElement('td');
         idTd.textContent = search.id;
@@ -651,10 +683,10 @@
 
         const duplicateLink = document.createElement('a');
         duplicateLink.textContent = 'Duplicate';
-        duplicateLink.title = 'Duplicating…';
+        duplicateLink.title = 'Duplicate';
 
         duplicateLink.href = '#';
-        duplicateLink.title = 'Duplicate this search (creates a new active copy)';
+
 
         duplicateLink.addEventListener('click', async (e) => {
           e.preventDefault();
@@ -665,9 +697,11 @@
 
           const originalText = duplicateLink.textContent;
           duplicateLink.textContent = 'Duplicating…';
+          duplicateLink.title = 'Duplicating…';
           duplicateLink.style.pointerEvents = 'none';
           duplicateLink.style.opacity = '0.6';
           setRowBusy(actionsTd, true);
+
 
           setFlash('Duplicating search…');
           await nextPaint();
@@ -680,6 +714,10 @@
             if (!res.ok) {
               const body = await res.json().catch(() => ({}));
               throw new Error(body.error || 'Failed to duplicate search');
+            }
+            const created = await res.json().catch(() => null);
+            if (created && created.id) {
+              pulseSearchId = created.id;
             }
 
             await reloadSearches();
@@ -700,10 +738,10 @@
 
         const deleteLink = document.createElement('a');
         deleteLink.textContent = 'Delete';
-        deleteLink.title = 'Deleting…';
+        deleteLink.title = 'Delete';
 
         deleteLink.href = '#';
-        deleteLink.title = 'Move this search to Deleted';
+
 
         deleteLink.addEventListener('click', async (e) => {
           e.preventDefault();
@@ -718,9 +756,11 @@
 
           const originalText = deleteLink.textContent;
           deleteLink.textContent = 'Deleting…';
+          deleteLink.title = 'Deleting…';
           deleteLink.style.pointerEvents = 'none';
           deleteLink.style.opacity = '0.6';
           setRowBusy(actionsTd, true);
+
 
           setFlash('Deleting search…');
           await nextPaint();
@@ -739,6 +779,8 @@
 
             await reloadSearches();
             setFlash('Search moved to Deleted.', 'success');
+
+
           } catch (err) {
             console.error(err);
             setFlash('Error deleting search: ' + err.message, 'error');
