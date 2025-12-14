@@ -440,8 +440,9 @@
           <!-- CLICKABLE PILL -->
           <a href="/searches.html" class="side-tag side-tag-link">
             <span class="side-tag-dot"></span>
-            3 active searches
+            <span id="active-count">—</span> <span id="active-label">active searches</span>
           </a>
+
         </div>
 
         <div class="side-title">You’re tracking:</div>
@@ -501,6 +502,31 @@
       </footer>
     </div>
   </div>
+  <script>
+    async function updateHomeCounts() {
+      const countEl = document.getElementById('active-count');
+      const labelEl = document.getElementById('active-label');
+
+      try {
+        const res = await fetch('/searches');
+        if (!res.ok) throw new Error('Failed to fetch searches');
+        const searches = await res.json();
+
+        const activeCount = searches.filter(s => s.status === 'active').length;
+
+        if (countEl) countEl.textContent = activeCount;
+        if (labelEl) labelEl.textContent = activeCount === 1 ? 'active search' : 'active searches';
+      } catch (err) {
+        console.error('Home count error:', err);
+        if (countEl) countEl.textContent = '—';
+        if (labelEl) labelEl.textContent = 'active searches';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', updateHomeCounts);
+  </script>
+
+
 </body>
 
 </html>
