@@ -83,6 +83,40 @@ app.post('/searches/:id/results', async (req, res) => {
   }
 });
 
+// Trigger a marketplace refresh for a search (stub until eBay approval)
+app.post('/searches/:id/refresh', async (req, res) => {
+  try {
+    const searchId = parseInt(req.params.id, 10);
+    if (Number.isNaN(searchId)) {
+      return res.status(400).json({ error: 'Invalid search id' });
+    }
+
+    // Make sure the search exists
+    const check = await pool.query('SELECT id, status FROM searches WHERE id = $1', [searchId]);
+    if (check.rowCount === 0) {
+      return res.status(404).json({ error: 'Search not found' });
+    }
+
+    // If you want, block refresh for deleted searches
+    if ((check.rows[0].status || '').toLowerCase() === 'deleted') {
+      return res.status(400).json({ error: 'Cannot refresh a deleted search' });
+    }
+
+    // For now: eBay not approved yet, so we don’t call eBay here.
+    // Later: this is where we will call ebayService -> normalize -> insertResults().
+    return res.json({
+      message: 'Refresh requested',
+      marketplace: 'ebay',
+      status: 'pending_developer_approval',
+      inserted: 0
+    });
+  } catch (err) {
+    console.error('POST /searches/:id/refresh failed:', err);
+    res.status(500).json({ error: 'Failed to refresh search' });
+  }
+});
+
+
 // ----------------------------------------------------
 // Get all searches (used by searches.html)
 // ----------------------------------------------------

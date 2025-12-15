@@ -684,18 +684,22 @@
     }
 
     prevPageBtn.addEventListener('click', function () {
-      if (currentPage <= 1) return;
+      if (prevPageBtn.disabled) return;
+
       currentPage -= 1;
       loadResults();
       updateUrl();
     });
 
+
     nextPageBtn.addEventListener('click', function () {
-      if (currentPage >= totalPages) return;
+      if (nextPageBtn.disabled) return;
+
       currentPage += 1;
       loadResults();
       updateUrl();
     });
+
 
     refreshBtn.addEventListener('click', function () {
       loadResults();
