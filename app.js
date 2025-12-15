@@ -279,8 +279,7 @@ app.post('/searches/:id/duplicate', async (req, res) => {
 });
 
 
-// Enhanced mock results for a specific search, with pagination
-// Get results for a search (paginated) — DB-backed
+// Get stored marketplace results for a specific search (latest first)
 app.get('/searches/:id/results', async (req, res) => {
   try {
     const searchId = parseInt(req.params.id, 10);
@@ -288,61 +287,40 @@ app.get('/searches/:id/results', async (req, res) => {
       return res.status(400).json({ error: 'Invalid search id' });
     }
 
-    const page = Math.max(parseInt(req.query.page || '1', 10) || 1, 1);
-    const limit = Math.max(parseInt(req.query.limit || '6', 10) || 6, 1);
-    const offset = (page - 1) * limit;
+    const { limit = 50, offset = 0 } = req.query;
+    const limitNum = Math.min(parseInt(limit, 10) || 50, 200);
+    const offsetNum = parseInt(offset, 10) || 0;
 
-    // total count
-    const countResult = await pool.query(
-      'SELECT COUNT(*)::int AS count FROM search_results WHERE search_id = $1',
-      [searchId]
-    );
-    const totalResults = countResult.rows[0]?.count ?? 0;
-    const totalPages = Math.max(1, Math.ceil(totalResults / limit));
-
-    if (totalResults === 0) {
-      return res.json({
-        results: [],
-        page,
-        total_pages: 1,
-        total_results: 0,
-        demo: true
-      });
-    }
-
-    // page rows (newest first)
-    const resultsResult = await pool.query(
-      `
+    const sql = `
       SELECT
         id,
+        search_id,
+        marketplace,
+        external_id,
         title,
         price,
-        source,
+        currency,
+        listing_url,
+        image_url,
         location,
         condition,
-        url,
-        posted_at,
-        found_at,
-        created_at
-      FROM search_results
+        seller_username,
+        found_at
+      FROM results
       WHERE search_id = $1
-      ORDER BY COALESCE(posted_at, found_at, created_at) DESC
+      ORDER BY found_at DESC, id DESC
       LIMIT $2 OFFSET $3
-      `,
-      [searchId, limit, offset]
-    );
+    `;
 
-    return res.json({
-      results: resultsResult.rows,
-      page,
-      total_pages: totalPages,
-      total_results: totalResults
-    });
+    const { rows } = await pool.query(sql, [searchId, limitNum, offsetNum]);
+
+    res.json(rows);
   } catch (err) {
-    console.error('GET /searches/:id/results error:', err);
-    return res.status(500).json({ error: 'Failed to load results' });
+    console.error('GET /searches/:id/results failed:', err);
+    res.status(500).json({ error: 'Failed to fetch results' });
   }
 });
+
 
 
 
