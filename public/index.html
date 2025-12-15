@@ -200,10 +200,16 @@
     }
 
     .btn-secondary {
-      background: rgba(14, 19, 42, 0.9);
-      color: var(--text-main);
-      border: 1px solid var(--border-subtle);
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      box-shadow: none;
     }
+
+    .btn-secondary:hover {
+      background: rgba(255, 179, 71, 0.12);
+    }
+
 
     .btn:hover {
       transform: translateY(-1px);

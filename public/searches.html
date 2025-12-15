@@ -114,9 +114,10 @@
 
     .nav-links a:hover {
       color: var(--text-main);
-      border-color: rgba(255, 255, 255, 0.12);
-      background-color: rgba(9, 13, 32, 0.9);
+      border-color: rgba(255, 179, 71, 0.35);
+      background-color: rgba(255, 179, 71, 0.10);
     }
+
 
     .title-block h1 {
       margin: 0 0 0.3rem;
@@ -179,7 +180,7 @@
       border-radius: var(--radius-lg);
       background: radial-gradient(circle at top left, #151827, #050712 70%);
       border: 1px solid rgba(80, 97, 183, 0.6);
-      padding: 12px 12px 10px;
+      padding: 12px 14px 12px;
     }
 
     .table-header-row {
@@ -198,6 +199,25 @@
     .table-header-row small {
       font-size: 0.78rem;
       color: var(--text-muted);
+    }
+
+    .empty-state {
+      padding: 18px 10px;
+      color: var(--text-muted);
+    }
+
+    .empty-state strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .empty-state a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .empty-state a:hover {
+      text-decoration: underline;
     }
 
     @keyframes rowPulse {
@@ -229,26 +249,34 @@
       border-radius: 999px;
       border: 2px solid rgba(255, 255, 255, 0.35);
       border-top-color: rgba(255, 255, 255, 0);
-      /* slower rotation so it's easier to see */
       animation: miniSpin 1.8s linear infinite;
     }
 
     .row-pulse {
       outline-offset: -2px;
-      /* keep the outline placement */
-      /* DO NOT set animation here */
     }
 
+    @keyframes rowFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-2px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .row-fade-in {
+      animation: rowFadeIn 0.55s ease-out;
+    }
 
     /* If a row is both fading in and pulsing, delay the pulse slightly */
-    /* When the row has BOTH classes, run BOTH animations (fade first, then pulse) */
     .row-fade-in.row-pulse {
       animation: rowFadeIn 0.55s ease-out, rowPulse 1.2s ease-out;
       animation-delay: 0s, 0.2s;
-      /* fade immediately, pulse slightly later */
     }
-
-
 
     @keyframes fadeInText {
       from {
@@ -276,50 +304,47 @@
       }
     }
 
-    /* Make the fade much more noticeable */
     .flash.fade-in {
       animation: flashFadeIn 0.6s ease-out;
     }
 
-    @keyframes rowFadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(-2px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .row-fade-in {
-      animation: rowFadeIn 0.55s ease-out;
-    }
-
-
-    .primary-btn {
-      border-radius: 999px;
-      padding: 6px 13px;
-      border: none;
-      font-size: 0.86rem;
-      font-weight: 500;
-      cursor: pointer;
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      color: #1a1306;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+    /* Button system (matches Home page) */
+    .btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-    }
-
-    .primary-btn span.icon {
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.15rem;
+      /* dashboard-friendly */
+      border-radius: 999px;
+      border: none;
       font-size: 0.9rem;
+      /* dashboard-friendly */
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.12s ease-out;
+      white-space: nowrap;
     }
 
-    .primary-btn:hover {
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #1a1306;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+    }
+
+    .btn-primary span.icon {
+      font-size: 1rem;
+    }
+
+    .btn:hover {
       transform: translateY(-1px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.55);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
     }
 
     table {
@@ -518,6 +543,7 @@
         <h1>Saved searches overview</h1>
         <p>Your current hunts at a glance. This MVP view shows sample data for all active, paused, and completed
           searches.</p>
+
         <div class="summary-row">
           <div class="summary-card">
             <div class="summary-label">Total saved searches</div>
@@ -544,7 +570,8 @@
             <h2>Saved searches (MVP data table)</h2>
             <small><span id="table-count">0</span> searches</small>
           </div>
-          <button class="primary-btn" id="new-search-btn">
+
+          <button class="btn btn-primary" id="new-search-btn">
             <span class="icon">＋</span>
             <span>Add a new search</span>
           </button>
@@ -579,14 +606,14 @@
             <button id="next-page">Next</button>
           </div>
         </div>
+
+        <div id="flash-message" class="flash"></div>
+
+        <footer>
+          GoSnaggit – internal MVP prototype. Table, counts, and pagination are powered by your local database; search
+          engine and background alerts still in development.
+        </footer>
       </div>
-
-      <div id="flash-message" class="flash"></div>
-
-      <footer>
-        GoSnaggit – internal MVP prototype. Table, counts, and pagination are powered by your local database; search
-        engine and background alerts still in development.
-      </footer>
     </div>
   </div>
 
@@ -629,17 +656,10 @@
       flashEl.className = 'flash';
       if (type) flashEl.classList.add(type);
 
-      // trigger fade-in whenever we set new text
       if (text) {
-        // Remove and re-add the class so the animation restarts every time
         flashEl.classList.remove('fade-in');
-
-        // Force it to start invisible so your eye can see the fade
         flashEl.style.opacity = '0';
-
-        // Force reflow, then animate in
         void flashEl.offsetWidth;
-
         flashEl.style.opacity = '';
         flashEl.classList.add('fade-in');
 
@@ -651,16 +671,11 @@
       }
     }
 
-
-
     function setRowBusy(actionsTd, busy) {
       actionsTd.style.pointerEvents = busy ? 'none' : '';
       actionsTd.style.opacity = busy ? '0.5' : '';
     }
 
-    // Start spinner immediately. Return:
-    // - minWait: promise that resolves only after MIN_SPINNER_MS
-    // - stop: restores the link text (if the element still exists)
     function beginAction(linkEl, actionsTd, workingText) {
       const originalText = linkEl.textContent;
       const originalTitle = linkEl.title;
@@ -733,7 +748,11 @@
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = 7;
-        td.textContent = 'No saved searches yet.';
+        td.className = 'empty-state';
+        td.innerHTML = `
+    <strong>No saved searches yet.</strong><br>
+    Create your first hunt from <a href="/search.html">New search</a>.
+  `;
         tr.appendChild(td);
         tbody.appendChild(tr);
 
@@ -744,6 +763,7 @@
         return;
       }
 
+
       const startIndex = (page - 1) * pageSize;
       const endIndex = Math.min(startIndex + pageSize, allSearches.length);
       const pageItems = allSearches.slice(startIndex, endIndex);
@@ -753,12 +773,9 @@
 
         if (pulseSearchId === search.id) {
           tr.classList.add('row-fade-in');
-          tr.classList.add('row-pulse'); // add immediately (CSS will delay it)
+          tr.classList.add('row-pulse');
           pulseSearchId = null;
         }
-
-
-
 
         const idTd = document.createElement('td');
         idTd.textContent = search.id;
@@ -831,9 +848,7 @@
             const created = await res.json().catch(() => null);
             if (created && created.id) pulseSearchId = created.id;
 
-            // IMPORTANT: wait the minimum time BEFORE reloading/re-rendering the table
             await minWait;
-
             await reloadSearches();
             setFlash('Search duplicated.', 'success');
           } catch (err) {
@@ -872,9 +887,7 @@
               throw new Error(body.error || 'Failed to delete search');
             }
 
-            // IMPORTANT: wait the minimum time BEFORE reloading/re-rendering the table
             await minWait;
-
             await reloadSearches();
             setFlash('Search moved to Deleted.', 'success');
           } catch (err) {
@@ -940,7 +953,8 @@
         const tr = document.createElement('tr');
         const td = document.createElement('td');
         td.colSpan = 7;
-        td.textContent = 'Error loading searches.';
+        td.textContent = 'Could not load searches right now. Please refresh.';
+
         tr.appendChild(td);
         tbody.appendChild(tr);
 
