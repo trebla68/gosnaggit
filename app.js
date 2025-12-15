@@ -280,96 +280,70 @@ app.post('/searches/:id/duplicate', async (req, res) => {
 
 
 // Enhanced mock results for a specific search, with pagination
+// Get results for a search (paginated) — DB-backed
 app.get('/searches/:id/results', async (req, res) => {
-  const { id } = req.params;
-  const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 5;
-
   try {
-    // Look up the search so we can tailor the mock results
-    const searchResult = await pool.query(
-      'SELECT * FROM searches WHERE id = $1',
-      [id]
-    );
-
-    if (searchResult.rowCount === 0) {
-      return res.status(404).json({ error: 'Search not found' });
+    const searchId = parseInt(req.params.id, 10);
+    if (Number.isNaN(searchId)) {
+      return res.status(400).json({ error: 'Invalid search id' });
     }
 
-    const search = searchResult.rows[0];
-    const item = search.search_item || 'Vintage item';
-    const category = (search.category || '').toLowerCase();
-    const basePrice = parseFloat(search.max_price) || 300;
+    const page = Math.max(parseInt(req.query.page || '1', 10) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit || '6', 10) || 6, 1);
+    const offset = (page - 1) * limit;
 
-    // Helper to make prices around the base price
-    const around = (pctBelow, pctAbove) => {
-      const min = basePrice * (1 - pctBelow);
-      const max = basePrice * (1 + pctAbove);
-      const value = min + Math.random() * (max - min);
-      return Math.round(value * 100) / 100;
-    };
+    // total count
+    const countResult = await pool.query(
+      'SELECT COUNT(*)::int AS count FROM search_results WHERE search_id = $1',
+      [searchId]
+    );
+    const totalResults = countResult.rows[0]?.count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(totalResults / limit));
 
-    // Pick some sources based on category
-    const sources = [
-      'eBay',
-      category.includes('auto') ? 'Bring a Trailer' : 'Etsy',
-      category.includes('furniture') ? 'Facebook Marketplace' : 'Craigslist'
-    ];
-
-    const now = new Date();
-
-    // Build a larger pool of mock results (e.g., 12 items)
-    const fullResults = [];
-    const conditions = ['Excellent', 'Good', 'Fair', 'Very good'];
-    const baseTitles = [
-      `${item} – Excellent condition`,
-      `${item} – Good condition`,
-      `${item} – Needs some work`
-    ];
-
-    for (let i = 0; i < 12; i++) {
-      const cond = conditions[i % conditions.length];
-      const source = sources[i % sources.length];
-      const title = baseTitles[i % baseTitles.length].replace('condition', cond.toLowerCase() + ' condition');
-
-      fullResults.push({
-        title,
-        source,
-        price: around(0.3, 0.1),
-        condition: cond,
-        location: search.location || 'Online',
-        posted_at: new Date(
-          now.getTime() - (2 + i * 2) * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        url: `https://example.com/listing/${i + 1}`,
-        image_url: `https://via.placeholder.com/160x120?text=Listing+${i + 1}`
+    if (totalResults === 0) {
+      return res.json({
+        results: [],
+        page,
+        total_pages: 1,
+        total_results: 0,
+        demo: true
       });
     }
 
-    const totalResults = fullResults.length;
-    const totalPages = Math.ceil(totalResults / limit);
+    // page rows (newest first)
+    const resultsResult = await pool.query(
+      `
+      SELECT
+        id,
+        title,
+        price,
+        source,
+        location,
+        condition,
+        url,
+        posted_at,
+        found_at,
+        created_at
+      FROM search_results
+      WHERE search_id = $1
+      ORDER BY COALESCE(posted_at, found_at, created_at) DESC
+      LIMIT $2 OFFSET $3
+      `,
+      [searchId, limit, offset]
+    );
 
-    // Clamp page to valid range
-    const safePage = Math.min(Math.max(page, 1), totalPages || 1);
-    const start = (safePage - 1) * limit;
-    const pagedResults = fullResults.slice(start, start + limit);
-
-    res.json({
-      search_id: id,
-      search_item: search.search_item,
-      category: search.category,
-      location: search.location,
-      total_results: totalResults,
-      page: safePage,
-      limit,
+    return res.json({
+      results: resultsResult.rows,
+      page,
       total_pages: totalPages,
-      results: pagedResults
+      total_results: totalResults
     });
   } catch (err) {
-    console.error('Error getting mock results:', err);
-    res.status(500).json({ error: 'Failed to get results' });
+    console.error('GET /searches/:id/results error:', err);
+    return res.status(500).json({ error: 'Failed to load results' });
   }
 });
+
 
 
 

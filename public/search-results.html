@@ -455,7 +455,7 @@
       <div class="results-card">
         <div class="results-header">
           <div>
-            <div class="results-title">Mock results preview</div>
+            <div class="results-title">Results preview</div>
             <div class="results-meta" id="results-meta">
               Loading…
             </div>
@@ -560,7 +560,7 @@
         .then(data => {
           const item = data.search_item || 'Saved search';
           searchTitleEl.textContent = item;
-          searchSubtitleEl.textContent = 'Viewing mock marketplace results for this saved search.';
+          searchSubtitleEl.textContent = 'Viewing results for this saved search.';
           infoItemEl.textContent = item;
           infoLocationEl.textContent = data.location || '—';
           infoCategoryEl.textContent = data.category || '—';
