@@ -573,8 +573,7 @@
           resultsMetaEl.textContent = 'Error loading search details: ' + err.message;
         });
     }
-
-    // Load paginated mock results for this search
+    // Load stored marketplace results for this search (paginated)
     function loadResults() {
       if (!searchId) return;
 
@@ -582,86 +581,101 @@
       messageEl.textContent = '';
       messageEl.className = '';
 
-      fetch(`/searches/${searchId}/results?page=${currentPage}&limit=${limitPerPage}`)
+      const offset = (currentPage - 1) * limitPerPage;
+
+      fetch(`/searches/${searchId}/results?limit=${limitPerPage}&offset=${offset}`)
         .then(response => {
           if (!response.ok) {
-            // If results are missing (e.g., deleted search), treat it as empty
             if (response.status === 404) {
-              return { results: [], total_results: 0, total_pages: 1, page: currentPage };
+              return [];
             }
             throw new Error('Failed to load results');
           }
-          return response.json();
+          return response.json(); // now expects an ARRAY
         })
+        .then(results => {
+          // Ensure array
+          results = Array.isArray(results) ? results : [];
 
-        .then(data => {
-          const results = Array.isArray(data.results) ? data.results : [];
-          totalResults = data.total_results || results.length;
-          totalPages = data.total_pages || 1;
-          currentPage = data.page || 1;
+          // We don’t yet know totalResults/totalPages from the backend.
+          // For now, we can infer pagination like this:
+          // - If we got fewer than limitPerPage results, we’re likely on the last page.
+          // - Next button enabled only when we got a "full page" worth of results.
+          const gotFullPage = results.length === limitPerPage;
 
-          infoCountPill.textContent = `Results: ${totalResults}`;
-          resultsMetaEl.textContent = `Showing ${results.length} of ${totalResults} results (page ${currentPage} of ${totalPages}).`;
+          // Display counts based on what we know (this page only)
+          infoCountPill.textContent = `Results: ${results.length}${gotFullPage ? '+' : ''}`;
+          resultsMetaEl.textContent = results.length
+            ? `Showing ${results.length} result(s) (page ${currentPage}).`
+            : 'No results yet — this hunt is ready and will populate as sources are checked.';
 
           resultsGrid.innerHTML = '';
 
           if (results.length === 0) {
             emptyStateEl.style.display = 'block';
-            resultsMetaEl.textContent = 'No results yet — this hunt is ready and will populate as sources are checked.';
 
-            prevPageBtn.disabled = true;
+            prevPageBtn.disabled = currentPage <= 1;
             nextPageBtn.disabled = true;
           } else {
             emptyStateEl.style.display = 'none';
 
-            results.forEach((r, index) => {
+            results.forEach(r => {
               const card = document.createElement('div');
               card.className = 'result-card';
 
-              const price = r.price != null ? `$${r.price}` : '—';
               const title = r.title || 'Listing';
-              const source = r.source || 'Marketplace';
+              const source = r.marketplace || 'Marketplace';
+
+              const price =
+                r.price != null
+                  ? `${r.currency ? r.currency + ' ' : '$'}${Number(r.price).toFixed(2)}`
+                  : '—';
+
               const condition = r.condition || 'Unknown';
               const location = r.location || 'Online';
-              const postedAt = r.posted_at
-                ? new Date(r.posted_at).toLocaleDateString()
+              const postedAt = r.found_at
+                ? new Date(r.found_at).toLocaleDateString()
                 : '—';
-              const url = r.url || '#';
+
+              const url = r.listing_url || '#';
 
               card.innerHTML = `
-      <div class="result-header">${title}</div>
-      <div class="result-source">${source}</div>
-      <div class="result-price-row">
-        <span class="price-pill">${price}</span>
-        <span class="condition-pill">${condition}</span>
-      </div>
-      <div class="result-footer">
-        <span>${location} • ${postedAt}</span>
-        <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
-      </div>
-    `;
+            <div class="result-header">${title}</div>
+            <div class="result-source">${source}</div>
+            <div class="result-price-row">
+              <span class="price-pill">${price}</span>
+              <span class="condition-pill">${condition}</span>
+            </div>
+            <div class="result-footer">
+              <span>${location} • ${postedAt}</span>
+              <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
+            </div>
+          `;
 
               resultsGrid.appendChild(card);
             });
+
+            prevPageBtn.disabled = currentPage <= 1;
+            nextPageBtn.disabled = !gotFullPage;
           }
 
-
-          updatePagination();
+          // Update the simple page indicator
+          pageSummaryEl.textContent = `Page ${currentPage}`;
         })
         .catch(err => {
-          // Show a clean empty state instead of a scary error UI
           resultsGrid.innerHTML = '';
           emptyStateEl.style.display = 'block';
 
           resultsMetaEl.textContent = 'Results aren’t available right now.';
-          messageEl.textContent = 'Tip: if this search was deleted or the server was restarted, go back to Saved searches and open Results again.';
+          messageEl.textContent =
+            'Tip: if this search was deleted or the server was restarted, go back to Saved searches and open Results again.';
           messageEl.className = 'message-error';
 
           prevPageBtn.disabled = true;
           nextPageBtn.disabled = true;
         });
-
     }
+
 
     function updatePagination() {
       pageSummaryEl.textContent = `Page ${currentPage} of ${totalPages}`;
