@@ -127,9 +127,10 @@
 
     .nav-links a:hover {
       color: var(--text-main);
-      border-color: rgba(255, 255, 255, 0.12);
-      background-color: rgba(9, 13, 32, 0.9);
+      border-color: rgba(255, 179, 71, 0.35);
+      background-color: rgba(255, 179, 71, 0.10);
     }
+
 
     h1 {
       font-size: clamp(1.45rem, 1.9vw + 0.9rem, 2rem);
@@ -137,11 +138,27 @@
       line-height: 1.2;
     }
 
-    .subtitle {
-      font-size: 0.9rem;
+    .empty-state {
+      font-size: 0.86rem;
       color: var(--text-muted);
-      max-width: 380px;
+      padding: 12px 4px;
+      line-height: 1.45;
     }
+
+    .empty-state strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .empty-state a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .empty-state a:hover {
+      text-decoration: underline;
+    }
+
 
     .subtitle strong {
       color: var(--accent);
@@ -453,9 +470,12 @@
             <!-- cards go here -->
           </div>
           <div id="empty-state" class="empty-state" style="display:none;">
-            No results to show yet. When your background engine runs,
-            results for this search will appear here.
+            <strong>No results yet.</strong><br>
+            This hunt is set up — results will appear here as sources are checked.
+            Try <a href="#" id="empty-refresh">Refresh</a> or go back to
+            <a href="/searches.html">Saved searches</a>.
           </div>
+
         </div>
 
         <div class="pagination">
@@ -506,11 +526,27 @@
     let totalResults = 0;
 
     if (!searchId) {
-      resultsMetaEl.textContent = 'Missing search id in URL (e.g., ?id=1).';
+      resultsMetaEl.textContent = 'No search selected.';
+      messageEl.textContent = 'Open results from Saved searches (or add ?id=1 to the URL).';
+      messageEl.className = 'message-error';
+
+      // Hide the grid and show a helpful empty state
+      resultsGrid.innerHTML = '';
+      emptyStateEl.style.display = 'block';
+
+      // Disable controls that won’t work without an id
+      prevPageBtn.disabled = true;
+      nextPageBtn.disabled = true;
+      refreshBtn.disabled = true;
+
+      // Adjust empty-state links for this scenario
+      const emptyRefresh = document.getElementById('empty-refresh');
+      if (emptyRefresh) emptyRefresh.style.display = 'none';
     } else {
       loadSearchContext();
       loadResults();
     }
+
 
     // Load basic info about the search itself for the left panel
     function loadSearchContext() {
@@ -549,10 +585,15 @@
       fetch(`/searches/${searchId}/results?page=${currentPage}&limit=${limitPerPage}`)
         .then(response => {
           if (!response.ok) {
+            // If results are missing (e.g., deleted search), treat it as empty
+            if (response.status === 404) {
+              return { results: [], total_results: 0, total_pages: 1, page: currentPage };
+            }
             throw new Error('Failed to load results');
           }
           return response.json();
         })
+
         .then(data => {
           const results = Array.isArray(data.results) ? data.results : [];
           totalResults = data.total_results || results.length;
@@ -566,6 +607,10 @@
 
           if (results.length === 0) {
             emptyStateEl.style.display = 'block';
+            resultsMetaEl.textContent = 'No results yet — this hunt is ready and will populate as sources are checked.';
+
+            prevPageBtn.disabled = true;
+            nextPageBtn.disabled = true;
           } else {
             emptyStateEl.style.display = 'none';
 
@@ -578,33 +623,44 @@
               const source = r.source || 'Marketplace';
               const condition = r.condition || 'Unknown';
               const location = r.location || 'Online';
-              const postedAt = r.posted_at ? new Date(r.posted_at).toLocaleDateString() : '—';
+              const postedAt = r.posted_at
+                ? new Date(r.posted_at).toLocaleDateString()
+                : '—';
               const url = r.url || '#';
 
               card.innerHTML = `
-                <div class="result-header">${title}</div>
-                <div class="result-source">${source}</div>
-                <div class="result-price-row">
-                  <span class="price-pill">${price}</span>
-                  <span class="condition-pill">${condition}</span>
-                </div>
-                <div class="result-footer">
-                  <span>${location} • ${postedAt}</span>
-                  <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
-                </div>
-              `;
+      <div class="result-header">${title}</div>
+      <div class="result-source">${source}</div>
+      <div class="result-price-row">
+        <span class="price-pill">${price}</span>
+        <span class="condition-pill">${condition}</span>
+      </div>
+      <div class="result-footer">
+        <span>${location} • ${postedAt}</span>
+        <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
+      </div>
+    `;
 
               resultsGrid.appendChild(card);
             });
           }
 
+
           updatePagination();
         })
         .catch(err => {
-          resultsMetaEl.textContent = 'Error loading results: ' + err.message;
-          messageEl.textContent = 'Error loading results: ' + err.message;
+          // Show a clean empty state instead of a scary error UI
+          resultsGrid.innerHTML = '';
+          emptyStateEl.style.display = 'block';
+
+          resultsMetaEl.textContent = 'Results aren’t available right now.';
+          messageEl.textContent = 'Tip: if this search was deleted or the server was restarted, go back to Saved searches and open Results again.';
           messageEl.className = 'message-error';
+
+          prevPageBtn.disabled = true;
+          nextPageBtn.disabled = true;
         });
+
     }
 
     function updatePagination() {
@@ -629,6 +685,12 @@
 
     refreshBtn.addEventListener('click', function () {
       loadResults();
+    });
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.id === 'empty-refresh') {
+        e.preventDefault();
+        loadResults();
+      }
     });
 
     function updateUrl() {
