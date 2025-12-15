@@ -13,6 +13,96 @@ app.use(express.json());
 
 // Serve static files from the "public" folder
 app.use(express.static(path.join(__dirname, 'public')));
+console.log('LOADED app.js with dev seed route:', __filename);
+
+
+// DEV ONLY: Seed mock results for a given search_id (for UI/pagination testing)
+app.post('/dev/seed-results', async (req, res) => {
+  // Hard stop in production
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  try {
+    const searchId = parseInt(req.query.search_id || req.body.search_id, 10);
+    if (Number.isNaN(searchId)) {
+      return res.status(400).json({ error: 'Missing or invalid search_id' });
+    }
+
+    const countRaw = req.query.count ?? req.body.count ?? 12;
+    const count = Math.max(1, Math.min(parseInt(countRaw, 10) || 12, 200));
+
+    const marketplaces = ['ebay', 'etsy', 'facebook', 'craigslist'];
+    const conditions = ['New', 'Used', 'Open box', 'Refurbished'];
+    const locations = ['Los Angeles', 'New York', 'Chicago', 'Online', 'San Francisco'];
+
+    // Build a single INSERT with many rows (fast)
+    const values = [];
+    const placeholders = [];
+    let idx = 1;
+
+    for (let i = 0; i < count; i++) {
+      const marketplace = marketplaces[i % marketplaces.length];
+      const condition = conditions[i % conditions.length];
+      const location = locations[i % locations.length];
+
+      const price = (Math.random() * 900 + 50).toFixed(2);
+      const externalId = `SEED-${searchId}-${Date.now()}-${i}`;
+      const title = `Seed Listing ${i + 1} (Search ${searchId})`;
+      const currency = 'USD';
+      const listingUrl = `https://example.com/seed/${searchId}/${i + 1}`;
+      const imageUrl = `https://example.com/image.jpg`;
+      const seller = `seed_seller_${(i % 8) + 1}`;
+
+      // Make "found_at" vary a bit so ordering feels real
+      const minutesAgo = Math.floor(Math.random() * 60 * 24 * 7); // up to 7 days
+      const foundAt = new Date(Date.now() - minutesAgo * 60 * 1000);
+
+      values.push(
+        searchId,
+        marketplace,
+        externalId,
+        title,
+        price,
+        currency,
+        listingUrl,
+        imageUrl,
+        location,
+        condition,
+        seller,
+        foundAt
+      );
+
+      placeholders.push(`(
+        $${idx++}, $${idx++}, $${idx++}, $${idx++},
+        $${idx++}, $${idx++}, $${idx++}, $${idx++},
+        $${idx++}, $${idx++}, $${idx++}, $${idx++}
+      )`);
+    }
+
+    const sql = `
+      INSERT INTO results
+        (search_id, marketplace, external_id, title, price, currency,
+         listing_url, image_url, location, condition, seller_username, found_at)
+      VALUES
+        ${placeholders.join(',')}
+      RETURNING id, search_id, marketplace, title, price, currency, listing_url, found_at
+    `;
+
+    const { rows } = await pool.query(sql, values);
+
+    res.json({
+      ok: true,
+      inserted: rows.length,
+      sample: rows.slice(0, 3),
+      hint: `Now try GET /searches/${searchId}/results?limit=6&offset=0 and offset=6`,
+    });
+  } catch (err) {
+    console.error('POST /dev/seed-results failed:', err);
+    res.status(500).json({ error: 'Failed to seed results' });
+  }
+});
+
 
 // Optional simple test route
 app.get('/test-rout-123', (req, res) => {

@@ -495,12 +495,14 @@
     function getParams() {
       const params = new URLSearchParams(window.location.search);
       return {
-        id: params.get('id'),
+        search_id: params.get('search_id'),
         page: parseInt(params.get('page') || '1', 10)
       };
     }
 
-    const { id: searchId, page: initialPage } = getParams();
+
+    const { search_id: searchId, page: initialPage } = getParams();
+
 
     const searchTitleEl = document.getElementById('search-title');
     const searchSubtitleEl = document.getElementById('search-subtitle');
@@ -713,11 +715,12 @@
 
     function updateUrl() {
       const params = new URLSearchParams(window.location.search);
-      params.set('id', searchId);
+      params.set('search_id', searchId);
       params.set('page', String(currentPage));
       const newUrl = window.location.pathname + '?' + params.toString();
       window.history.replaceState({}, '', newUrl);
     }
+
   </script>
 </body>
 
