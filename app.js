@@ -54,6 +54,34 @@ app.post('/searches', async (req, res) => {
     res.status(500).json({ error: 'Failed to create search' });
   }
 });
+const { insertResults } = require('./services/resultsStore');
+
+// Insert results for a search (testing + later used by marketplace integrations)
+app.post('/searches/:id/results', async (req, res) => {
+  try {
+    const searchId = parseInt(req.params.id, 10);
+    if (Number.isNaN(searchId)) {
+      return res.status(400).json({ error: 'Invalid search id' });
+    }
+
+    const marketplace = (req.body.marketplace || '').trim().toLowerCase();
+    const items = req.body.results;
+
+    if (!marketplace) {
+      return res.status(400).json({ error: 'marketplace is required (e.g. "ebay")' });
+    }
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: 'results must be an array' });
+    }
+
+    const { inserted } = await insertResults(pool, searchId, marketplace, items);
+
+    res.json({ message: 'Results saved', inserted });
+  } catch (err) {
+    console.error('POST /searches/:id/results failed:', err);
+    res.status(500).json({ error: 'Failed to save results' });
+  }
+});
 
 // ----------------------------------------------------
 // Get all searches (used by searches.html)
