@@ -7,110 +7,163 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const pool = require('./db');
+const { getEbayAppToken } = require("./services/ebayAuth");
+const { insertResults } = require('./services/resultsStore');
+
+const fetch = global.fetch;
+if (!fetch) throw new Error("Node 18+ required (fetch not available).");
+
+
 
 // Middleware to parse JSON bodies
 app.use(express.json());
 
 // Serve static files from the "public" folder
 app.use(express.static(path.join(__dirname, 'public')));
-console.log('LOADED app.js with dev seed route:', __filename);
+if (process.env.NODE_ENV !== 'production') {
+  console.log('LOADED app.js:', __filename);
+}
 
+
+// ----------------------------------------------------
+// eBay token route (DEV ONLY)
+// ----------------------------------------------------
+if (process.env.NODE_ENV !== 'production') {
+  app.get("/api/ebay/token", async (req, res) => {
+    try {
+      const token = await getEbayAppToken();
+      res.json({ ok: true, tokenStartsWith: token.slice(0, 20) });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+}
+
+// ----------------------------------------------------
+// eBay search route (keep in all environments)
+// ----------------------------------------------------
+app.get("/api/ebay/search", async (req, res) => {
+  try {
+    const q = (req.query.q || "").toString().trim();
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+
+    if (!q) {
+      return res.status(400).json({ ok: false, error: "Missing required query param: q" });
+    }
+
+    const token = await getEbayAppToken();
+
+    const url = new URL("https://api.ebay.com/buy/browse/v1/item_summary/search");
+    url.searchParams.set("q", q);
+    url.searchParams.set("limit", String(limit));
+
+    const resp = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+      },
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      return res.status(resp.status).json({ ok: false, ebayError: data });
+    }
+
+    // Return the raw eBay payload for now (we’ll “normalize” later)
+    res.json({ ok: true, ebay: data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 // DEV ONLY: Seed mock results for a given search_id (for UI/pagination testing)
-app.post('/dev/seed-results', async (req, res) => {
-  // Hard stop in production
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(404).json({ error: 'Not found' });
-  }
+if (process.env.NODE_ENV !== 'production') {
+  app.post('/dev/seed-results', async (req, res) => {
+    try {
+      const searchId = parseInt(req.query.search_id || req.body.search_id, 10);
+      if (Number.isNaN(searchId)) {
+        return res.status(400).json({ error: 'Missing or invalid search_id' });
+      }
 
-  try {
-    const searchId = parseInt(req.query.search_id || req.body.search_id, 10);
-    if (Number.isNaN(searchId)) {
-      return res.status(400).json({ error: 'Missing or invalid search_id' });
+      const countRaw = req.query.count ?? req.body.count ?? 12;
+      const count = Math.max(1, Math.min(parseInt(countRaw, 10) || 12, 200));
+
+      const marketplaces = ['ebay', 'etsy', 'facebook', 'craigslist'];
+      const conditions = ['New', 'Used', 'Open box', 'Refurbished'];
+      const locations = ['Los Angeles', 'New York', 'Chicago', 'Online', 'San Francisco'];
+
+      // Build a single INSERT with many rows (fast)
+      const values = [];
+      const placeholders = [];
+      let idx = 1;
+
+      for (let i = 0; i < count; i++) {
+        const marketplace = marketplaces[i % marketplaces.length];
+        const condition = conditions[i % conditions.length];
+        const location = locations[i % locations.length];
+
+        const price = (Math.random() * 900 + 50).toFixed(2);
+        const externalId = `SEED-${searchId}-${Date.now()}-${i}`;
+        const title = `Seed Listing ${i + 1} (Search ${searchId})`;
+        const currency = 'USD';
+        const listingUrl = `https://example.com/seed/${searchId}/${i + 1}`;
+        const imageUrl = `https://example.com/image.jpg`;
+        const seller = `seed_seller_${(i % 8) + 1}`;
+
+        // Make "found_at" vary a bit so ordering feels real
+        const minutesAgo = Math.floor(Math.random() * 60 * 24 * 7); // up to 7 days
+        const foundAt = new Date(Date.now() - minutesAgo * 60 * 1000);
+
+        values.push(
+          searchId,
+          marketplace,
+          externalId,
+          title,
+          price,
+          currency,
+          listingUrl,
+          imageUrl,
+          location,
+          condition,
+          seller,
+          foundAt
+        );
+
+        placeholders.push(`(
+          $${idx++}, $${idx++}, $${idx++}, $${idx++},
+          $${idx++}, $${idx++}, $${idx++}, $${idx++},
+          $${idx++}, $${idx++}, $${idx++}, $${idx++}
+        )`);
+      }
+
+      const sql = `
+        INSERT INTO results
+          (search_id, marketplace, external_id, title, price, currency,
+           listing_url, image_url, location, condition, seller_username, found_at)
+        VALUES
+          ${placeholders.join(',')}
+        RETURNING id, search_id, marketplace, title, price, currency, listing_url, found_at
+      `;
+
+      const { rows } = await pool.query(sql, values);
+
+      res.json({
+        ok: true,
+        inserted: rows.length,
+        sample: rows.slice(0, 3),
+        hint: `Now try GET /searches/${searchId}/results?limit=6&offset=0 and offset=6`,
+      });
+    } catch (err) {
+      console.error('POST /dev/seed-results failed:', err);
+      res.status(500).json({ error: 'Failed to seed results' });
     }
-
-    const countRaw = req.query.count ?? req.body.count ?? 12;
-    const count = Math.max(1, Math.min(parseInt(countRaw, 10) || 12, 200));
-
-    const marketplaces = ['ebay', 'etsy', 'facebook', 'craigslist'];
-    const conditions = ['New', 'Used', 'Open box', 'Refurbished'];
-    const locations = ['Los Angeles', 'New York', 'Chicago', 'Online', 'San Francisco'];
-
-    // Build a single INSERT with many rows (fast)
-    const values = [];
-    const placeholders = [];
-    let idx = 1;
-
-    for (let i = 0; i < count; i++) {
-      const marketplace = marketplaces[i % marketplaces.length];
-      const condition = conditions[i % conditions.length];
-      const location = locations[i % locations.length];
-
-      const price = (Math.random() * 900 + 50).toFixed(2);
-      const externalId = `SEED-${searchId}-${Date.now()}-${i}`;
-      const title = `Seed Listing ${i + 1} (Search ${searchId})`;
-      const currency = 'USD';
-      const listingUrl = `https://example.com/seed/${searchId}/${i + 1}`;
-      const imageUrl = `https://example.com/image.jpg`;
-      const seller = `seed_seller_${(i % 8) + 1}`;
-
-      // Make "found_at" vary a bit so ordering feels real
-      const minutesAgo = Math.floor(Math.random() * 60 * 24 * 7); // up to 7 days
-      const foundAt = new Date(Date.now() - minutesAgo * 60 * 1000);
-
-      values.push(
-        searchId,
-        marketplace,
-        externalId,
-        title,
-        price,
-        currency,
-        listingUrl,
-        imageUrl,
-        location,
-        condition,
-        seller,
-        foundAt
-      );
-
-      placeholders.push(`(
-        $${idx++}, $${idx++}, $${idx++}, $${idx++},
-        $${idx++}, $${idx++}, $${idx++}, $${idx++},
-        $${idx++}, $${idx++}, $${idx++}, $${idx++}
-      )`);
-    }
-
-    const sql = `
-      INSERT INTO results
-        (search_id, marketplace, external_id, title, price, currency,
-         listing_url, image_url, location, condition, seller_username, found_at)
-      VALUES
-        ${placeholders.join(',')}
-      RETURNING id, search_id, marketplace, title, price, currency, listing_url, found_at
-    `;
-
-    const { rows } = await pool.query(sql, values);
-
-    res.json({
-      ok: true,
-      inserted: rows.length,
-      sample: rows.slice(0, 3),
-      hint: `Now try GET /searches/${searchId}/results?limit=6&offset=0 and offset=6`,
-    });
-  } catch (err) {
-    console.error('POST /dev/seed-results failed:', err);
-    res.status(500).json({ error: 'Failed to seed results' });
-  }
-});
-
-
-// Optional simple test route
-app.get('/test-rout-123', (req, res) => {
-  res.json({
-    message: 'Hello from THIS app.js',
-    file: __filename,
   });
-});
+}
+
+
+
 
 // ----------------------------------------------------
 // Create a new search (from search.html form or Postman)
@@ -144,7 +197,6 @@ app.post('/searches', async (req, res) => {
     res.status(500).json({ error: 'Failed to create search' });
   }
 });
-const { insertResults } = require('./services/resultsStore');
 
 // Insert results for a search (testing + later used by marketplace integrations)
 app.post('/searches/:id/results', async (req, res) => {
@@ -192,8 +244,6 @@ app.post('/searches/:id/refresh', async (req, res) => {
       return res.status(400).json({ error: 'Cannot refresh a deleted search' });
     }
 
-    // For now: eBay not approved yet, so we don’t call eBay here.
-    // Later: this is where we will call ebayService -> normalize -> insertResults().
     return res.json({
       message: 'Refresh requested',
       marketplace: 'ebay',
@@ -206,10 +256,6 @@ app.post('/searches/:id/refresh', async (req, res) => {
   }
 });
 
-
-// ----------------------------------------------------
-// Get all searches (used by searches.html)
-// ----------------------------------------------------
 // ----------------------------------------------------
 // Get all searches (used by searches.html)
 // ----------------------------------------------------
@@ -248,7 +294,6 @@ app.get('/searches/deleted', async (req, res) => {
   }
 });
 
-
 // ----------------------------------------------------
 // Get a single search by ID (used by edit-search.html)
 // ----------------------------------------------------
@@ -272,9 +317,6 @@ app.get('/searches/:id', async (req, res) => {
   }
 });
 
-// ----------------------------------------------------
-// Update an existing search (Edit Search)
-// ----------------------------------------------------
 // ----------------------------------------------------
 // Update an existing search (full edit: fields + optional status)
 // ----------------------------------------------------
@@ -333,20 +375,16 @@ app.patch('/searches/:id', async (req, res) => {
   }
 });
 
-
 // ----------------------------------------------------
-// Update (or toggle) the status of a search (active/paused)
+// Update the status of a search (active/paused/etc.)
 // ----------------------------------------------------
 app.patch('/searches/:id/status', async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body; // expected: 'active', 'paused', or 'completed'
+  const { status } = req.body;
 
   if (!status || !['active', 'paused', 'completed', 'cancelled', 'deleted'].includes(status)) {
     return res.status(400).json({ error: "Invalid status. Use 'active', 'paused', 'completed', 'cancelled', or 'deleted'." });
   }
-
-
-
 
   try {
     const result = await pool.query(
@@ -368,9 +406,6 @@ app.patch('/searches/:id/status', async (req, res) => {
   }
 });
 
-// ----------------------------------------------------
-// Delete a search by ID
-// ----------------------------------------------------
 // ----------------------------------------------------
 // Delete a search by ID (soft delete: mark as 'deleted')
 // ----------------------------------------------------
@@ -400,7 +435,6 @@ app.delete('/searches/:id', async (req, res) => {
   }
 });
 
-
 // ----------------------------------------------------
 // Duplicate a search by ID
 // ----------------------------------------------------
@@ -429,7 +463,6 @@ app.post('/searches/:id/duplicate', async (req, res) => {
     res.status(500).json({ error: 'Failed to duplicate search' });
   }
 });
-
 
 // Get stored marketplace results for a specific search (latest first)
 app.get('/searches/:id/results', async (req, res) => {
@@ -472,10 +505,6 @@ app.get('/searches/:id/results', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch results' });
   }
 });
-
-
-
-
 
 // ----------------------------------------------------
 // Start the server
