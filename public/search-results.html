@@ -494,8 +494,14 @@
   <script>
     function getParams() {
       const params = new URLSearchParams(window.location.search);
+
+      // Support BOTH styles:
+      // - ?search_id=2 (current)
+      // - ?id=2 (older links / your error text)
+      const search_id = params.get('search_id') || params.get('id');
+
       return {
-        search_id: params.get('search_id'),
+        search_id,
         page: parseInt(params.get('page') || '1', 10)
       };
     }
@@ -529,7 +535,8 @@
 
     if (!searchId) {
       resultsMetaEl.textContent = 'No search selected.';
-      messageEl.textContent = 'Open results from Saved searches (or add ?id=1 to the URL).';
+      messageEl.textContent = 'Open results from Saved searches (or add ?search_id=1 to the URL).';
+
       messageEl.className = 'message-error';
 
       // Hide the grid and show a helpful empty state
@@ -703,9 +710,24 @@
     });
 
 
-    refreshBtn.addEventListener('click', function () {
-      loadResults();
+    refreshBtn.addEventListener('click', async function () {
+      try {
+        refreshBtn.disabled = true;
+        resultsMetaEl.textContent = 'Refreshing from eBay…';
+
+        const r = await fetch(`/searches/${searchId}/refresh`, { method: 'POST' });
+        if (!r.ok) throw new Error('Refresh failed');
+
+        await loadSearchContext();
+        await loadResults();
+      } catch (e) {
+        messageEl.textContent = e.message;
+        messageEl.className = 'message-error';
+      } finally {
+        refreshBtn.disabled = false;
+      }
     });
+
     document.addEventListener('click', function (e) {
       if (e.target && e.target.id === 'empty-refresh') {
         e.preventDefault();

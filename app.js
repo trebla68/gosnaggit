@@ -225,7 +225,7 @@ app.post('/searches/:id/results', async (req, res) => {
   }
 });
 
-// Trigger a marketplace refresh for a search (stub until eBay approval)
+// Trigger a marketplace refresh for a search (eBay live)
 app.post('/searches/:id/refresh', async (req, res) => {
   try {
     const searchId = parseInt(req.params.id, 10);
@@ -233,28 +233,86 @@ app.post('/searches/:id/refresh', async (req, res) => {
       return res.status(400).json({ error: 'Invalid search id' });
     }
 
-    // Make sure the search exists
-    const check = await pool.query('SELECT id, status FROM searches WHERE id = $1', [searchId]);
+    // 1) Load the saved search
+    const check = await pool.query(
+      'SELECT id, search_item, status FROM searches WHERE id = $1',
+      [searchId]
+    );
+
     if (check.rowCount === 0) {
       return res.status(404).json({ error: 'Search not found' });
     }
 
-    // If you want, block refresh for deleted searches
     if ((check.rows[0].status || '').toLowerCase() === 'deleted') {
       return res.status(400).json({ error: 'Cannot refresh a deleted search' });
     }
 
-    return res.json({
-      message: 'Refresh requested',
-      marketplace: 'ebay',
-      status: 'pending_developer_approval',
-      inserted: 0
+    const q = (check.rows[0].search_item || '').trim();
+    if (!q) {
+      return res.status(400).json({ error: 'Search has no search_item to query eBay with' });
+    }
+
+    // 2) Call eBay Browse search
+    const token = await getEbayAppToken();
+
+    const url = new URL("https://api.ebay.com/buy/browse/v1/item_summary/search");
+    url.searchParams.set("q", q);
+    url.searchParams.set("limit", "50"); // max 200, but 50 is a good start
+
+    const resp = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+      },
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) {
+      return res.status(resp.status).json({ ok: false, ebayError: data });
+    }
+
+    const summaries = Array.isArray(data.itemSummaries) ? data.itemSummaries : [];
+
+    // 3) Normalize to your insertResults() expected shape
+    // NOTE: match fields your insertResults/resultsStore expects
+    const normalized = summaries.map((it) => {
+      const priceVal = it?.price?.value ?? null;
+      const currency = it?.price?.currency ?? 'USD';
+
+      return {
+        external_id: it?.itemId || it?.legacyItemId || it?.itemWebUrl || null,
+        title: it?.title || 'Untitled',
+        price: priceVal,
+        currency,
+        listing_url: it?.itemWebUrl || null,
+        image_url: it?.image?.imageUrl || null,
+        location: it?.itemLocation?.city || it?.itemLocation?.country || null,
+        condition: it?.condition || null,
+        seller_username: it?.seller?.username || null,
+        found_at: new Date().toISOString()
+      };
+    }).filter(r => r.external_id && r.listing_url);
+
+    // 4) Store in DB
+    const marketplace = 'ebay';
+    const { inserted } = await insertResults(pool, searchId, marketplace, normalized);
+
+    // 5) Respond
+    res.json({
+      ok: true,
+      marketplace,
+      searchId,
+      query: q,
+      fetched: summaries.length,
+      inserted
     });
   } catch (err) {
     console.error('POST /searches/:id/refresh failed:', err);
     res.status(500).json({ error: 'Failed to refresh search' });
   }
 });
+
 
 // ----------------------------------------------------
 // Get all searches (used by searches.html)
