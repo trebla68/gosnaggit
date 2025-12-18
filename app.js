@@ -564,6 +564,37 @@ app.get('/searches/:id/results', async (req, res) => {
   }
 });
 
+// Save / update email notification settings for a search (MVP)
+app.post('/searches/:id/notifications/email', async (req, res) => {
+  try {
+    const searchId = parseInt(req.params.id, 10);
+    if (Number.isNaN(searchId)) {
+      return res.status(400).json({ error: 'Invalid search id' });
+    }
+
+    const { email, enabled } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'email is required' });
+    }
+
+    await pool.query(
+      `
+      INSERT INTO notification_settings (search_id, channel, destination, is_enabled)
+      VALUES ($1, 'email', $2, COALESCE($3, TRUE))
+      ON CONFLICT (search_id, channel)
+      DO UPDATE SET destination=EXCLUDED.destination, is_enabled=EXCLUDED.is_enabled
+      `,
+      [searchId, email, enabled]
+    );
+
+    res.json({ ok: true, searchId, channel: 'email', destination: email, enabled: enabled ?? true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to save notification setting' });
+  }
+});
+
+
 // ----------------------------------------------------
 // Start the server
 // ----------------------------------------------------
