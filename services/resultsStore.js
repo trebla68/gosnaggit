@@ -61,7 +61,7 @@ async function insertResults(pool, searchId, marketplace, items) {
   // Create pending alert events for NEWLY inserted results only
   // (deduped forever by dedupe_key unique index)
   for (const row of result.rows) {
-    const dedupeKey = `new_listing:${marketplace}:${row.external_id}`;
+    const dedupeKey = `new_listing:${marketplace}:v1|search=${searchId}|item=${row.external_id}`;
 
     await pool.query(
       `
