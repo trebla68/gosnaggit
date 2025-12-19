@@ -7,7 +7,7 @@ async function createNewListingAlert({ searchId, marketplace, itemId }) {
     // status: pending (your DB seems to store status as numeric; adjust if it's text)
     // If your status is TEXT: use 'pending'
     // If your status is INT: use 2 (based on your table output)
-    const statusValue = 2;
+    const statusValue = "pending";
 
     const sql = `
     INSERT INTO alert_events (search_id, status, dedupe_key)
