@@ -614,63 +614,32 @@ app.patch('/alerts/:alert_id/status', async (req, res) => {
       return res.status(400).json({ error: 'Invalid alert_id' });
     }
 
-    const statusRaw = (req.body.status || '').toString().trim().toLowerCase();
-    if (!statusRaw) {
-      return res.status(400).json({ error: 'status is required' });
-    }
-
-    // Allow only known statuses (adjust if you want)
-    const allowed = ['pending', 'sent', 'dismissed', 'error'];
-    if (!allowed.includes(statusRaw)) {
+    const { status } = req.body;
+    const allowed = ['pending', 'sent', 'error', 'dismissed'];
+    if (!status || !allowed.includes(status)) {
       return res.status(400).json({ error: `Invalid status. Use: ${allowed.join(', ')}` });
     }
 
-    // Detect whether alert_events.status is integer or text
-    const typeCheck = await pool.query(`
-      SELECT data_type
-      FROM information_schema.columns
-      WHERE table_name = 'alert_events' AND column_name = 'status'
-      LIMIT 1
-    `);
+    const { rows } = await pool.query(
+      `
+      UPDATE alert_events
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING id AS alert_id, search_id, status, created_at, updated_at
+      `,
+      [status, alertId]
+    );
 
-    const statusType = typeCheck.rows?.[0]?.data_type;
-
-    let updateResult;
-
-    if (statusType === 'integer') {
-      // Map strings to integers (based on your earlier Neon: pending looked like 2)
-      const map = { error: 0, sent: 1, pending: 2, dismissed: 3 };
-      const statusInt = map[statusRaw];
-
-      updateResult = await pool.query(
-        `UPDATE alert_events
-         SET status = $1
-         WHERE id = $2
-         RETURNING id, search_id, status, created_at`,
-        [statusInt, alertId]
-      );
-    } else {
-      // status is text (or something else compatible with text)
-      updateResult = await pool.query(
-        `UPDATE alert_events
-         SET status = $1
-         WHERE id = $2
-         RETURNING id, search_id, status, created_at`,
-        [statusRaw, alertId]
-      );
-    }
-
-    if (updateResult.rowCount === 0) {
+    if (rows.length === 0) {
       return res.status(404).json({ error: 'Alert not found' });
     }
 
-    res.json({ ok: true, alert: updateResult.rows[0] });
+    res.json({ ok: true, alert: rows[0] });
   } catch (err) {
     console.error('PATCH /alerts/:alert_id/status failed:', err);
     res.status(500).json({ error: 'Failed to update alert status' });
   }
 });
-
 
     // Save / update email notification settings for a search (MVP)
     app.post('/searches/:id/notifications/email', async (req, res) => {
