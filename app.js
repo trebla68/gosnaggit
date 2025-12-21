@@ -529,16 +529,73 @@ app.get('/searches/:id/alerts', async (req, res) => {
   }
 });
 
+app.patch('/api/alerts/:alert_id/status', async (req, res) => {
+  try {
+    const alertId = toInt(req.params.alert_id);
+    if (alertId === null) return res.status(400).json({ error: 'Invalid alert id' });
+
+    const statusRaw = req.body?.status;
+    if (typeof statusRaw !== 'string') {
+      return res.status(400).json({ error: 'status must be a string' });
+    }
+
+    const status = statusRaw.trim().toLowerCase();
+    const allowed = ['pending', 'sent', 'dismissed', 'failed'];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Use: ${allowed.join(', ')}` });
+    }
+
+    const { rows } = await pool.query(
+      `
+  UPDATE alert_events
+  SET status = $1
+  WHERE id = $2
+  RETURNING id AS alert_id, search_id, status, created_at
+  `,
+      [status, alertId]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ error: 'Alert not found' });
+
+    res.json({ ok: true, alert: rows[0] });
+  } catch (err) {
+    console.error('PATCH /api/alerts/:alert_id/status failed:', err);
+    res.status(500).json({ error: 'Failed to update alert status' });
+  }
+});
+
+
+
 app.patch('/alerts/:alert_id/status', async (req, res) => {
   try {
     const alertId = toInt(req.params.alert_id);
     if (alertId === null) return res.status(400).json({ error: 'Invalid alert_id' });
 
-    const { status } = req.body || {};
-    const allowed = ['pending', 'sent', 'dismissed', 'failed'];
+    const statusRaw = req.body?.status;
 
-    if (!status || !allowed.includes(status)) {
-      return res.status(400).json({ error: `Invalid status. Use: ${allowed.join(', ')}` });
+    // Map API strings -> DB integer codes
+    // Adjust these numbers if your project uses a different mapping.
+    const statusMap = {
+      pending: 2,
+      sent: 3,
+      dismissed: 4,
+      failed: 5,
+    };
+
+    let statusDb = null;
+
+    // Allow either string ("sent") OR number (3)
+    if (typeof statusRaw === 'string') {
+      statusDb = statusMap[statusRaw];
+    } else if (typeof statusRaw === 'number' && Number.isInteger(statusRaw)) {
+      statusDb = statusRaw;
+    }
+
+    const allowedStrings = Object.keys(statusMap);
+    if (statusDb === null) {
+      return res.status(400).json({
+        error: `Invalid status. Use: ${allowedStrings.join(', ')} (or a numeric code)`,
+      });
     }
 
     const { rows } = await pool.query(
@@ -548,14 +605,14 @@ app.patch('/alerts/:alert_id/status', async (req, res) => {
       WHERE id = $2
       RETURNING id AS alert_id, search_id, status, created_at
       `,
-      [status, alertId]
+      [statusDb, alertId]
     );
 
     if (rows.length === 0) return res.status(404).json({ error: 'Alert not found' });
 
     res.json({ ok: true, alert: rows[0] });
   } catch (err) {
-    console.error('PATCH /alerts/:alert_id/status failed:', err);
+    console.error('PATCH /api/alerts/:alert_id/status failed:', err);
     res.status(500).json({ error: 'Failed to update alert status' });
   }
 });
