@@ -539,8 +539,9 @@ app.patch('/api/alerts/:alert_id/status', async (req, res) => {
       return res.status(400).json({ error: 'status must be a string' });
     }
 
-    const status = statusRaw.trim().toLowerCase();
-    const allowed = ['pending', 'sent', 'dismissed', 'failed'];
+    let status = statusRaw.trim().toLowerCase();
+    if (status === 'failed') status = 'error'; // accept "failed" as an alias
+    const allowed = ['pending', 'sent', 'dismissed', 'error'];
     if (!allowed.includes(status)) {
       return res.status(400).json({ error: `Invalid status. Use: ${allowed.join(', ')}` });
     }
@@ -566,56 +567,7 @@ app.patch('/api/alerts/:alert_id/status', async (req, res) => {
 
 
 
-app.patch('/alerts/:alert_id/status', async (req, res) => {
-  try {
-    const alertId = toInt(req.params.alert_id);
-    if (alertId === null) return res.status(400).json({ error: 'Invalid alert_id' });
 
-    const statusRaw = req.body?.status;
-
-    // Map API strings -> DB integer codes
-    // Adjust these numbers if your project uses a different mapping.
-    const statusMap = {
-      pending: 2,
-      sent: 3,
-      dismissed: 4,
-      failed: 5,
-    };
-
-    let statusDb = null;
-
-    // Allow either string ("sent") OR number (3)
-    if (typeof statusRaw === 'string') {
-      statusDb = statusMap[statusRaw];
-    } else if (typeof statusRaw === 'number' && Number.isInteger(statusRaw)) {
-      statusDb = statusRaw;
-    }
-
-    const allowedStrings = Object.keys(statusMap);
-    if (statusDb === null) {
-      return res.status(400).json({
-        error: `Invalid status. Use: ${allowedStrings.join(', ')} (or a numeric code)`,
-      });
-    }
-
-    const { rows } = await pool.query(
-      `
-      UPDATE alert_events
-      SET status = $1
-      WHERE id = $2
-      RETURNING id AS alert_id, search_id, status, created_at
-      `,
-      [statusDb, alertId]
-    );
-
-    if (rows.length === 0) return res.status(404).json({ error: 'Alert not found' });
-
-    res.json({ ok: true, alert: rows[0] });
-  } catch (err) {
-    console.error('PATCH /api/alerts/:alert_id/status failed:', err);
-    res.status(500).json({ error: 'Failed to update alert status' });
-  }
-});
 
 // --------------------
 // Notifications (email) MVP
