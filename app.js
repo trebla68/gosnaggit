@@ -565,6 +565,34 @@ app.patch('/api/alerts/:alert_id/status', async (req, res) => {
   }
 });
 
+app.get('/searches/:id/alerts/summary', async (req, res) => {
+  try {
+    const searchId = toInt(req.params.id);
+    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+
+    const { rows } = await pool.query(
+      `
+      SELECT status, COUNT(*)::int AS count
+      FROM alert_events
+      WHERE search_id = $1
+      GROUP BY status
+      `,
+      [searchId]
+    );
+
+    const counts = { pending: 0, sent: 0, dismissed: 0, error: 0 };
+    for (const r of rows) {
+      if (counts[r.status] !== undefined) counts[r.status] = r.count;
+    }
+
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+    res.json({ ok: true, search_id: searchId, counts, total });
+  } catch (err) {
+    console.error('GET /searches/:id/alerts/summary failed:', err);
+    res.status(500).json({ error: 'Failed to load alerts summary' });
+  }
+});
 
 
 
