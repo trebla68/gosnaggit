@@ -370,7 +370,7 @@
         const cError = document.getElementById('c-error');
 
         const chips = Array.from(document.querySelectorAll('.chip'));
-        let currentStatus = '';
+        let currentStatus = 'pending';
 
         function setFlash(text, kind) {
             flash.textContent = text || '';
@@ -552,6 +552,8 @@
             });
         });
 
+
+
         refreshBtn.addEventListener('click', refreshAll);
 
         // init
@@ -562,6 +564,8 @@
         } else {
             searchIdEl.textContent = searchId;
             subtitleEl.textContent = 'Alerts for Search ' + searchId;
+
+            setActiveChip(currentStatus); // highlights "Pending" on first load
             refreshAll();
         }
     </script>
