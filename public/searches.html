@@ -817,6 +817,11 @@
         resultsLink.href = `/search-results.html?id=${search.id}`;
         resultsLink.title = 'View results found for this search';
 
+        const alertsLink = document.createElement('a');
+        alertsLink.textContent = 'Alerts';
+        alertsLink.href = `/search-alerts.html?id=${search.id}`;
+        alertsLink.title = 'View alerts for this search (pending/sent/dismissed/error)';
+
         const editLink = document.createElement('a');
         editLink.textContent = 'Edit';
         editLink.href = `/edit-search.html?id=${search.id}`;
@@ -902,6 +907,8 @@
         actionsTd.appendChild(detailsLink);
         actionsTd.appendChild(document.createTextNode(' '));
         actionsTd.appendChild(resultsLink);
+        actionsTd.appendChild(document.createTextNode(' '));
+        actionsTd.appendChild(alertsLink);
         actionsTd.appendChild(document.createTextNode(' '));
         actionsTd.appendChild(editLink);
         actionsTd.appendChild(document.createTextNode(' '));

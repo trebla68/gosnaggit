@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>GoSnaggit – Alerts</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card-bg: #151a2b;
+            --accent: #ffb347;
+            --accent-strong: #ff9f1c;
+            --text-main: #f7f7ff;
+            --text-muted: #a2a7c4;
+            --border-subtle: #262b3f;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+            --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+            --ok: #22c55e;
+            --warn: #facc15;
+            --bad: #f87171;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text-main);
+            background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 1120px;
+            border-radius: var(--radius-xl);
+            background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+            padding: 2px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .inner {
+            border-radius: calc(var(--radius-xl) - 2px);
+            background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+            padding: 22px 22px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .logo-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
+            background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1b1206;
+            font-weight: 800;
+            font-size: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-text span:first-child {
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .logo-text span:last-child {
+            font-size: 0.98rem;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+            border-color: rgba(255, 179, 71, 0.35);
+            background-color: rgba(255, 179, 71, 0.10);
+        }
+
+        .title h1 {
+            margin: 0 0 4px;
+            font-size: 1.35rem;
+        }
+
+        .title p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .panel {
+            border-radius: var(--radius-lg);
+            background: radial-gradient(circle at top left, #151827, #050712 70%);
+            border: 1px solid rgba(80, 97, 183, 0.6);
+            padding: 12px 14px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            border: 1px solid rgba(148, 163, 184, 0.55);
+            background: rgba(6, 8, 22, 0.85);
+            color: var(--text-main);
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .chip.active {
+            border-color: rgba(255, 179, 71, 0.75);
+            box-shadow: 0 0 0 1px rgba(255, 179, 71, 0.2) inset;
+        }
+
+        .chip small {
+            color: var(--text-muted);
+            margin-left: 6px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.15rem;
+            border-radius: 999px;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.12s ease-out;
+            white-space: nowrap;
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: #1a1306;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        th,
+        td {
+            padding: 8px 8px;
+            border-bottom: 1px solid rgba(54, 63, 122, 0.9);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            background-color: rgba(10, 14, 34, 0.9);
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: rgba(7, 10, 26, 0.85);
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: rgba(9, 12, 30, 0.9);
+        }
+
+        tbody tr:hover {
+            background-color: rgba(22, 30, 68, 0.9);
+        }
+
+        .sub {
+            display: block;
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            border: 1px solid transparent;
+            text-transform: lowercase;
+        }
+
+        .pill.pending {
+            background: rgba(250, 204, 21, 0.14);
+            border-color: rgba(250, 204, 21, 0.6);
+            color: #fef9c3;
+        }
+
+        .pill.sent {
+            background: rgba(34, 197, 94, 0.14);
+            border-color: rgba(34, 197, 94, 0.6);
+            color: #bbf7d0;
+        }
+
+        .pill.dismissed {
+            background: rgba(148, 163, 184, 0.14);
+            border-color: rgba(148, 163, 184, 0.6);
+            color: #e2e8f0;
+        }
+
+        .pill.error {
+            background: rgba(248, 113, 113, 0.14);
+            border-color: rgba(248, 113, 113, 0.7);
+            color: #fecaca;
+        }
+
+        .flash {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            min-height: 1em;
+            margin-top: 8px;
+        }
+
+        .flash.ok {
+            color: #bbf7d0;
+        }
+
+        .flash.bad {
+            color: #fecaca;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+        <div class="inner">
+            <header>
+                <div class="logo-left">
+                    <div class="logo-mark">G</div>
+                    <div class="logo-text">
+                        <span>GoSnaggit</span>
+                        <span id="subtitle">Alerts</span>
+                    </div>
+                </div>
+                <nav class="nav-links">
+                    <a href="/index.html">Home</a>
+                    <a href="/searches.html">Saved searches</a>
+                    <a href="/search.html">New search</a>
+                </nav>
+            </header>
+
+            <div class="title">
+                <h1>Alerts for Search <span id="search-id">—</span></h1>
+                <p>Use the chips to filter by status. Counts come from the summary endpoint.</p>
+            </div>
+
+            <div class="panel">
+                <div class="toolbar">
+                    <div class="chips" id="chips">
+                        <div class="chip active" data-status="">All <small id="c-all">0</small></div>
+                        <div class="chip" data-status="pending">Pending <small id="c-pending">0</small></div>
+                        <div class="chip" data-status="sent">Sent <small id="c-sent">0</small></div>
+                        <div class="chip" data-status="dismissed">Dismissed <small id="c-dismissed">0</small></div>
+                        <div class="chip" data-status="error">Error <small id="c-error">0</small></div>
+                    </div>
+
+                    <button class="btn" id="refresh">Refresh</button>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Status</th>
+                            <th>Title / Marketplace</th>
+                            <th>Price</th>
+                            <th>Listing</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+
+                <div class="flash" id="flash"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const qs = new URLSearchParams(window.location.search);
+        const searchId = qs.get('id');
+
+        const searchIdEl = document.getElementById('search-id');
+        const subtitleEl = document.getElementById('subtitle');
+        const tbody = document.getElementById('tbody');
+        const flash = document.getElementById('flash');
+        const refreshBtn = document.getElementById('refresh');
+
+        const cAll = document.getElementById('c-all');
+        const cPending = document.getElementById('c-pending');
+        const cSent = document.getElementById('c-sent');
+        const cDismissed = document.getElementById('c-dismissed');
+        const cError = document.getElementById('c-error');
+
+        const chips = Array.from(document.querySelectorAll('.chip'));
+        let currentStatus = '';
+
+        function setFlash(text, kind) {
+            flash.textContent = text || '';
+            flash.className = 'flash' + (kind ? (' ' + kind) : '');
+        }
+
+        function pill(status) {
+            const s = (status || 'unknown').toLowerCase();
+            const span = document.createElement('span');
+            span.className = 'pill ' + s;
+            span.textContent = s;
+            return span;
+        }
+
+        function fmtMoney(price, currency) {
+            if (price === null || price === undefined || price === '') return '—';
+            const n = Number(price);
+            if (Number.isNaN(n)) return String(price);
+            return (currency || 'USD') + ' ' + n.toFixed(2);
+        }
+
+        function fmtDate(iso) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            if (Number.isNaN(d.getTime())) return String(iso);
+            return d.toLocaleString();
+        }
+
+        async function loadSummary() {
+            const res = await fetch(`/searches/${searchId}/alerts/summary`);
+            if (!res.ok) throw new Error('Failed to load alerts summary');
+            const data = await res.json();
+
+            const counts = data.counts || {};
+            const total = data.total ?? 0;
+
+            cAll.textContent = total;
+            cPending.textContent = counts.pending ?? 0;
+            cSent.textContent = counts.sent ?? 0;
+            cDismissed.textContent = counts.dismissed ?? 0;
+            cError.textContent = counts.error ?? 0;
+        }
+
+        async function loadAlerts() {
+            tbody.innerHTML = '';
+            setFlash('Loading alerts…');
+
+            const url = new URL(`/searches/${searchId}/alerts`, window.location.origin);
+            if (currentStatus) url.searchParams.set('status', currentStatus);
+
+            const res = await fetch(url.toString());
+            if (!res.ok) throw new Error('Failed to load alerts list');
+
+            const rows = await res.json();
+            if (!Array.isArray(rows) || rows.length === 0) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 6;
+                td.style.color = 'rgba(162,167,196,1)';
+                td.style.padding = '14px 8px';
+                td.textContent = 'No alerts for this filter.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                setFlash('Loaded. (0 alerts)', 'ok');
+                return;
+            }
+
+            for (const a of rows) {
+                const tr = document.createElement('tr');
+
+                const tdId = document.createElement('td');
+                tdId.textContent = a.alert_id ?? '—';
+                tr.appendChild(tdId);
+
+                const tdStatus = document.createElement('td');
+                tdStatus.appendChild(pill(a.status));
+                tr.appendChild(tdStatus);
+
+                const tdTitle = document.createElement('td');
+                tdTitle.textContent = a.title || '—';
+                const sub = document.createElement('span');
+                sub.className = 'sub';
+                sub.textContent = (a.marketplace || '—') + (a.external_id ? (' • ' + a.external_id) : '');
+                tdTitle.appendChild(sub);
+                tr.appendChild(tdTitle);
+
+                const tdPrice = document.createElement('td');
+                tdPrice.textContent = fmtMoney(a.price, a.currency);
+                tr.appendChild(tdPrice);
+
+                const tdLink = document.createElement('td');
+                if (a.listing_url) {
+                    const link = document.createElement('a');
+                    link.href = a.listing_url;
+                    link.target = '_blank';
+                    link.rel = 'noreferrer';
+                    link.textContent = 'Open listing';
+                    link.style.color = 'rgba(255,179,71,1)';
+                    link.style.textDecoration = 'none';
+                    link.addEventListener('mouseover', () => link.style.textDecoration = 'underline');
+                    link.addEventListener('mouseout', () => link.style.textDecoration = 'none');
+                    tdLink.appendChild(link);
+                } else {
+                    tdLink.textContent = '—';
+                }
+                tr.appendChild(tdLink);
+
+                const tdCreated = document.createElement('td');
+                tdCreated.textContent = fmtDate(a.alert_created_at);
+                tr.appendChild(tdCreated);
+
+                tbody.appendChild(tr);
+            }
+
+            setFlash(`Loaded. (${rows.length} alerts)`, 'ok');
+        }
+
+        function setActiveChip(status) {
+            chips.forEach(ch => ch.classList.toggle('active', ch.dataset.status === status));
+        }
+
+        async function refreshAll() {
+            try {
+                await loadSummary();
+                await loadAlerts();
+            } catch (e) {
+                console.error(e);
+                setFlash('Error: ' + e.message, 'bad');
+            }
+        }
+
+        chips.forEach(ch => {
+            ch.addEventListener('click', async () => {
+                currentStatus = ch.dataset.status; // '' means All
+                setActiveChip(currentStatus);
+                await refreshAll();
+            });
+        });
+
+        refreshBtn.addEventListener('click', refreshAll);
+
+        // init
+        if (!searchId) {
+            searchIdEl.textContent = '—';
+            subtitleEl.textContent = 'Alerts (missing ?id=...)';
+            setFlash('Missing search id. Open this page from Saved Searches → Alerts.', 'bad');
+        } else {
+            searchIdEl.textContent = searchId;
+            subtitleEl.textContent = 'Alerts for Search ' + searchId;
+            refreshAll();
+        }
+    </script>
+</body>
+
+</html>
