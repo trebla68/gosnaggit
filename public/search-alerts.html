@@ -342,6 +342,7 @@
                             <th>Price</th>
                             <th>Listing</th>
                             <th>Created</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="tbody"></tbody>
@@ -427,7 +428,7 @@
             if (!Array.isArray(rows) || rows.length === 0) {
                 const tr = document.createElement('tr');
                 const td = document.createElement('td');
-                td.colSpan = 6;
+                td.colSpan = 7;
                 td.style.color = 'rgba(162,167,196,1)';
                 td.style.padding = '14px 8px';
                 td.textContent = 'No alerts for this filter.';
@@ -480,6 +481,48 @@
                 const tdCreated = document.createElement('td');
                 tdCreated.textContent = fmtDate(a.alert_created_at);
                 tr.appendChild(tdCreated);
+
+                const tdAction = document.createElement('td');
+
+                const btn = document.createElement('button');
+                btn.textContent = (String(a.status || '').toLowerCase() === 'dismissed')
+                    ? 'Re-open'
+                    : 'Dismiss';
+
+                btn.className = 'btn';
+                btn.style.padding = '0.35rem 0.75rem';
+                btn.style.fontSize = '0.78rem';
+
+                btn.addEventListener('click', async () => {
+                    const current = String(a.status || '').toLowerCase();
+                    const nextStatus = (current === 'dismissed') ? 'pending' : 'dismissed';
+
+                    try {
+                        btn.disabled = true;
+                        setFlash(`Updating alert ${a.alert_id} → ${nextStatus}…`);
+
+                        const res = await fetch(`/api/alerts/${a.alert_id}/status`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: nextStatus })
+                        });
+
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) throw new Error(data.error || 'Failed to update alert status');
+
+                        await refreshAll();
+                        setFlash('Updated.', 'ok');
+                    } catch (e) {
+                        console.error(e);
+                        setFlash('Error: ' + e.message, 'bad');
+                    } finally {
+                        btn.disabled = false;
+                    }
+                });
+
+                tdAction.appendChild(btn);
+                tr.appendChild(tdAction);
+
 
                 tbody.appendChild(tr);
             }
