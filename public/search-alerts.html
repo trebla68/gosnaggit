@@ -2,573 +2,806 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <title>GoSnaggit – Alerts</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-        :root {
-            --bg: #0b1020;
-            --card-bg: #151a2b;
-            --accent: #ffb347;
-            --accent-strong: #ff9f1c;
-            --text-main: #f7f7ff;
-            --text-muted: #a2a7c4;
-            --border-subtle: #262b3f;
-            --radius-lg: 16px;
-            --radius-xl: 22px;
-            --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
-            --ok: #22c55e;
-            --warn: #facc15;
-            --bad: #f87171;
-        }
+  <meta charset="UTF-8" />
+  <title>GoSnaggit – Alerts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --danger: #ff4b5c;
+      --ok: #33d17a;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
 
-        * {
-            box-sizing: border-box;
-        }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text-main);
+      background:
+        radial-gradient(1200px 700px at 15% 10%, rgba(255, 179, 71, 0.18), transparent 55%),
+        radial-gradient(900px 600px at 80% 30%, rgba(255, 159, 28, 0.12), transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+    }
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            color: var(--text-main);
-            background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-        }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 22px 18px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
 
-        .shell {
-            width: 100%;
-            max-width: 1120px;
-            border-radius: var(--radius-xl);
-            background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
-            padding: 2px;
-            box-shadow: var(--shadow-soft);
-        }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
 
-        .inner {
-            border-radius: calc(var(--radius-xl) - 2px);
-            background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
-            padding: 22px 22px 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
+    .brand {
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-        .logo-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .brand-badge {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px rgba(255, 179, 71, 0.15);
+    }
 
-        .logo-mark {
-            width: 32px;
-            height: 32px;
-            border-radius: 12px;
-            background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #1b1206;
-            font-weight: 800;
-            font-size: 1rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
-        }
+    .subhead {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-top: 2px;
+    }
 
-        .logo-text {
-            display: flex;
-            flex-direction: column;
-        }
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
 
-        .logo-text span:first-child {
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-        }
+    .btn {
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 650;
+      font-size: 13px;
+    }
 
-        .logo-text span:last-child {
-            font-size: 0.98rem;
-            font-weight: 600;
-        }
+    .btn:hover { border-color: rgba(255, 179, 71, 0.55); }
+    .btn.primary {
+      border-color: rgba(255, 179, 71, 0.55);
+      background: rgba(255, 179, 71, 0.12);
+    }
 
-        .nav-links {
-            display: flex;
-            gap: 0.6rem;
-            font-size: 0.8rem;
-        }
+    .card {
+      background: rgba(21, 26, 43, 0.92);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
 
-        .nav-links a {
-            color: var(--text-muted);
-            text-decoration: none;
-            padding: 4px 10px;
-            border-radius: 999px;
-            border: 1px solid transparent;
-        }
+    .card-h {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
-        .nav-links a:hover {
-            color: var(--text-main);
-            border-color: rgba(255, 179, 71, 0.35);
-            background-color: rgba(255, 179, 71, 0.10);
-        }
+    .titleline {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 260px;
+    }
 
-        .title h1 {
-            margin: 0 0 4px;
-            font-size: 1.35rem;
-        }
+    .h-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0;
+    }
 
-        .title p {
-            margin: 0;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
+    .h-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
 
-        .panel {
-            border-radius: var(--radius-lg);
-            background: radial-gradient(circle at top left, #151827, #050712 70%);
-            border: 1px solid rgba(80, 97, 183, 0.6);
-            padding: 12px 14px;
-        }
+    .flash {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      font-size: 13px;
+      display: none;
+    }
 
-        .toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
+    .flash.bad {
+      display: block;
+      border-color: rgba(255, 75, 92, 0.6);
+      background: rgba(255, 75, 92, 0.10);
+      color: #ffd7dd;
+    }
 
-        .chips {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
+    .flash.ok {
+      display: block;
+      border-color: rgba(51, 209, 122, 0.55);
+      background: rgba(51, 209, 122, 0.10);
+      color: #d8ffe9;
+    }
 
-        .chip {
-            border: 1px solid rgba(148, 163, 184, 0.55);
-            background: rgba(6, 8, 22, 0.85);
-            color: var(--text-main);
-            border-radius: 999px;
-            padding: 6px 10px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            user-select: none;
-        }
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 12px 16px 0;
+    }
 
-        .chip.active {
-            border-color: rgba(255, 179, 71, 0.75);
-            box-shadow: 0 0 0 1px rgba(255, 179, 71, 0.2) inset;
-        }
+    .chip {
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 750;
+      padding: 7px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      user-select: none;
+    }
 
-        .chip small {
-            color: var(--text-muted);
-            margin-left: 6px;
-        }
+    .chip:hover { border-color: rgba(255, 179, 71, 0.5); }
+    .chip.active {
+      border-color: rgba(255, 179, 71, 0.7);
+      background: rgba(255, 179, 71, 0.12);
+    }
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.55rem 1.15rem;
-            border-radius: 999px;
-            border: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.12s ease-out;
-            white-space: nowrap;
-            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-            color: #1a1306;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
-        }
+    .chip .count {
+      font-variant-numeric: tabular-nums;
+      color: var(--text-muted);
+      font-weight: 800;
+    }
 
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
-        }
+    .table-wrap { padding: 12px 16px 14px; }
 
-        .btn:active {
-            transform: translateY(0);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.82rem;
-        }
+    thead th {
+      text-align: left;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
 
-        th,
-        td {
-            padding: 8px 8px;
-            border-bottom: 1px solid rgba(54, 63, 122, 0.9);
-            text-align: left;
-            vertical-align: top;
-        }
+    tbody td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(38, 43, 63, 0.7);
+      vertical-align: top;
+      font-size: 13px;
+      word-wrap: break-word;
+    }
 
-        th {
-            font-size: 0.78rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            background-color: rgba(10, 14, 34, 0.9);
-        }
+    tbody tr:hover td { background: rgba(255, 255, 255, 0.015); }
 
-        tbody tr:nth-child(odd) {
-            background-color: rgba(7, 10, 26, 0.85);
-        }
+    .sub {
+      display: block;
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
 
-        tbody tr:nth-child(even) {
-            background-color: rgba(9, 12, 30, 0.9);
-        }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.03);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
 
-        tbody tr:hover {
-            background-color: rgba(22, 30, 68, 0.9);
-        }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--text-muted);
+      opacity: 0.95;
+    }
 
-        .sub {
-            display: block;
-            font-size: 0.74rem;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
+    .pill.pending .dot { background: var(--accent); }
+    .pill.sent .dot { background: var(--ok); }
+    .pill.dismissed .dot { background: rgba(162, 167, 196, 0.9); }
+    .pill.error .dot { background: var(--danger); }
 
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px 8px;
-            border-radius: 999px;
-            font-size: 0.72rem;
-            border: 1px solid transparent;
-            text-transform: lowercase;
-        }
+    .mini {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
 
-        .pill.pending {
-            background: rgba(250, 204, 21, 0.14);
-            border-color: rgba(250, 204, 21, 0.6);
-            color: #fef9c3;
-        }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
 
-        .pill.sent {
-            background: rgba(34, 197, 94, 0.14);
-            border-color: rgba(34, 197, 94, 0.6);
-            color: #bbf7d0;
-        }
+    .action-btn {
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-main);
+      padding: 7px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 800;
+    }
 
-        .pill.dismissed {
-            background: rgba(148, 163, 184, 0.14);
-            border-color: rgba(148, 163, 184, 0.6);
-            color: #e2e8f0;
-        }
+    .action-btn:hover { border-color: rgba(255, 179, 71, 0.55); }
+    .action-btn.danger:hover { border-color: rgba(255, 75, 92, 0.7); }
+    .action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-        .pill.error {
-            background: rgba(248, 113, 113, 0.14);
-            border-color: rgba(248, 113, 113, 0.7);
-            color: #fecaca;
-        }
+    .pager {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 14px;
+      flex-wrap: wrap;
+    }
 
-        .flash {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            min-height: 1em;
-            margin-top: 8px;
-        }
+    .pager .left, .pager .right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
-        .flash.ok {
-            color: #bbf7d0;
-        }
+    .pager .label {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
 
-        .flash.bad {
-            color: #fecaca;
-        }
-    </style>
+    .empty {
+      padding: 14px 16px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
 </head>
 
 <body>
-    <div class="shell">
-        <div class="inner">
-            <header>
-                <div class="logo-left">
-                    <div class="logo-mark">G</div>
-                    <div class="logo-text">
-                        <span>GoSnaggit</span>
-                        <span id="subtitle">Alerts</span>
-                    </div>
-                </div>
-                <nav class="nav-links">
-                    <a href="/index.html">Home</a>
-                    <a href="/searches.html">Saved searches</a>
-                    <a href="/search.html">New search</a>
-                </nav>
-            </header>
+  <div class="wrap">
+    <header>
+      <div class="logo-left">
+        <div class="brand"><span class="brand-badge" aria-hidden="true"></span>GoSnaggit</div>
+        <div class="subhead" id="subtitle">Alerts</div>
+      </div>
 
-            <div class="title">
-                <h1>Alerts for Search <span id="search-id">—</span></h1>
-                <p>Use the chips to filter by status. Counts come from the summary endpoint.</p>
-            </div>
+      <div class="top-actions">
+        <a class="btn" href="searches.html">← Saved Searches</a>
+        <a class="btn primary" id="backToDetail" href="search-detail.html">Search Detail</a>
+        <button class="btn" id="refreshBtn" type="button">Refresh</button>
+      </div>
+    </header>
 
-            <div class="panel">
-                <div class="toolbar">
-                    <div class="chips" id="chips">
-                        <div class="chip active" data-status="">All <small id="c-all">0</small></div>
-                        <div class="chip" data-status="pending">Pending <small id="c-pending">0</small></div>
-                        <div class="chip" data-status="sent">Sent <small id="c-sent">0</small></div>
-                        <div class="chip" data-status="dismissed">Dismissed <small id="c-dismissed">0</small></div>
-                        <div class="chip" data-status="error">Error <small id="c-error">0</small></div>
-                    </div>
+    <div id="flash" class="flash"></div>
 
-                    <button class="btn" id="refresh">Refresh</button>
-                </div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Status</th>
-                            <th>Title / Marketplace</th>
-                            <th>Price</th>
-                            <th>Listing</th>
-                            <th>Created</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody"></tbody>
-                </table>
-
-                <div class="flash" id="flash"></div>
-            </div>
+    <div class="card">
+      <div class="card-h">
+        <div class="titleline">
+          <h2 class="h-title">Alerts for Search <span class="mono" id="searchId">—</span></h2>
+          <div class="h-meta">
+            <span id="summaryLine">Counts: —</span>
+            <span class="mini" id="rangeLine">Showing —</span>
+          </div>
         </div>
+      </div>
+
+      <div class="chips" id="chips">
+        <!-- chips injected -->
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 70px;">ID</th>
+              <th style="width: 110px;">Status</th>
+              <th>Title</th>
+              <th style="width: 110px;">Price</th>
+              <th style="width: 120px;">Listing</th>
+              <th style="width: 170px;">Created</th>
+              <th style="width: 180px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <!-- rows injected -->
+          </tbody>
+        </table>
+
+        <div id="empty" class="empty" style="display:none;">No alerts found.</div>
+      </div>
+
+      <div class="pager">
+        <div class="left">
+          <button class="btn" id="prevBtn" type="button">← Prev</button>
+          <button class="btn" id="nextBtn" type="button">Next →</button>
+        </div>
+        <div class="right">
+          <span class="label" id="pageLabel">Page —</span>
+          <span class="label">Per page: <span class="mono" id="limitLabel">5</span></span>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const qs = new URLSearchParams(window.location.search);
-        const searchId = qs.get('id');
+  <script>
+    // ===== helpers =====
+    function toInt(v) {
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) ? n : null;
+    }
 
-        const searchIdEl = document.getElementById('search-id');
-        const subtitleEl = document.getElementById('subtitle');
-        const tbody = document.getElementById('tbody');
-        const flash = document.getElementById('flash');
-        const refreshBtn = document.getElementById('refresh');
+    function fmtMoney(price, currency) {
+      if (price == null || price === '') return '—';
+      const num = Number(price);
+      if (!Number.isFinite(num)) return String(price);
+      const cur = currency || 'USD';
+      try {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(num);
+      } catch {
+        return num.toFixed(2) + ' ' + cur;
+      }
+    }
 
-        const cAll = document.getElementById('c-all');
-        const cPending = document.getElementById('c-pending');
-        const cSent = document.getElementById('c-sent');
-        const cDismissed = document.getElementById('c-dismissed');
-        const cError = document.getElementById('c-error');
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleString();
+    }
 
-        const chips = Array.from(document.querySelectorAll('.chip'));
-        let currentStatus = 'pending';
+    function pill(status) {
+      const s = (status || '').toLowerCase();
+      const el = document.createElement('span');
+      el.className = 'pill ' + (s || '');
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      el.appendChild(dot);
+      const txt = document.createElement('span');
+      txt.textContent = s || '—';
+      el.appendChild(txt);
+      return el;
+    }
 
-        function setFlash(text, kind) {
-            flash.textContent = text || '';
-            flash.className = 'flash' + (kind ? (' ' + kind) : '');
+    function setFlash(msg, kind) {
+      const el = document.getElementById('flash');
+      if (!msg) {
+        el.style.display = 'none';
+        el.className = 'flash';
+        el.textContent = '';
+        return;
+      }
+      el.style.display = 'block';
+      el.className = 'flash ' + (kind || '');
+      el.textContent = msg;
+    }
+
+    function getUrl() {
+      // IMPORTANT: avoids "url.searchParams is undefined"
+      return new URL(window.location.href);
+    }
+
+    // ===== state =====
+    const LIMIT = 5;
+
+    const subtitleEl = document.getElementById('subtitle');
+    const searchIdEl = document.getElementById('searchId');
+    const summaryLineEl = document.getElementById('summaryLine');
+    const rangeLineEl = document.getElementById('rangeLine');
+    const tbody = document.getElementById('tbody');
+    const emptyEl = document.getElementById('empty');
+    const chipsWrap = document.getElementById('chips');
+
+    const refreshBtn = document.getElementById('refreshBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageLabel = document.getElementById('pageLabel');
+    const limitLabel = document.getElementById('limitLabel');
+    limitLabel.textContent = String(LIMIT);
+
+    const backToDetail = document.getElementById('backToDetail');
+
+    // Pull search id from URL: ?id=2  OR  ?search_id=2
+    const url0 = getUrl();
+    const searchId = toInt(url0.searchParams.get('id')) ?? toInt(url0.searchParams.get('search_id'));
+
+    // Default filter = pending (matches what you wanted)
+    const allowedStatuses = ['', 'pending', 'sent', 'dismissed', 'error'];
+    let currentStatus = (url0.searchParams.get('status') || 'pending').toLowerCase();
+    if (!allowedStatuses.includes(currentStatus)) currentStatus = 'pending';
+
+    let offset = toInt(url0.searchParams.get('offset')) ?? 0;
+    if (offset < 0) offset = 0;
+
+    let summaryCounts = { pending: 0, sent: 0, dismissed: 0, error: 0 };
+    let totalAll = 0;
+    let lastRowsLength = 0;
+
+    // chips data (labels)
+    const chipDefs = [
+      { status: '', label: 'All' },
+      { status: 'pending', label: 'Pending' },
+      { status: 'sent', label: 'Sent' },
+      { status: 'dismissed', label: 'Dismissed' },
+      { status: 'error', label: 'Error' }
+    ];
+
+    // ===== URL sync helpers =====
+    function writeUrlState() {
+      const u = getUrl();
+      // keep id/search_id as-is, only update status/offset
+      if (currentStatus === '') u.searchParams.delete('status');
+      else u.searchParams.set('status', currentStatus);
+
+      if (!offset) u.searchParams.delete('offset');
+      else u.searchParams.set('offset', String(offset));
+
+      history.replaceState(null, '', u.toString());
+    }
+
+    function setActiveChip(status) {
+      const chips = chipsWrap.querySelectorAll('.chip');
+      chips.forEach(ch => ch.classList.toggle('active', ch.dataset.status === status));
+    }
+
+    function totalForCurrentFilter() {
+      if (!currentStatus) return totalAll;
+      return Number(summaryCounts[currentStatus] || 0);
+    }
+
+    function updatePagerUi() {
+      const total = totalForCurrentFilter();
+
+      const canPrev = offset > 0;
+      const canNext = (offset + lastRowsLength) < total;
+
+      prevBtn.disabled = !canPrev;
+      nextBtn.disabled = !canNext;
+
+      const pageNum = total === 0 ? 0 : Math.floor(offset / LIMIT) + 1;
+      const pageCount = total === 0 ? 0 : Math.max(1, Math.ceil(total / LIMIT));
+      pageLabel.textContent = `Page ${pageNum} of ${pageCount}`;
+
+      if (total === 0) {
+        rangeLineEl.textContent = 'Showing 0 of 0';
+      } else {
+        const start = offset + 1;
+        const end = Math.min(offset + lastRowsLength, total);
+        rangeLineEl.textContent = `Showing ${start}-${end} of ${total}`;
+      }
+    }
+
+    // ===== API calls =====
+    async function loadSummary() {
+      const res = await fetch(`/searches/${searchId}/alerts/summary`);
+      if (!res.ok) throw new Error(`Summary failed (${res.status})`);
+      const data = await res.json();
+
+      summaryCounts = data.counts || { pending: 0, sent: 0, dismissed: 0, error: 0 };
+      totalAll = Number(data.total || 0);
+
+      summaryLineEl.textContent =
+        `Counts: pending ${summaryCounts.pending || 0}, sent ${summaryCounts.sent || 0}, dismissed ${summaryCounts.dismissed || 0}, error ${summaryCounts.error || 0}, total ${totalAll}`;
+
+      renderChips(); // update chip counts
+    }
+
+    async function loadAlerts() {
+      const qs = new URLSearchParams();
+      if (currentStatus) qs.set('status', currentStatus);
+      qs.set('limit', String(LIMIT));
+      qs.set('offset', String(offset));
+
+      const res = await fetch(`/searches/${searchId}/alerts?` + qs.toString());
+      if (!res.ok) throw new Error(`Alerts failed (${res.status})`);
+      const rows = await res.json();
+
+      lastRowsLength = Array.isArray(rows) ? rows.length : 0;
+      renderRows(Array.isArray(rows) ? rows : []);
+      updatePagerUi();
+    }
+
+    async function patchAlertStatus(alertId, status) {
+      const res = await fetch(`/api/alerts/${alertId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+
+      // Your server sometimes returns HTML error pages; handle both JSON and text.
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (!res.ok) {
+        if (ct.includes('application/json')) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j.error || `PATCH failed (${res.status})`);
+        } else {
+          const t = await res.text().catch(() => '');
+          throw new Error(t ? t : `PATCH failed (${res.status})`);
         }
+      }
 
-        function pill(status) {
-            const s = (status || 'unknown').toLowerCase();
-            const span = document.createElement('span');
-            span.className = 'pill ' + s;
-            span.textContent = s;
-            return span;
-        }
+      if (ct.includes('application/json')) return res.json();
+      return res.text();
+    }
 
-        function fmtMoney(price, currency) {
-            if (price === null || price === undefined || price === '') return '—';
-            const n = Number(price);
-            if (Number.isNaN(n)) return String(price);
-            return (currency || 'USD') + ' ' + n.toFixed(2);
-        }
+    // ===== render =====
+    function renderChips() {
+      chipsWrap.innerHTML = '';
+      for (const c of chipDefs) {
+        const el = document.createElement('div');
+        el.className = 'chip';
+        el.dataset.status = c.status;
 
-        function fmtDate(iso) {
-            if (!iso) return '—';
-            const d = new Date(iso);
-            if (Number.isNaN(d.getTime())) return String(iso);
-            return d.toLocaleString();
-        }
+        const label = document.createElement('span');
+        label.textContent = c.label;
+        el.appendChild(label);
 
-        async function loadSummary() {
-            const res = await fetch(`/searches/${searchId}/alerts/summary`);
-            if (!res.ok) throw new Error('Failed to load alerts summary');
-            const data = await res.json();
+        const count = document.createElement('span');
+        count.className = 'count';
+        let n = 0;
+        if (c.status === '') n = totalAll;
+        else n = Number(summaryCounts[c.status] || 0);
+        count.textContent = String(n);
+        el.appendChild(count);
 
-            const counts = data.counts || {};
-            const total = data.total ?? 0;
-
-            cAll.textContent = total;
-            cPending.textContent = counts.pending ?? 0;
-            cSent.textContent = counts.sent ?? 0;
-            cDismissed.textContent = counts.dismissed ?? 0;
-            cError.textContent = counts.error ?? 0;
-        }
-
-        async function loadAlerts() {
-            tbody.innerHTML = '';
-            setFlash('Loading alerts…');
-
-            const url = new URL(`/searches/${searchId}/alerts`, window.location.origin);
-            if (currentStatus) url.searchParams.set('status', currentStatus);
-
-            const res = await fetch(url.toString());
-            if (!res.ok) throw new Error('Failed to load alerts list');
-
-            const rows = await res.json();
-            if (!Array.isArray(rows) || rows.length === 0) {
-                const tr = document.createElement('tr');
-                const td = document.createElement('td');
-                td.colSpan = 7;
-                td.style.color = 'rgba(162,167,196,1)';
-                td.style.padding = '14px 8px';
-                td.textContent = 'No alerts for this filter.';
-                tr.appendChild(td);
-                tbody.appendChild(tr);
-                setFlash('Loaded. (0 alerts)', 'ok');
-                return;
-            }
-
-            for (const a of rows) {
-                const tr = document.createElement('tr');
-
-                const tdId = document.createElement('td');
-                tdId.textContent = a.alert_id ?? '—';
-                tr.appendChild(tdId);
-
-                const tdStatus = document.createElement('td');
-                tdStatus.appendChild(pill(a.status));
-                tr.appendChild(tdStatus);
-
-                const tdTitle = document.createElement('td');
-                tdTitle.textContent = a.title || '—';
-                const sub = document.createElement('span');
-                sub.className = 'sub';
-                sub.textContent = (a.marketplace || '—') + (a.external_id ? (' • ' + a.external_id) : '');
-                tdTitle.appendChild(sub);
-                tr.appendChild(tdTitle);
-
-                const tdPrice = document.createElement('td');
-                tdPrice.textContent = fmtMoney(a.price, a.currency);
-                tr.appendChild(tdPrice);
-
-                const tdLink = document.createElement('td');
-                if (a.listing_url) {
-                    const link = document.createElement('a');
-                    link.href = a.listing_url;
-                    link.target = '_blank';
-                    link.rel = 'noreferrer';
-                    link.textContent = 'Open listing';
-                    link.style.color = 'rgba(255,179,71,1)';
-                    link.style.textDecoration = 'none';
-                    link.addEventListener('mouseover', () => link.style.textDecoration = 'underline');
-                    link.addEventListener('mouseout', () => link.style.textDecoration = 'none');
-                    tdLink.appendChild(link);
-                } else {
-                    tdLink.textContent = '—';
-                }
-                tr.appendChild(tdLink);
-
-                const tdCreated = document.createElement('td');
-                tdCreated.textContent = fmtDate(a.alert_created_at);
-                tr.appendChild(tdCreated);
-
-                const tdAction = document.createElement('td');
-
-                const btn = document.createElement('button');
-                btn.textContent = (String(a.status || '').toLowerCase() === 'dismissed')
-                    ? 'Re-open'
-                    : 'Dismiss';
-
-                btn.className = 'btn';
-                btn.style.padding = '0.35rem 0.75rem';
-                btn.style.fontSize = '0.78rem';
-
-                btn.addEventListener('click', async () => {
-                    const current = String(a.status || '').toLowerCase();
-                    const nextStatus = (current === 'dismissed') ? 'pending' : 'dismissed';
-
-                    try {
-                        btn.disabled = true;
-                        setFlash(`Updating alert ${a.alert_id} → ${nextStatus}…`);
-
-                        const res = await fetch(`/api/alerts/${a.alert_id}/status`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: nextStatus })
-                        });
-
-                        const data = await res.json().catch(() => ({}));
-                        if (!res.ok) throw new Error(data.error || 'Failed to update alert status');
-
-                        await refreshAll();
-                        setFlash('Updated.', 'ok');
-                    } catch (e) {
-                        console.error(e);
-                        setFlash('Error: ' + e.message, 'bad');
-                    } finally {
-                        btn.disabled = false;
-                    }
-                });
-
-                tdAction.appendChild(btn);
-                tr.appendChild(tdAction);
-
-
-                tbody.appendChild(tr);
-            }
-
-            setFlash(`Loaded. (${rows.length} alerts)`, 'ok');
-        }
-
-        function setActiveChip(status) {
-            chips.forEach(ch => ch.classList.toggle('active', ch.dataset.status === status));
-        }
-
-        async function refreshAll() {
-            try {
-                await loadSummary();
-                await loadAlerts();
-            } catch (e) {
-                console.error(e);
-                setFlash('Error: ' + e.message, 'bad');
-            }
-        }
-
-        chips.forEach(ch => {
-            ch.addEventListener('click', async () => {
-                currentStatus = ch.dataset.status; // '' means All
-                setActiveChip(currentStatus);
-                await refreshAll();
-            });
+        el.addEventListener('click', async () => {
+          currentStatus = c.status;      // '' means All
+          offset = 0;                    // reset to first page
+          setActiveChip(currentStatus);
+          writeUrlState();
+          await refreshAll();
         });
 
+        chipsWrap.appendChild(el);
+      }
+      setActiveChip(currentStatus);
+    }
 
+    function renderRows(rows) {
+      tbody.innerHTML = '';
+      emptyEl.style.display = rows.length ? 'none' : 'block';
 
-        refreshBtn.addEventListener('click', refreshAll);
+      for (const a of rows) {
+        const tr = document.createElement('tr');
 
-        // init
-        if (!searchId) {
-            searchIdEl.textContent = '—';
-            subtitleEl.textContent = 'Alerts (missing ?id=...)';
-            setFlash('Missing search id. Open this page from Saved Searches → Alerts.', 'bad');
+        // ID
+        const tdId = document.createElement('td');
+        tdId.textContent = a.alert_id ?? '—';
+        tr.appendChild(tdId);
+
+        // Status
+        const tdStatus = document.createElement('td');
+        tdStatus.appendChild(pill(a.status));
+        tr.appendChild(tdStatus);
+
+        // Title
+        const tdTitle = document.createElement('td');
+        tdTitle.textContent = a.title || '—';
+        const sub = document.createElement('span');
+        sub.className = 'sub';
+        sub.textContent = (a.marketplace || '—') + (a.external_id ? (' • ' + a.external_id) : '');
+        tdTitle.appendChild(sub);
+        tr.appendChild(tdTitle);
+
+        // Price
+        const tdPrice = document.createElement('td');
+        tdPrice.textContent = fmtMoney(a.price, a.currency);
+        tr.appendChild(tdPrice);
+
+        // Listing link
+        const tdLink = document.createElement('td');
+        if (a.listing_url) {
+          const link = document.createElement('a');
+          link.href = a.listing_url;
+          link.target = '_blank';
+          link.rel = 'noreferrer';
+          link.textContent = 'Open listing';
+          link.style.color = 'rgba(255,179,71,1)';
+          link.style.textDecoration = 'none';
+          link.addEventListener('mouseover', () => link.style.textDecoration = 'underline');
+          link.addEventListener('mouseout', () => link.style.textDecoration = 'none');
+          tdLink.appendChild(link);
         } else {
-            searchIdEl.textContent = searchId;
-            subtitleEl.textContent = 'Alerts for Search ' + searchId;
-
-            setActiveChip(currentStatus); // highlights "Pending" on first load
-            refreshAll();
+          tdLink.textContent = '—';
         }
-    </script>
+        tr.appendChild(tdLink);
+
+        // Created
+        const tdCreated = document.createElement('td');
+        tdCreated.textContent = fmtDate(a.alert_created_at);
+        tr.appendChild(tdCreated);
+
+        // Actions
+        const tdActions = document.createElement('td');
+        const wrap = document.createElement('div');
+        wrap.className = 'actions';
+
+        const status = (a.status || '').toLowerCase();
+        const alertId = a.alert_id;
+
+        // Dismiss button (only show when not dismissed)
+        if (status !== 'dismissed') {
+          const dismissBtn = document.createElement('button');
+          dismissBtn.className = 'action-btn danger';
+          dismissBtn.type = 'button';
+          dismissBtn.textContent = 'Dismiss';
+          dismissBtn.addEventListener('click', async () => {
+            try {
+              dismissBtn.disabled = true;
+              setFlash('', '');
+              await patchAlertStatus(alertId, 'dismissed');
+              setFlash(`Alert ${alertId} dismissed`, 'ok');
+              await refreshAllKeepPageIfPossible();
+            } catch (e) {
+              setFlash('Error: ' + e.message, 'bad');
+            } finally {
+              dismissBtn.disabled = false;
+            }
+          });
+          wrap.appendChild(dismissBtn);
+        }
+
+        // Re-open button (only show when dismissed)
+        if (status === 'dismissed') {
+          const reopenBtn = document.createElement('button');
+          reopenBtn.className = 'action-btn';
+          reopenBtn.type = 'button';
+          reopenBtn.textContent = 'Re-open';
+          reopenBtn.addEventListener('click', async () => {
+            try {
+              reopenBtn.disabled = true;
+              setFlash('', '');
+              await patchAlertStatus(alertId, 'pending');
+              setFlash(`Alert ${alertId} re-opened (pending)`, 'ok');
+              await refreshAllKeepPageIfPossible();
+            } catch (e) {
+              setFlash('Error: ' + e.message, 'bad');
+            } finally {
+              reopenBtn.disabled = false;
+            }
+          });
+          wrap.appendChild(reopenBtn);
+        }
+
+        // If neither button was added (edge case), show —
+        if (wrap.children.length === 0) {
+          const span = document.createElement('span');
+          span.className = 'mini';
+          span.textContent = '—';
+          wrap.appendChild(span);
+        }
+
+        tdActions.appendChild(wrap);
+        tr.appendChild(tdActions);
+
+        tbody.appendChild(tr);
+      }
+    }
+
+    // ===== refresh flows =====
+    async function refreshAll() {
+      try {
+        setFlash('', '');
+        await loadSummary();
+
+        // If the current offset is beyond total (after status changes), clamp it.
+        const total = totalForCurrentFilter();
+        if (total === 0) offset = 0;
+        else if (offset >= total) offset = Math.max(0, (Math.ceil(total / LIMIT) - 1) * LIMIT);
+
+        writeUrlState();
+        await loadAlerts();
+      } catch (e) {
+        console.error(e);
+        setFlash('Error: ' + e.message, 'bad');
+      }
+    }
+
+    async function refreshAllKeepPageIfPossible() {
+      // Same as refreshAll, but tries to keep you on a valid page even if counts change
+      await refreshAll();
+    }
+
+    // ===== events =====
+    refreshBtn.addEventListener('click', async () => {
+      await refreshAll();
+    });
+
+    prevBtn.addEventListener('click', async () => {
+      offset = Math.max(0, offset - LIMIT);
+      writeUrlState();
+      await refreshAll();
+    });
+
+    nextBtn.addEventListener('click', async () => {
+      offset = offset + LIMIT;
+      writeUrlState();
+      await refreshAll();
+    });
+
+    // ===== init =====
+    if (!searchId) {
+      searchIdEl.textContent = '—';
+      subtitleEl.textContent = 'Alerts (missing ?id=...)';
+      setFlash('Missing search id. Open this page from Saved Searches → Alerts.', 'bad');
+    } else {
+      searchIdEl.textContent = String(searchId);
+      subtitleEl.textContent = 'Alerts for Search ' + searchId;
+
+      // Make Search Detail button keep the same id
+      backToDetail.href = `search-detail.html?id=${searchId}`;
+
+      // Make sure URL has a consistent starting state (status + offset)
+      writeUrlState();
+      refreshAll();
+    }
+  </script>
 </body>
 
 </html>
