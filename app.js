@@ -8,6 +8,8 @@ const path = require('path');
 const pool = require('./db');
 const { getEbayAppToken } = require('./services/ebayAuth');
 const { insertResults } = require('./services/resultsStore');
+const { sendEmail, buildAlertEmail } = require('./services/notifications');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -591,6 +593,87 @@ app.get('/searches/:id/alerts/summary', async (req, res) => {
   } catch (err) {
     console.error('GET /searches/:id/alerts/summary failed:', err);
     res.status(500).json({ error: 'Failed to load alerts summary' });
+  }
+});
+
+// DEV: Dispatch pending alerts for a search (MVP notifications)
+// Sends stub email(s) and marks alerts sent/error.
+app.post('/dev/searches/:id/dispatch-alerts', async (req, res) => {
+  try {
+    const searchId = toInt(req.params.id);
+    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+
+    const limitNum = clampInt(req.query.limit, { min: 1, max: 50, fallback: 10 });
+    const to = process.env.ALERTS_TEST_TO_EMAIL;
+
+    if (!to) {
+      return res.status(500).json({ error: 'Missing env var ALERTS_TEST_TO_EMAIL' });
+    }
+
+    // Get pending alerts
+    const { rows: pending } = await pool.query(
+      `
+      SELECT
+        ae.id AS alert_id,
+        ae.search_id,
+        ae.status,
+        ae.created_at AS alert_created_at,
+        r.title,
+        r.price,
+        r.currency,
+        r.listing_url,
+        r.marketplace,
+        r.external_id
+      FROM alert_events ae
+      LEFT JOIN results r ON r.id = ae.result_id
+      WHERE ae.search_id = $1
+        AND ae.status = 'pending'
+      ORDER BY ae.created_at ASC, ae.id ASC
+      LIMIT $2
+      `,
+      [searchId, limitNum]
+    );
+
+    if (pending.length === 0) {
+      return res.json({ ok: true, search_id: searchId, dispatched: 0, note: 'No pending alerts.' });
+    }
+
+    let sentCount = 0;
+    let errorCount = 0;
+
+    for (const alert of pending) {
+      try {
+        const email = buildAlertEmail({ searchId, alert });
+        await sendEmail({ to, subject: email.subject, text: email.text });
+
+        await pool.query(
+          `UPDATE alert_events SET status = 'sent' WHERE id = $1`,
+          [alert.alert_id]
+        );
+
+        sentCount += 1;
+      } catch (e) {
+        await pool.query(
+          `UPDATE alert_events SET status = 'error' WHERE id = $1`,
+          [alert.alert_id]
+        );
+        errorCount += 1;
+        console.error('Dispatch failed for alert', alert.alert_id, e);
+      }
+    }
+
+    res.json({
+      ok: true,
+      search_id: searchId,
+      dispatched: pending.length,
+      sent: sentCount,
+      error: errorCount,
+      to,
+      limit: limitNum,
+    });
+  } catch (err) {
+    console.error('POST /dev/searches/:id/dispatch-alerts failed:', err);
+    res.status(500).json({ error: 'Failed to dispatch alerts' });
   }
 });
 

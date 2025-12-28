@@ -2,806 +2,878 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <title>GoSnaggit – Alerts</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root {
-      --bg: #0b1020;
-      --card-bg: #151a2b;
-      --accent: #ffb347;
-      --accent-strong: #ff9f1c;
-      --text-main: #f7f7ff;
-      --text-muted: #a2a7c4;
-      --border-subtle: #262b3f;
-      --radius-lg: 16px;
-      --radius-xl: 22px;
-      --danger: #ff4b5c;
-      --ok: #33d17a;
-      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
-    }
+    <meta charset="UTF-8" />
+    <title>GoSnaggit – Alerts</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card-bg: #151a2b;
+            --accent: #ffb347;
+            --accent-strong: #ff9f1c;
+            --text-main: #f7f7ff;
+            --text-muted: #a2a7c4;
+            --border-subtle: #262b3f;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+            --danger: #ff4b5c;
+            --ok: #33d17a;
+            --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+        }
 
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      color: var(--text-main);
-      background:
-        radial-gradient(1200px 700px at 15% 10%, rgba(255, 179, 71, 0.18), transparent 55%),
-        radial-gradient(900px 600px at 80% 30%, rgba(255, 159, 28, 0.12), transparent 60%),
-        var(--bg);
-      min-height: 100vh;
-    }
+        * {
+            box-sizing: border-box;
+        }
 
-    .wrap {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 22px 18px 40px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            color: var(--text-main);
+            background:
+                radial-gradient(1200px 700px at 15% 10%, rgba(255, 179, 71, 0.18), transparent 55%),
+                radial-gradient(900px 600px at 80% 30%, rgba(255, 159, 28, 0.12), transparent 60%),
+                var(--bg);
+            min-height: 100vh;
+        }
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 22px 18px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
 
-    .logo-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
 
-    .brand {
-      font-weight: 800;
-      letter-spacing: 0.4px;
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+        .logo-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-    .brand-badge {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: var(--accent);
-      box-shadow: 0 0 0 5px rgba(255, 179, 71, 0.15);
-    }
+        .brand {
+            font-weight: 800;
+            letter-spacing: 0.4px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-    .subhead {
-      color: var(--text-muted);
-      font-size: 13px;
-      margin-top: 2px;
-    }
+        .brand-badge {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--accent);
+            box-shadow: 0 0 0 5px rgba(255, 179, 71, 0.15);
+        }
 
-    .top-actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+        .subhead {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 2px;
+        }
 
-    .btn {
-      border: 1px solid var(--border-subtle);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text-main);
-      padding: 10px 12px;
-      border-radius: 12px;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 650;
-      font-size: 13px;
-    }
+        .top-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
 
-    .btn:hover { border-color: rgba(255, 179, 71, 0.55); }
-    .btn.primary {
-      border-color: rgba(255, 179, 71, 0.55);
-      background: rgba(255, 179, 71, 0.12);
-    }
+        .btn {
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 650;
+            font-size: 13px;
+        }
 
-    .card {
-      background: rgba(21, 26, 43, 0.92);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-soft);
-      overflow: hidden;
-    }
+        .btn:hover {
+            border-color: rgba(255, 179, 71, 0.55);
+        }
 
-    .card-h {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+        .btn.primary {
+            border-color: rgba(255, 179, 71, 0.55);
+            background: rgba(255, 179, 71, 0.12);
+        }
 
-    .titleline {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 260px;
-    }
+        .card {
+            background: rgba(21, 26, 43, 0.92);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+        }
 
-    .h-title {
-      font-size: 16px;
-      font-weight: 800;
-      margin: 0;
-    }
+        .card-h {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
 
-    .h-meta {
-      font-size: 13px;
-      color: var(--text-muted);
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
+        .titleline {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 260px;
+        }
 
-    .flash {
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text-muted);
-      font-size: 13px;
-      display: none;
-    }
+        .h-title {
+            font-size: 16px;
+            font-weight: 800;
+            margin: 0;
+        }
 
-    .flash.bad {
-      display: block;
-      border-color: rgba(255, 75, 92, 0.6);
-      background: rgba(255, 75, 92, 0.10);
-      color: #ffd7dd;
-    }
+        .h-meta {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
 
-    .flash.ok {
-      display: block;
-      border-color: rgba(51, 209, 122, 0.55);
-      background: rgba(51, 209, 122, 0.10);
-      color: #d8ffe9;
-    }
+        .flash {
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+            font-size: 13px;
+            display: none;
+        }
 
-    .chips {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      padding: 12px 16px 0;
-    }
+        .flash.bad {
+            display: block;
+            border-color: rgba(255, 75, 92, 0.6);
+            background: rgba(255, 75, 92, 0.10);
+            color: #ffd7dd;
+        }
 
-    .chip {
-      border: 1px solid var(--border-subtle);
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text-main);
-      font-size: 12px;
-      font-weight: 750;
-      padding: 7px 10px;
-      border-radius: 999px;
-      cursor: pointer;
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-      user-select: none;
-    }
+        .flash.ok {
+            display: block;
+            border-color: rgba(51, 209, 122, 0.55);
+            background: rgba(51, 209, 122, 0.10);
+            color: #d8ffe9;
+        }
 
-    .chip:hover { border-color: rgba(255, 179, 71, 0.5); }
-    .chip.active {
-      border-color: rgba(255, 179, 71, 0.7);
-      background: rgba(255, 179, 71, 0.12);
-    }
+        .chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 12px 16px 0;
+        }
 
-    .chip .count {
-      font-variant-numeric: tabular-nums;
-      color: var(--text-muted);
-      font-weight: 800;
-    }
+        .chip {
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+            font-size: 12px;
+            font-weight: 750;
+            padding: 7px 10px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            user-select: none;
+        }
 
-    .table-wrap { padding: 12px 16px 14px; }
+        .chip:hover {
+            border-color: rgba(255, 179, 71, 0.5);
+        }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
+        .chip.active {
+            border-color: rgba(255, 179, 71, 0.7);
+            background: rgba(255, 179, 71, 0.12);
+        }
 
-    thead th {
-      text-align: left;
-      color: var(--text-muted);
-      font-size: 12px;
-      font-weight: 800;
-      padding: 10px 8px;
-      border-bottom: 1px solid var(--border-subtle);
-    }
+        .chip .count {
+            font-variant-numeric: tabular-nums;
+            color: var(--text-muted);
+            font-weight: 800;
+        }
 
-    tbody td {
-      padding: 10px 8px;
-      border-bottom: 1px solid rgba(38, 43, 63, 0.7);
-      vertical-align: top;
-      font-size: 13px;
-      word-wrap: break-word;
-    }
+        .table-wrap {
+            padding: 12px 16px 14px;
+        }
 
-    tbody tr:hover td { background: rgba(255, 255, 255, 0.015); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
 
-    .sub {
-      display: block;
-      color: var(--text-muted);
-      font-size: 12px;
-      margin-top: 4px;
-    }
+        thead th {
+            text-align: left;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 800;
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
 
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 9px;
-      border-radius: 999px;
-      border: 1px solid var(--border-subtle);
-      background: rgba(255, 255, 255, 0.03);
-      font-size: 12px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
+        tbody td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(38, 43, 63, 0.7);
+            vertical-align: top;
+            font-size: 13px;
+            word-wrap: break-word;
+        }
 
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: var(--text-muted);
-      opacity: 0.95;
-    }
+        tbody tr:hover td {
+            background: rgba(255, 255, 255, 0.015);
+        }
 
-    .pill.pending .dot { background: var(--accent); }
-    .pill.sent .dot { background: var(--ok); }
-    .pill.dismissed .dot { background: rgba(162, 167, 196, 0.9); }
-    .pill.error .dot { background: var(--danger); }
+        .sub {
+            display: block;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 4px;
+        }
 
-    .mini {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
 
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--text-muted);
+            opacity: 0.95;
+        }
 
-    .action-btn {
-      border: 1px solid var(--border-subtle);
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text-main);
-      padding: 7px 10px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 800;
-    }
+        .pill.pending .dot {
+            background: var(--accent);
+        }
 
-    .action-btn:hover { border-color: rgba(255, 179, 71, 0.55); }
-    .action-btn.danger:hover { border-color: rgba(255, 75, 92, 0.7); }
-    .action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+        .pill.sent .dot {
+            background: var(--ok);
+        }
 
-    .pager {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding: 0 16px 14px;
-      flex-wrap: wrap;
-    }
+        .pill.dismissed .dot {
+            background: rgba(162, 167, 196, 0.9);
+        }
 
-    .pager .left, .pager .right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+        .pill.error .dot {
+            background: var(--danger);
+        }
 
-    .pager .label {
-      color: var(--text-muted);
-      font-size: 12px;
-      font-weight: 800;
-    }
+        .mini {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
 
-    .empty {
-      padding: 14px 16px;
-      color: var(--text-muted);
-      font-size: 13px;
-    }
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
 
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-  </style>
+        .action-btn {
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+            padding: 7px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .action-btn:hover {
+            border-color: rgba(255, 179, 71, 0.55);
+        }
+
+        .action-btn.danger:hover {
+            border-color: rgba(255, 75, 92, 0.7);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .pager {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px 14px;
+            flex-wrap: wrap;
+        }
+
+        .pager .left,
+        .pager .right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pager .label {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .empty {
+            padding: 14px 16px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+    </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <header>
-      <div class="logo-left">
-        <div class="brand"><span class="brand-badge" aria-hidden="true"></span>GoSnaggit</div>
-        <div class="subhead" id="subtitle">Alerts</div>
-      </div>
+    <div class="wrap">
+        <header>
+            <div class="logo-left">
+                <div class="brand"><span class="brand-badge" aria-hidden="true"></span>GoSnaggit</div>
+                <div class="subhead" id="subtitle">Alerts</div>
+            </div>
 
-      <div class="top-actions">
-        <a class="btn" href="searches.html">← Saved Searches</a>
-        <a class="btn primary" id="backToDetail" href="search-detail.html">Search Detail</a>
-        <button class="btn" id="refreshBtn" type="button">Refresh</button>
-      </div>
-    </header>
+            <div class="top-actions">
+                <a class="btn" href="searches.html">← Saved Searches</a>
+                <a class="btn primary" id="backToDetail" href="search-detail.html">Search Detail</a>
+                <button class="btn" id="refreshBtn" type="button">Refresh</button>
+                <button class="btn" id="sendNowBtn" type="button">Send now</button>
 
-    <div id="flash" class="flash"></div>
 
-    <div class="card">
-      <div class="card-h">
-        <div class="titleline">
-          <h2 class="h-title">Alerts for Search <span class="mono" id="searchId">—</span></h2>
-          <div class="h-meta">
-            <span id="summaryLine">Counts: —</span>
-            <span class="mini" id="rangeLine">Showing —</span>
-          </div>
+            </div>
+        </header>
+
+        <div id="flash" class="flash"></div>
+
+        <div class="card">
+            <div class="card-h">
+                <div class="titleline">
+                    <h2 class="h-title">Alerts for Search <span class="mono" id="searchId">—</span></h2>
+                    <div class="h-meta">
+                        <span id="summaryLine">Counts: —</span>
+                        <span class="mini" id="rangeLine">Showing —</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chips" id="chips">
+                <!-- chips injected -->
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 70px;">ID</th>
+                            <th style="width: 110px;">Status</th>
+                            <th>Title</th>
+                            <th style="width: 110px;">Price</th>
+                            <th style="width: 120px;">Listing</th>
+                            <th style="width: 170px;">Created</th>
+                            <th style="width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody">
+                        <!-- rows injected -->
+                    </tbody>
+                </table>
+
+                <div id="empty" class="empty" style="display:none;">No alerts found.</div>
+            </div>
+
+            <div class="pager">
+                <div class="left">
+                    <button class="btn" id="prevBtn" type="button">← Prev</button>
+                    <button class="btn" id="nextBtn" type="button">Next →</button>
+                </div>
+                <div class="right">
+                    <span class="label" id="pageLabel">Page —</span>
+                    <span class="label">Per page: <span class="mono" id="limitLabel">5</span></span>
+                </div>
+            </div>
         </div>
-      </div>
-
-      <div class="chips" id="chips">
-        <!-- chips injected -->
-      </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 70px;">ID</th>
-              <th style="width: 110px;">Status</th>
-              <th>Title</th>
-              <th style="width: 110px;">Price</th>
-              <th style="width: 120px;">Listing</th>
-              <th style="width: 170px;">Created</th>
-              <th style="width: 180px;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="tbody">
-            <!-- rows injected -->
-          </tbody>
-        </table>
-
-        <div id="empty" class="empty" style="display:none;">No alerts found.</div>
-      </div>
-
-      <div class="pager">
-        <div class="left">
-          <button class="btn" id="prevBtn" type="button">← Prev</button>
-          <button class="btn" id="nextBtn" type="button">Next →</button>
-        </div>
-        <div class="right">
-          <span class="label" id="pageLabel">Page —</span>
-          <span class="label">Per page: <span class="mono" id="limitLabel">5</span></span>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <script>
-    // ===== helpers =====
-    function toInt(v) {
-      const n = parseInt(v, 10);
-      return Number.isFinite(n) ? n : null;
-    }
-
-    function fmtMoney(price, currency) {
-      if (price == null || price === '') return '—';
-      const num = Number(price);
-      if (!Number.isFinite(num)) return String(price);
-      const cur = currency || 'USD';
-      try {
-        return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(num);
-      } catch {
-        return num.toFixed(2) + ' ' + cur;
-      }
-    }
-
-    function fmtDate(iso) {
-      if (!iso) return '—';
-      const d = new Date(iso);
-      if (Number.isNaN(d.getTime())) return iso;
-      return d.toLocaleString();
-    }
-
-    function pill(status) {
-      const s = (status || '').toLowerCase();
-      const el = document.createElement('span');
-      el.className = 'pill ' + (s || '');
-      const dot = document.createElement('span');
-      dot.className = 'dot';
-      el.appendChild(dot);
-      const txt = document.createElement('span');
-      txt.textContent = s || '—';
-      el.appendChild(txt);
-      return el;
-    }
-
-    function setFlash(msg, kind) {
-      const el = document.getElementById('flash');
-      if (!msg) {
-        el.style.display = 'none';
-        el.className = 'flash';
-        el.textContent = '';
-        return;
-      }
-      el.style.display = 'block';
-      el.className = 'flash ' + (kind || '');
-      el.textContent = msg;
-    }
-
-    function getUrl() {
-      // IMPORTANT: avoids "url.searchParams is undefined"
-      return new URL(window.location.href);
-    }
-
-    // ===== state =====
-    const LIMIT = 5;
-
-    const subtitleEl = document.getElementById('subtitle');
-    const searchIdEl = document.getElementById('searchId');
-    const summaryLineEl = document.getElementById('summaryLine');
-    const rangeLineEl = document.getElementById('rangeLine');
-    const tbody = document.getElementById('tbody');
-    const emptyEl = document.getElementById('empty');
-    const chipsWrap = document.getElementById('chips');
-
-    const refreshBtn = document.getElementById('refreshBtn');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const pageLabel = document.getElementById('pageLabel');
-    const limitLabel = document.getElementById('limitLabel');
-    limitLabel.textContent = String(LIMIT);
-
-    const backToDetail = document.getElementById('backToDetail');
-
-    // Pull search id from URL: ?id=2  OR  ?search_id=2
-    const url0 = getUrl();
-    const searchId = toInt(url0.searchParams.get('id')) ?? toInt(url0.searchParams.get('search_id'));
-
-    // Default filter = pending (matches what you wanted)
-    const allowedStatuses = ['', 'pending', 'sent', 'dismissed', 'error'];
-    let currentStatus = (url0.searchParams.get('status') || 'pending').toLowerCase();
-    if (!allowedStatuses.includes(currentStatus)) currentStatus = 'pending';
-
-    let offset = toInt(url0.searchParams.get('offset')) ?? 0;
-    if (offset < 0) offset = 0;
-
-    let summaryCounts = { pending: 0, sent: 0, dismissed: 0, error: 0 };
-    let totalAll = 0;
-    let lastRowsLength = 0;
-
-    // chips data (labels)
-    const chipDefs = [
-      { status: '', label: 'All' },
-      { status: 'pending', label: 'Pending' },
-      { status: 'sent', label: 'Sent' },
-      { status: 'dismissed', label: 'Dismissed' },
-      { status: 'error', label: 'Error' }
-    ];
-
-    // ===== URL sync helpers =====
-    function writeUrlState() {
-      const u = getUrl();
-      // keep id/search_id as-is, only update status/offset
-      if (currentStatus === '') u.searchParams.delete('status');
-      else u.searchParams.set('status', currentStatus);
-
-      if (!offset) u.searchParams.delete('offset');
-      else u.searchParams.set('offset', String(offset));
-
-      history.replaceState(null, '', u.toString());
-    }
-
-    function setActiveChip(status) {
-      const chips = chipsWrap.querySelectorAll('.chip');
-      chips.forEach(ch => ch.classList.toggle('active', ch.dataset.status === status));
-    }
-
-    function totalForCurrentFilter() {
-      if (!currentStatus) return totalAll;
-      return Number(summaryCounts[currentStatus] || 0);
-    }
-
-    function updatePagerUi() {
-      const total = totalForCurrentFilter();
-
-      const canPrev = offset > 0;
-      const canNext = (offset + lastRowsLength) < total;
-
-      prevBtn.disabled = !canPrev;
-      nextBtn.disabled = !canNext;
-
-      const pageNum = total === 0 ? 0 : Math.floor(offset / LIMIT) + 1;
-      const pageCount = total === 0 ? 0 : Math.max(1, Math.ceil(total / LIMIT));
-      pageLabel.textContent = `Page ${pageNum} of ${pageCount}`;
-
-      if (total === 0) {
-        rangeLineEl.textContent = 'Showing 0 of 0';
-      } else {
-        const start = offset + 1;
-        const end = Math.min(offset + lastRowsLength, total);
-        rangeLineEl.textContent = `Showing ${start}-${end} of ${total}`;
-      }
-    }
-
-    // ===== API calls =====
-    async function loadSummary() {
-      const res = await fetch(`/searches/${searchId}/alerts/summary`);
-      if (!res.ok) throw new Error(`Summary failed (${res.status})`);
-      const data = await res.json();
-
-      summaryCounts = data.counts || { pending: 0, sent: 0, dismissed: 0, error: 0 };
-      totalAll = Number(data.total || 0);
-
-      summaryLineEl.textContent =
-        `Counts: pending ${summaryCounts.pending || 0}, sent ${summaryCounts.sent || 0}, dismissed ${summaryCounts.dismissed || 0}, error ${summaryCounts.error || 0}, total ${totalAll}`;
-
-      renderChips(); // update chip counts
-    }
-
-    async function loadAlerts() {
-      const qs = new URLSearchParams();
-      if (currentStatus) qs.set('status', currentStatus);
-      qs.set('limit', String(LIMIT));
-      qs.set('offset', String(offset));
-
-      const res = await fetch(`/searches/${searchId}/alerts?` + qs.toString());
-      if (!res.ok) throw new Error(`Alerts failed (${res.status})`);
-      const rows = await res.json();
-
-      lastRowsLength = Array.isArray(rows) ? rows.length : 0;
-      renderRows(Array.isArray(rows) ? rows : []);
-      updatePagerUi();
-    }
-
-    async function patchAlertStatus(alertId, status) {
-      const res = await fetch(`/api/alerts/${alertId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-
-      // Your server sometimes returns HTML error pages; handle both JSON and text.
-      const ct = (res.headers.get('content-type') || '').toLowerCase();
-      if (!res.ok) {
-        if (ct.includes('application/json')) {
-          const j = await res.json().catch(() => ({}));
-          throw new Error(j.error || `PATCH failed (${res.status})`);
-        } else {
-          const t = await res.text().catch(() => '');
-          throw new Error(t ? t : `PATCH failed (${res.status})`);
+    <script>
+        // ===== helpers =====
+        function toInt(v) {
+            const n = parseInt(v, 10);
+            return Number.isFinite(n) ? n : null;
         }
-      }
 
-      if (ct.includes('application/json')) return res.json();
-      return res.text();
-    }
+        function fmtMoney(price, currency) {
+            if (price == null || price === '') return '—';
+            const num = Number(price);
+            if (!Number.isFinite(num)) return String(price);
+            const cur = currency || 'USD';
+            try {
+                return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(num);
+            } catch {
+                return num.toFixed(2) + ' ' + cur;
+            }
+        }
 
-    // ===== render =====
-    function renderChips() {
-      chipsWrap.innerHTML = '';
-      for (const c of chipDefs) {
-        const el = document.createElement('div');
-        el.className = 'chip';
-        el.dataset.status = c.status;
+        function fmtDate(iso) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            if (Number.isNaN(d.getTime())) return iso;
+            return d.toLocaleString();
+        }
 
-        const label = document.createElement('span');
-        label.textContent = c.label;
-        el.appendChild(label);
+        function pill(status) {
+            const s = (status || '').toLowerCase();
+            const el = document.createElement('span');
+            el.className = 'pill ' + (s || '');
+            const dot = document.createElement('span');
+            dot.className = 'dot';
+            el.appendChild(dot);
+            const txt = document.createElement('span');
+            txt.textContent = s || '—';
+            el.appendChild(txt);
+            return el;
+        }
 
-        const count = document.createElement('span');
-        count.className = 'count';
-        let n = 0;
-        if (c.status === '') n = totalAll;
-        else n = Number(summaryCounts[c.status] || 0);
-        count.textContent = String(n);
-        el.appendChild(count);
+        function setFlash(msg, kind) {
+            const el = document.getElementById('flash');
+            if (!msg) {
+                el.style.display = 'none';
+                el.className = 'flash';
+                el.textContent = '';
+                return;
+            }
+            el.style.display = 'block';
+            el.className = 'flash ' + (kind || '');
+            el.textContent = msg;
+        }
 
-        el.addEventListener('click', async () => {
-          currentStatus = c.status;      // '' means All
-          offset = 0;                    // reset to first page
-          setActiveChip(currentStatus);
-          writeUrlState();
-          await refreshAll();
+        function getUrl() {
+            // IMPORTANT: avoids "url.searchParams is undefined"
+            return new URL(window.location.href);
+        }
+
+        // ===== state =====
+        const LIMIT = 5;
+
+        const subtitleEl = document.getElementById('subtitle');
+        const searchIdEl = document.getElementById('searchId');
+        const summaryLineEl = document.getElementById('summaryLine');
+        const rangeLineEl = document.getElementById('rangeLine');
+        const tbody = document.getElementById('tbody');
+        const emptyEl = document.getElementById('empty');
+        const chipsWrap = document.getElementById('chips');
+
+        const refreshBtn = document.getElementById('refreshBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const pageLabel = document.getElementById('pageLabel');
+        const limitLabel = document.getElementById('limitLabel');
+        limitLabel.textContent = String(LIMIT);
+
+        const backToDetail = document.getElementById('backToDetail');
+
+        // Pull search id from URL: ?id=2  OR  ?search_id=2
+        const url0 = getUrl();
+        const searchId = toInt(url0.searchParams.get('id')) ?? toInt(url0.searchParams.get('search_id'));
+
+        // Default filter = All (no status param means "All")
+        const allowedStatuses = ['', 'pending', 'sent', 'dismissed', 'error'];
+        let currentStatus = (url0.searchParams.get('status') || '').toLowerCase();
+        if (!allowedStatuses.includes(currentStatus)) currentStatus = '';
+
+        let offset = toInt(url0.searchParams.get('offset')) ?? 0;
+        if (offset < 0) offset = 0;
+
+        let summaryCounts = { pending: 0, sent: 0, dismissed: 0, error: 0 };
+        let totalAll = 0;
+        let lastRowsLength = 0;
+
+        // chips data (labels)
+        const chipDefs = [
+            { status: '', label: 'All' },
+            { status: 'pending', label: 'Pending' },
+            { status: 'sent', label: 'Sent' },
+            { status: 'dismissed', label: 'Dismissed' },
+            { status: 'error', label: 'Error' }
+        ];
+
+        // ===== URL sync helpers =====
+        function writeUrlState() {
+            const u = getUrl();
+            // keep id/search_id as-is, only update status/offset
+            if (currentStatus === '') u.searchParams.delete('status');
+            else u.searchParams.set('status', currentStatus);
+
+            if (!offset) u.searchParams.delete('offset');
+            else u.searchParams.set('offset', String(offset));
+
+            history.replaceState(null, '', u.toString());
+        }
+
+        function setActiveChip(status) {
+            const chips = chipsWrap.querySelectorAll('.chip');
+            chips.forEach(ch => ch.classList.toggle('active', ch.dataset.status === status));
+        }
+
+        function totalForCurrentFilter() {
+            if (!currentStatus) return totalAll;
+            return Number(summaryCounts[currentStatus] || 0);
+        }
+
+        function updatePagerUi() {
+            const total = totalForCurrentFilter();
+
+            const canPrev = offset > 0;
+            const canNext = (offset + lastRowsLength) < total;
+
+            prevBtn.disabled = !canPrev;
+            nextBtn.disabled = !canNext;
+
+            const pageNum = total === 0 ? 0 : Math.floor(offset / LIMIT) + 1;
+            const pageCount = total === 0 ? 0 : Math.max(1, Math.ceil(total / LIMIT));
+            pageLabel.textContent = `Page ${pageNum} of ${pageCount}`;
+
+            if (total === 0) {
+                rangeLineEl.textContent = 'Showing 0 of 0';
+            } else {
+                const start = offset + 1;
+                const end = Math.min(offset + lastRowsLength, total);
+                rangeLineEl.textContent = `Showing ${start}-${end} of ${total}`;
+            }
+        }
+
+        // ===== API calls =====
+        async function loadSummary() {
+            const res = await fetch(`/searches/${searchId}/alerts/summary`);
+            if (!res.ok) throw new Error(`Summary failed (${res.status})`);
+            const data = await res.json();
+
+            summaryCounts = data.counts || { pending: 0, sent: 0, dismissed: 0, error: 0 };
+            totalAll = Number(data.total || 0);
+
+            summaryLineEl.textContent =
+                `Counts: pending ${summaryCounts.pending || 0}, sent ${summaryCounts.sent || 0}, dismissed ${summaryCounts.dismissed || 0}, error ${summaryCounts.error || 0}, total ${totalAll}`;
+
+            renderChips(); // update chip counts
+        }
+
+        async function loadAlerts() {
+            const qs = new URLSearchParams();
+            if (currentStatus) qs.set('status', currentStatus);
+            qs.set('limit', String(LIMIT));
+            qs.set('offset', String(offset));
+
+            const res = await fetch(`/searches/${searchId}/alerts?` + qs.toString());
+            if (!res.ok) throw new Error(`Alerts failed (${res.status})`);
+            const rows = await res.json();
+
+            lastRowsLength = Array.isArray(rows) ? rows.length : 0;
+            renderRows(Array.isArray(rows) ? rows : []);
+            updatePagerUi();
+        }
+
+        async function patchAlertStatus(alertId, status) {
+            const res = await fetch(`/api/alerts/${alertId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+
+            // Your server sometimes returns HTML error pages; handle both JSON and text.
+            const ct = (res.headers.get('content-type') || '').toLowerCase();
+            if (!res.ok) {
+                if (ct.includes('application/json')) {
+                    const j = await res.json().catch(() => ({}));
+                    throw new Error(j.error || `PATCH failed (${res.status})`);
+                } else {
+                    const t = await res.text().catch(() => '');
+                    throw new Error(t ? t : `PATCH failed (${res.status})`);
+                }
+            }
+
+            if (ct.includes('application/json')) return res.json();
+            return res.text();
+        }
+
+        // ===== render =====
+        function renderChips() {
+            chipsWrap.innerHTML = '';
+            for (const c of chipDefs) {
+                const el = document.createElement('div');
+                el.className = 'chip';
+                el.dataset.status = c.status;
+
+                const label = document.createElement('span');
+                label.textContent = c.label;
+                el.appendChild(label);
+
+                const count = document.createElement('span');
+                count.className = 'count';
+                let n = 0;
+                if (c.status === '') n = totalAll;
+                else n = Number(summaryCounts[c.status] || 0);
+                count.textContent = String(n);
+                el.appendChild(count);
+
+                el.addEventListener('click', async () => {
+                    currentStatus = c.status;      // '' means All
+                    offset = 0;                    // reset to first page
+                    setActiveChip(currentStatus);
+                    writeUrlState();
+                    await refreshAll();
+                });
+
+                chipsWrap.appendChild(el);
+            }
+            setActiveChip(currentStatus);
+        }
+
+        function renderRows(rows) {
+            tbody.innerHTML = '';
+            emptyEl.style.display = rows.length ? 'none' : 'block';
+
+            for (const a of rows) {
+                const tr = document.createElement('tr');
+
+                // ID
+                const tdId = document.createElement('td');
+                tdId.textContent = a.alert_id ?? '—';
+                tr.appendChild(tdId);
+
+                // Status
+                const tdStatus = document.createElement('td');
+                tdStatus.appendChild(pill(a.status));
+                tr.appendChild(tdStatus);
+
+                // Title
+                const tdTitle = document.createElement('td');
+                tdTitle.textContent = a.title || '—';
+                const sub = document.createElement('span');
+                sub.className = 'sub';
+                sub.textContent = (a.marketplace || '—') + (a.external_id ? (' • ' + a.external_id) : '');
+                tdTitle.appendChild(sub);
+                tr.appendChild(tdTitle);
+
+                // Price
+                const tdPrice = document.createElement('td');
+                tdPrice.textContent = fmtMoney(a.price, a.currency);
+                tr.appendChild(tdPrice);
+
+                // Listing link
+                const tdLink = document.createElement('td');
+                if (a.listing_url) {
+                    const link = document.createElement('a');
+                    link.href = a.listing_url;
+                    link.target = '_blank';
+                    link.rel = 'noreferrer';
+                    link.textContent = 'Open listing';
+                    link.style.color = 'rgba(255,179,71,1)';
+                    link.style.textDecoration = 'none';
+                    link.addEventListener('mouseover', () => link.style.textDecoration = 'underline');
+                    link.addEventListener('mouseout', () => link.style.textDecoration = 'none');
+                    tdLink.appendChild(link);
+                } else {
+                    tdLink.textContent = '—';
+                }
+                tr.appendChild(tdLink);
+
+                // Created
+                const tdCreated = document.createElement('td');
+                tdCreated.textContent = fmtDate(a.alert_created_at);
+                tr.appendChild(tdCreated);
+
+                // Actions
+                const tdActions = document.createElement('td');
+                const wrap = document.createElement('div');
+                wrap.className = 'actions';
+
+                const status = (a.status || '').toLowerCase();
+                const alertId = a.alert_id;
+
+                // Dismiss button (only show when not dismissed)
+                if (status !== 'dismissed') {
+                    const dismissBtn = document.createElement('button');
+                    dismissBtn.className = 'action-btn danger';
+                    dismissBtn.type = 'button';
+                    dismissBtn.textContent = 'Dismiss';
+                    dismissBtn.addEventListener('click', async () => {
+                        try {
+                            dismissBtn.disabled = true;
+                            setFlash('', '');
+                            await patchAlertStatus(alertId, 'dismissed');
+                            setFlash(`Alert ${alertId} dismissed`, 'ok');
+                            await refreshAllKeepPageIfPossible();
+                        } catch (e) {
+                            setFlash('Error: ' + e.message, 'bad');
+                        } finally {
+                            dismissBtn.disabled = false;
+                        }
+                    });
+                    wrap.appendChild(dismissBtn);
+                }
+
+                // Re-open button (only show when dismissed)
+                if (status === 'dismissed') {
+                    const reopenBtn = document.createElement('button');
+                    reopenBtn.className = 'action-btn';
+                    reopenBtn.type = 'button';
+                    reopenBtn.textContent = 'Re-open';
+                    reopenBtn.addEventListener('click', async () => {
+                        try {
+                            reopenBtn.disabled = true;
+                            setFlash('', '');
+                            await patchAlertStatus(alertId, 'pending');
+                            setFlash(`Alert ${alertId} re-opened (pending)`, 'ok');
+                            await refreshAllKeepPageIfPossible();
+                        } catch (e) {
+                            setFlash('Error: ' + e.message, 'bad');
+                        } finally {
+                            reopenBtn.disabled = false;
+                        }
+                    });
+                    wrap.appendChild(reopenBtn);
+                }
+
+                // If neither button was added (edge case), show —
+                if (wrap.children.length === 0) {
+                    const span = document.createElement('span');
+                    span.className = 'mini';
+                    span.textContent = '—';
+                    wrap.appendChild(span);
+                }
+
+                tdActions.appendChild(wrap);
+                tr.appendChild(tdActions);
+
+                tbody.appendChild(tr);
+            }
+        }
+
+        // ===== refresh flows =====
+        async function refreshAll() {
+            try {
+                setFlash('', '');
+                await loadSummary();
+
+                // If the current offset is beyond total (after status changes), clamp it.
+                const total = totalForCurrentFilter();
+                if (total === 0) offset = 0;
+                else if (offset >= total) offset = Math.max(0, (Math.ceil(total / LIMIT) - 1) * LIMIT);
+
+                writeUrlState();
+                await loadAlerts();
+            } catch (e) {
+                console.error(e);
+                setFlash('Error: ' + e.message, 'bad');
+            }
+        }
+
+        async function refreshAllKeepPageIfPossible() {
+            // Same as refreshAll, but tries to keep you on a valid page even if counts change
+            await refreshAll();
+        }
+
+        // ===== events =====
+        refreshBtn.addEventListener('click', async () => {
+            await refreshAll();
         });
 
-        chipsWrap.appendChild(el);
-      }
-      setActiveChip(currentStatus);
-    }
+        const sendNowBtn = document.getElementById('sendNowBtn');
 
-    function renderRows(rows) {
-      tbody.innerHTML = '';
-      emptyEl.style.display = rows.length ? 'none' : 'block';
+        sendNowBtn.addEventListener('click', async () => {
+            try {
+                // optional: disable button while sending
+                sendNowBtn.disabled = true;
+                sendNowBtn.textContent = 'Sending…';
 
-      for (const a of rows) {
-        const tr = document.createElement('tr');
+                const limit = 5; // you can change this later
+                const res = await fetch(`/dev/searches/${searchId}/dispatch-alerts?limit=${limit}`, { method: 'POST' });
+                const data = await res.json().catch(() => ({}));
 
-        // ID
-        const tdId = document.createElement('td');
-        tdId.textContent = a.alert_id ?? '—';
-        tr.appendChild(tdId);
+                if (!res.ok) {
+                    const msg = data?.error || `Dispatch failed (HTTP ${res.status})`;
+                    throw new Error(msg);
+                }
 
-        // Status
-        const tdStatus = document.createElement('td');
-        tdStatus.appendChild(pill(a.status));
-        tr.appendChild(tdStatus);
+                // show what happened
+                setFlash(`Sent ${data.sent ?? 0} alert(s) to ${data.to || 'recipient'}.`, 'ok');
 
-        // Title
-        const tdTitle = document.createElement('td');
-        tdTitle.textContent = a.title || '—';
-        const sub = document.createElement('span');
-        sub.className = 'sub';
-        sub.textContent = (a.marketplace || '—') + (a.external_id ? (' • ' + a.external_id) : '');
-        tdTitle.appendChild(sub);
-        tr.appendChild(tdTitle);
+                // refresh the page data so statuses update
+                await loadSummary();
+                await loadAlerts();
+            } catch (e) {
+                console.error(e);
+                setFlash('Error: ' + e.message, 'bad');
+            } finally {
+                sendNowBtn.disabled = false;
+                sendNowBtn.textContent = 'Send now';
+            }
+        });
 
-        // Price
-        const tdPrice = document.createElement('td');
-        tdPrice.textContent = fmtMoney(a.price, a.currency);
-        tr.appendChild(tdPrice);
 
-        // Listing link
-        const tdLink = document.createElement('td');
-        if (a.listing_url) {
-          const link = document.createElement('a');
-          link.href = a.listing_url;
-          link.target = '_blank';
-          link.rel = 'noreferrer';
-          link.textContent = 'Open listing';
-          link.style.color = 'rgba(255,179,71,1)';
-          link.style.textDecoration = 'none';
-          link.addEventListener('mouseover', () => link.style.textDecoration = 'underline');
-          link.addEventListener('mouseout', () => link.style.textDecoration = 'none');
-          tdLink.appendChild(link);
+        prevBtn.addEventListener('click', async () => {
+            offset = Math.max(0, offset - LIMIT);
+            writeUrlState();
+            await refreshAll();
+        });
+
+        nextBtn.addEventListener('click', async () => {
+            offset = offset + LIMIT;
+            writeUrlState();
+            await refreshAll();
+        });
+
+        // ===== init =====
+        if (!searchId) {
+            searchIdEl.textContent = '—';
+            subtitleEl.textContent = 'Alerts (missing ?id=...)';
+            setFlash('Missing search id. Open this page from Saved Searches → Alerts.', 'bad');
         } else {
-          tdLink.textContent = '—';
+            searchIdEl.textContent = String(searchId);
+            subtitleEl.textContent = 'Alerts for Search ' + searchId;
+
+            // Make Search Detail button keep the same id
+            backToDetail.href = `search-detail.html?id=${searchId}`;
+
+            // Make sure URL has a consistent starting state (status + offset)
+            writeUrlState();
+            refreshAll();
         }
-        tr.appendChild(tdLink);
-
-        // Created
-        const tdCreated = document.createElement('td');
-        tdCreated.textContent = fmtDate(a.alert_created_at);
-        tr.appendChild(tdCreated);
-
-        // Actions
-        const tdActions = document.createElement('td');
-        const wrap = document.createElement('div');
-        wrap.className = 'actions';
-
-        const status = (a.status || '').toLowerCase();
-        const alertId = a.alert_id;
-
-        // Dismiss button (only show when not dismissed)
-        if (status !== 'dismissed') {
-          const dismissBtn = document.createElement('button');
-          dismissBtn.className = 'action-btn danger';
-          dismissBtn.type = 'button';
-          dismissBtn.textContent = 'Dismiss';
-          dismissBtn.addEventListener('click', async () => {
-            try {
-              dismissBtn.disabled = true;
-              setFlash('', '');
-              await patchAlertStatus(alertId, 'dismissed');
-              setFlash(`Alert ${alertId} dismissed`, 'ok');
-              await refreshAllKeepPageIfPossible();
-            } catch (e) {
-              setFlash('Error: ' + e.message, 'bad');
-            } finally {
-              dismissBtn.disabled = false;
-            }
-          });
-          wrap.appendChild(dismissBtn);
-        }
-
-        // Re-open button (only show when dismissed)
-        if (status === 'dismissed') {
-          const reopenBtn = document.createElement('button');
-          reopenBtn.className = 'action-btn';
-          reopenBtn.type = 'button';
-          reopenBtn.textContent = 'Re-open';
-          reopenBtn.addEventListener('click', async () => {
-            try {
-              reopenBtn.disabled = true;
-              setFlash('', '');
-              await patchAlertStatus(alertId, 'pending');
-              setFlash(`Alert ${alertId} re-opened (pending)`, 'ok');
-              await refreshAllKeepPageIfPossible();
-            } catch (e) {
-              setFlash('Error: ' + e.message, 'bad');
-            } finally {
-              reopenBtn.disabled = false;
-            }
-          });
-          wrap.appendChild(reopenBtn);
-        }
-
-        // If neither button was added (edge case), show —
-        if (wrap.children.length === 0) {
-          const span = document.createElement('span');
-          span.className = 'mini';
-          span.textContent = '—';
-          wrap.appendChild(span);
-        }
-
-        tdActions.appendChild(wrap);
-        tr.appendChild(tdActions);
-
-        tbody.appendChild(tr);
-      }
-    }
-
-    // ===== refresh flows =====
-    async function refreshAll() {
-      try {
-        setFlash('', '');
-        await loadSummary();
-
-        // If the current offset is beyond total (after status changes), clamp it.
-        const total = totalForCurrentFilter();
-        if (total === 0) offset = 0;
-        else if (offset >= total) offset = Math.max(0, (Math.ceil(total / LIMIT) - 1) * LIMIT);
-
-        writeUrlState();
-        await loadAlerts();
-      } catch (e) {
-        console.error(e);
-        setFlash('Error: ' + e.message, 'bad');
-      }
-    }
-
-    async function refreshAllKeepPageIfPossible() {
-      // Same as refreshAll, but tries to keep you on a valid page even if counts change
-      await refreshAll();
-    }
-
-    // ===== events =====
-    refreshBtn.addEventListener('click', async () => {
-      await refreshAll();
-    });
-
-    prevBtn.addEventListener('click', async () => {
-      offset = Math.max(0, offset - LIMIT);
-      writeUrlState();
-      await refreshAll();
-    });
-
-    nextBtn.addEventListener('click', async () => {
-      offset = offset + LIMIT;
-      writeUrlState();
-      await refreshAll();
-    });
-
-    // ===== init =====
-    if (!searchId) {
-      searchIdEl.textContent = '—';
-      subtitleEl.textContent = 'Alerts (missing ?id=...)';
-      setFlash('Missing search id. Open this page from Saved Searches → Alerts.', 'bad');
-    } else {
-      searchIdEl.textContent = String(searchId);
-      subtitleEl.textContent = 'Alerts for Search ' + searchId;
-
-      // Make Search Detail button keep the same id
-      backToDetail.href = `search-detail.html?id=${searchId}`;
-
-      // Make sure URL has a consistent starting state (status + offset)
-      writeUrlState();
-      refreshAll();
-    }
-  </script>
+    </script>
 </body>
 
 </html>
