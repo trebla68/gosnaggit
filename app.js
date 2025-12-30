@@ -200,6 +200,26 @@ app.post('/searches', async (req, res) => {
   }
 });
 
+// Optional alias: support /api/searches as well as /searches
+app.get('/api/searches', async (req, res) => {
+  // same behavior as GET /searches
+  try {
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM searches
+      WHERE status IS NULL OR status <> 'deleted'
+      ORDER BY created_at DESC
+      `
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('GET /api/searches failed:', err);
+    res.status(500).json({ error: 'Failed to fetch searches' });
+  }
+});
+
+
 app.get('/searches', async (req, res) => {
   try {
     const result = await pool.query(
@@ -531,7 +551,7 @@ app.get('/searches/:id/alerts', async (req, res) => {
   }
 });
 
-app.patch('/api/alerts/:alert_id/status', async (req, res) => {
+async function patchAlertStatus(req, res) {
   try {
     const alertId = toInt(req.params.alert_id);
     if (alertId === null) return res.status(400).json({ error: 'Invalid alert id' });
@@ -542,7 +562,8 @@ app.patch('/api/alerts/:alert_id/status', async (req, res) => {
     }
 
     let status = statusRaw.trim().toLowerCase();
-    if (status === 'failed') status = 'error'; // accept "failed" as an alias
+    if (status === 'failed') status = 'error';
+
     const allowed = ['pending', 'sent', 'dismissed', 'error'];
     if (!allowed.includes(status)) {
       return res.status(400).json({ error: `Invalid status. Use: ${allowed.join(', ')}` });
@@ -550,11 +571,11 @@ app.patch('/api/alerts/:alert_id/status', async (req, res) => {
 
     const { rows } = await pool.query(
       `
-  UPDATE alert_events
-  SET status = $1
-  WHERE id = $2
-  RETURNING id AS alert_id, search_id, status, created_at
-  `,
+      UPDATE alert_events
+      SET status = $1
+      WHERE id = $2
+      RETURNING id AS alert_id, search_id, status, created_at
+      `,
       [status, alertId]
     );
 
@@ -562,10 +583,16 @@ app.patch('/api/alerts/:alert_id/status', async (req, res) => {
 
     res.json({ ok: true, alert: rows[0] });
   } catch (err) {
-    console.error('PATCH /api/alerts/:alert_id/status failed:', err);
+    console.error('PATCH alert status failed:', err);
     res.status(500).json({ error: 'Failed to update alert status' });
   }
-});
+}
+
+app.patch('/api/alerts/:alert_id/status', patchAlertStatus);
+app.patch('/alerts/:alert_id/status', patchAlertStatus);
+
+
+
 
 app.get('/searches/:id/alerts/summary', async (req, res) => {
   try {
@@ -711,6 +738,12 @@ app.post('/searches/:id/notifications/email', async (req, res) => {
 // --------------------
 // Start server
 // --------------------
+const { startScheduler } = require('./services/scheduler');
+
 app.listen(PORT, () => {
-  console.log(`GoSnaggit server is running on port ${PORT}`);
+  console.log(`GoSnaggit server is running on http://localhost:${PORT}`);
+
+  // Every 60s for MVP. Later: tier-based (15m/120m/etc).
+  startScheduler({ intervalMs: 60_000 });
 });
+

@@ -1,79 +1,107 @@
 // services/resultsStore.js
+const pool = require('../db');
 
 /**
- * Insert many results for a search, skipping duplicates.
- * Uses UNIQUE(search_id, marketplace, external_id) to dedupe.
- * Also creates alert_events entries for newly inserted rows.
+ * Upsert ONE result row.
+ * Uniqueness in Neon is: (search_id, marketplace, external_id)
  */
-async function insertResults(pool, searchId, marketplace, items) {
-  if (!Array.isArray(items) || items.length === 0) {
-    return { inserted: 0 };
-  }
-
-  const values = [];
-  const placeholders = [];
-
-  // Columns:
-  // search_id, marketplace, external_id, title, price, currency, listing_url,
-  // image_url, location, condition, seller_username, raw
-  let i = 1;
-  for (const item of items) {
-    // Minimal validation (skip malformed rows quietly)
-    if (!item?.external_id || !item?.title || !item?.listing_url) continue;
-
-    placeholders.push(`(
-      $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++},
-      $${i++}, $${i++}, $${i++}, $${i++}, $${i++}, $${i++}
-    )`);
-
-    values.push(
-      searchId,
-      marketplace,
-      String(item.external_id),
-      String(item.title),
-      item.price === undefined || item.price === null ? null : item.price,
-      item.currency || null,
-      String(item.listing_url),
-      item.image_url || null,
-      item.location || null,
-      item.condition || null,
-      item.seller_username || null,
-      item.raw || null
-    );
-  }
-
-  if (placeholders.length === 0) {
-    return { inserted: 0 };
-  }
-
+async function upsertResult({
+  search_id,
+  marketplace,
+  external_id,
+  title,
+  price,
+  currency,
+  listing_url,
+  image_url,
+  location,
+  condition,
+  seller_username,
+  found_at,
+  raw,
+}) {
   const sql = `
-    INSERT INTO results (
-      search_id, marketplace, external_id, title, price, currency, listing_url,
-      image_url, location, condition, seller_username, raw
-    )
-    VALUES ${placeholders.join(",")}
-    ON CONFLICT (search_id, marketplace, external_id) DO NOTHING
-    RETURNING id, external_id
+    INSERT INTO results
+      (search_id, marketplace, external_id, title, price, currency, listing_url,
+       image_url, location, condition, seller_username, found_at, raw)
+    VALUES
+      ($1,$2,$3,$4,$5,$6,$7,
+       $8,$9,$10,$11, COALESCE($12, NOW()), $13)
+    ON CONFLICT (search_id, marketplace, external_id)
+    DO UPDATE SET
+      title          = EXCLUDED.title,
+      price          = EXCLUDED.price,
+      currency       = EXCLUDED.currency,
+      listing_url    = EXCLUDED.listing_url,
+      image_url      = EXCLUDED.image_url,
+      location       = EXCLUDED.location,
+      condition      = EXCLUDED.condition,
+      seller_username= EXCLUDED.seller_username,
+      found_at       = EXCLUDED.found_at,
+      raw            = EXCLUDED.raw
+    RETURNING id
   `;
 
-  const result = await pool.query(sql, values);
+  const params = [
+    search_id,
+    marketplace,
+    external_id,
+    title ?? null,
+    price ?? null,
+    currency ?? null,
+    listing_url ?? null,
+    image_url ?? null,
+    location ?? null,
+    condition ?? null,
+    seller_username ?? null,
+    found_at ?? null,
+    raw ?? null,
+  ];
 
-  // Create pending alert events for NEWLY inserted results only
-  // (deduped forever by dedupe_key unique index)
-  for (const row of result.rows) {
-    const dedupeKey = `new_listing:${marketplace}:v1|search=${searchId}|item=${row.external_id}`;
-
-    await pool.query(
-      `
-      INSERT INTO alert_events (search_id, result_id, type, status, dedupe_key)
-      VALUES ($1, $2, 'new_listing', 'pending', $3)
-      ON CONFLICT (dedupe_key) DO NOTHING
-      `,
-      [searchId, row.id, dedupeKey]
-    );
-  }
-
-  return { inserted: result.rowCount };
+  const { rows } = await pool.query(sql, params);
+  return rows[0].id;
 }
 
-module.exports = { insertResults };
+/**
+ * Insert/Upsert MANY results. Returns { inserted } for UI friendliness.
+ * We treat upserts as "insertedOrUpdated" but keep the field name `inserted`
+ * because your app.js expects it.
+ */
+async function insertResults(dbPool, searchId, marketplace, items) {
+  const p = dbPool || pool;
+  const m = String(marketplace || '').trim().toLowerCase();
+  if (!m) throw new Error('insertResults: marketplace is required');
+  if (!Array.isArray(items)) throw new Error('insertResults: items must be an array');
+
+  let inserted = 0;
+
+  for (const it of items) {
+    const external_id = it?.external_id ?? it?.externalId ?? it?.itemId ?? null;
+    const listing_url = it?.listing_url ?? it?.listingUrl ?? it?.url ?? null;
+    const title = it?.title ?? null;
+
+    if (!external_id || !listing_url) continue;
+
+    await upsertResult({
+      search_id: searchId,
+      marketplace: m,
+      external_id,
+      title,
+      price: it?.price ?? null,
+      currency: it?.currency ?? null,
+      listing_url,
+      image_url: it?.image_url ?? null,
+      location: it?.location ?? null,
+      condition: it?.condition ?? null,
+      seller_username: it?.seller_username ?? null,
+      found_at: it?.found_at ?? null,
+      raw: it?.raw ?? null,
+    });
+
+    inserted += 1;
+  }
+
+  return { inserted };
+}
+
+module.exports = { upsertResult, insertResults };
