@@ -220,7 +220,7 @@ app.get('/api/searches', async (req, res) => {
 });
 
 
-app.get('/searches', async (req, res) => {
+async function getSearches(req, res) {
   try {
     const result = await pool.query(
       `
@@ -235,7 +235,11 @@ app.get('/searches', async (req, res) => {
     console.error('GET /searches failed:', err);
     res.status(500).json({ error: 'Failed to fetch searches' });
   }
-});
+}
+
+app.get('/api/searches', getSearches);
+app.get('/searches', getSearches); // keep old working for now
+
 
 app.get('/searches/deleted', async (req, res) => {
   try {
