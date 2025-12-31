@@ -516,7 +516,7 @@ app.post('/searches/:id/refresh', async (req, res) => {
 // --------------------
 // Alerts feed + status patch
 // --------------------
-app.get('/searches/:id/alerts', async (req, res) => {
+async function getSearchAlerts(req, res) {
   try {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
@@ -525,7 +525,8 @@ app.get('/searches/:id/alerts', async (req, res) => {
     const offsetNum = clampInt(req.query.offset, { min: 0, max: 1_000_000, fallback: 0 });
 
     const statusRaw = req.query.status;
-    const statusParam = statusRaw === undefined || statusRaw === '' ? null : String(statusRaw);
+    const statusParam =
+      statusRaw === undefined || statusRaw === '' ? null : String(statusRaw);
 
     const sql = `
       SELECT
@@ -547,13 +548,21 @@ app.get('/searches/:id/alerts', async (req, res) => {
       LIMIT $3 OFFSET $4
     `;
 
-    const { rows } = await pool.query(sql, [searchId, statusParam, limitNum, offsetNum]);
+    const { rows } = await pool.query(sql, [
+      searchId,
+      statusParam,
+      limitNum,
+      offsetNum,
+    ]);
+
     res.json(rows);
   } catch (err) {
-    console.error('GET /searches/:id/alerts failed:', err);
+    console.error('GET search alerts failed:', err);
     res.status(500).json({ error: 'Failed to fetch alerts' });
   }
-});
+}
+app.get('/api/searches/:id/alerts', getSearchAlerts);
+app.get('/searches/:id/alerts', getSearchAlerts);
 
 async function patchAlertStatus(req, res) {
   try {
