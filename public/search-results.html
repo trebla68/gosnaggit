@@ -559,7 +559,7 @@
 
     // Load basic info about the search itself for the left panel
     function loadSearchContext() {
-      fetch('/searches/' + searchId)
+      fetch('/api/searches/' + searchId)
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to load search details');
@@ -592,7 +592,7 @@
 
       const offset = (currentPage - 1) * limitPerPage;
 
-      fetch(`/searches/${searchId}/results?limit=${limitPerPage}&offset=${offset}`)
+      fetch(`/api/searches/${searchId}/results?limit=${limitPerPage}&offset=${offset}`)
         .then(response => {
           if (!response.ok) {
             if (response.status === 404) {
@@ -715,7 +715,7 @@
         refreshBtn.disabled = true;
         resultsMetaEl.textContent = 'Refreshing from eBay…';
 
-        const r = await fetch(`/searches/${searchId}/refresh`, { method: 'POST' });
+        const r = await fetch(`/api/searches/${searchId}/refresh`, { method: 'POST' });
         if (!r.ok) throw new Error('Refresh failed');
 
         await loadSearchContext();

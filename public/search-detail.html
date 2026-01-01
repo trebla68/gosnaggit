@@ -483,7 +483,7 @@
             setMessage('Loading search details…');
 
             try {
-                const res = await fetch('/searches/' + searchId);
+                const res = await fetch('/api/searches/' + searchId);
                 if (!res.ok) {
                     const errBody = await res.json().catch(() => ({}));
                     const msg = errBody.error || 'Failed to load search';

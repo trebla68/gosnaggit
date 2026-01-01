@@ -578,7 +578,7 @@
 
         // ===== API calls =====
         async function loadSummary() {
-            const res = await fetch(`/searches/${searchId}/alerts/summary`);
+            const res = await fetch(`/api/searches/${searchId}/alerts/summary`);
             if (!res.ok) throw new Error(`Summary failed (${res.status})`);
             const data = await res.json();
 
@@ -597,7 +597,7 @@
             qs.set('limit', String(LIMIT));
             qs.set('offset', String(offset));
 
-            const res = await fetch(`/searches/${searchId}/alerts?` + qs.toString());
+            const res = await fetch(`/api/searches/${searchId}/alerts?` + qs.toString());
             if (!res.ok) throw new Error(`Alerts failed (${res.status})`);
             const rows = await res.json();
 

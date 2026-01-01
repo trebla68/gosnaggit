@@ -843,7 +843,7 @@
           await nextPaint();
 
           try {
-            const res = await fetch(`/searches/${search.id}/duplicate`, { method: 'POST' });
+            const res = await fetch(`/api/searches/${search.id}/duplicate`, { method: 'POST' });
 
             if (!res.ok) {
               const body = await res.json().catch(() => ({}));
@@ -885,7 +885,7 @@
           await nextPaint();
 
           try {
-            const res = await fetch(`/searches/${search.id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/searches/${search.id}`, { method: 'DELETE' });
 
             if (!res.ok) {
               const body = await res.json().catch(() => ({}));
@@ -948,7 +948,7 @@
 
     async function reloadSearches() {
       try {
-        const res = await fetch('/searches');
+        const res = await fetch('/api/searches');
         if (!res.ok) throw new Error('Failed to fetch searches');
 
         allSearches = await res.json();

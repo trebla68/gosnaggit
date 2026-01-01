@@ -514,7 +514,7 @@
       const labelEl = document.getElementById('active-label');
 
       try {
-        const res = await fetch('/searches');
+        const res = await fetch('/api/searches');
         if (!res.ok) throw new Error('Failed to fetch searches');
         const searches = await res.json();
 

@@ -174,7 +174,7 @@ if (process.env.NODE_ENV !== 'production') {
 // --------------------
 // Searches CRUD
 // --------------------
-app.post('/searches', async (req, res) => {
+async function createSearch(req, res) {
   try {
     const { search_item, location, category, max_price, status } = req.body || {};
 
@@ -182,7 +182,7 @@ app.post('/searches', async (req, res) => {
       return res.status(400).json({ error: 'search_item is required' });
     }
 
-    const finalStatus = status && String(status).trim() !== '' ? String(status).trim() : 'active';
+    const finalStatus = status ?? 'active';
 
     const result = await pool.query(
       `
@@ -190,7 +190,13 @@ app.post('/searches', async (req, res) => {
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
       `,
-      [search_item, location || null, category || null, max_price ?? null, finalStatus]
+      [
+        String(search_item).trim(),
+        location ?? null,
+        category ?? null,
+        max_price ?? null,
+        finalStatus
+      ]
     );
 
     res.status(201).json(result.rows[0]);
@@ -198,26 +204,13 @@ app.post('/searches', async (req, res) => {
     console.error('POST /searches failed:', err);
     res.status(500).json({ error: 'Failed to create search' });
   }
-});
+}
 
-// Optional alias: support /api/searches as well as /searches
-app.get('/api/searches', async (req, res) => {
-  // same behavior as GET /searches
-  try {
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM searches
-      WHERE status IS NULL OR status <> 'deleted'
-      ORDER BY created_at DESC
-      `
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error('GET /api/searches failed:', err);
-    res.status(500).json({ error: 'Failed to fetch searches' });
-  }
-});
+app.post('/searches', createSearch);
+app.post('/api/searches', createSearch);
+
+
+
 
 
 async function getSearches(req, res) {
@@ -271,6 +264,21 @@ app.get('/searches/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch search' });
   }
 });
+
+app.get('/api/searches/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await pool.query('SELECT * FROM searches WHERE id = $1', [id]);
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('GET /api/searches/:id failed:', err);
+    res.status(500).json({ error: 'Failed to fetch search' });
+  }
+});
+
 
 app.patch('/searches/:id', async (req, res) => {
   try {
@@ -420,6 +428,44 @@ app.get('/searches/:id/results', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch results' });
   }
 });
+
+app.get('/api/searches/:id/results', async (req, res) => {
+  try {
+    const searchId = toInt(req.params.id);
+    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+
+    const limitNum = clampInt(req.query.limit, { min: 1, max: 200, fallback: 50 });
+    const offsetNum = clampInt(req.query.offset, { min: 0, max: 1_000_000, fallback: 0 });
+
+    const sql = `
+      SELECT
+        id,
+        search_id,
+        marketplace,
+        external_id,
+        title,
+        price,
+        currency,
+        listing_url,
+        image_url,
+        location,
+        condition,
+        seller_username,
+        found_at
+      FROM results
+      WHERE search_id = $1
+      ORDER BY found_at DESC, id DESC
+      LIMIT $2 OFFSET $3
+    `;
+
+    const { rows } = await pool.query(sql, [searchId, limitNum, offsetNum]);
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /api/searches/:id/results failed:', err);
+    res.status(500).json({ error: 'Failed to fetch results' });
+  }
+});
+
 
 app.post('/searches/:id/results', async (req, res) => {
   try {
@@ -607,7 +653,7 @@ app.patch('/alerts/:alert_id/status', patchAlertStatus);
 
 
 
-app.get('/searches/:id/alerts/summary', async (req, res) => {
+async function getSearchAlertsSummary(req, res) {
   try {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
@@ -634,7 +680,11 @@ app.get('/searches/:id/alerts/summary', async (req, res) => {
     console.error('GET /searches/:id/alerts/summary failed:', err);
     res.status(500).json({ error: 'Failed to load alerts summary' });
   }
-});
+}
+
+app.get('/api/searches/:id/alerts/summary', getSearchAlertsSummary);
+app.get('/searches/:id/alerts/summary', getSearchAlertsSummary);
+
 
 // DEV: Dispatch pending alerts for a search (MVP notifications)
 // Sends stub email(s) and marks alerts sent/error.

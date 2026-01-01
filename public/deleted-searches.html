@@ -312,7 +312,7 @@
     }
 
     function loadDeletedSearches() {
-      fetch('/searches/deleted')
+      fetch('/api/searches/deleted')
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to load deleted searches');
@@ -374,7 +374,7 @@
       const confirmed = window.confirm('Restore this search to active?');
       if (!confirmed) return;
 
-      fetch('/searches/' + id + '/status', {
+      fetch('/api/searches/' + id + '/status', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'

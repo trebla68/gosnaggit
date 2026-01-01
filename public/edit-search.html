@@ -344,7 +344,7 @@
       </div>
 
       <footer>
-        GoSnaggit – internal MVP prototype. This edit form sends a PATCH request to your <code>/searches/:id</code> API.
+        GoSnaggit – internal MVP prototype. This edit form sends a PATCH request to your <code>/api/searches/:id</code> API.
       </footer>
     </div>
   </div>
@@ -389,7 +389,7 @@
       setMessage('Loading search details…');
 
       try {
-        const res = await fetch('/searches/' + searchId);
+        const res = await fetch('/api/searches/' + searchId);
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error || 'Failed to load search');
@@ -440,7 +440,7 @@
       setMessage('Saving changes…');
 
       try {
-        const res = await fetch('/searches/' + searchId, {
+        const res = await fetch('/api/searches/' + searchId, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json'
