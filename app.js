@@ -38,6 +38,18 @@ function clampInt(value, { min, max, fallback }) {
   return Math.max(min, Math.min(max, n));
 }
 
+function methodNotAllowed(allowed) {
+  return (req, res) => {
+    res.status(405).json({
+      ok: false,
+      error: "Method Not Allowed",
+      method: req.method,
+      allowed,
+      path: req.originalUrl
+    });
+  };
+}
+
 // --------------------
 // Health
 // --------------------
@@ -466,7 +478,6 @@ app.get('/api/searches/:id/results', async (req, res) => {
   }
 });
 
-
 app.post('/searches/:id/results', async (req, res) => {
   try {
     const searchId = toInt(req.params.id);
@@ -485,6 +496,9 @@ app.post('/searches/:id/results', async (req, res) => {
     res.status(500).json({ error: 'Failed to save results' });
   }
 });
+
+app.all('/searches/:id/results', methodNotAllowed(['GET', 'POST']));
+app.all('/api/searches/:id/results', methodNotAllowed(['GET']));
 
 // --------------------
 // Refresh (eBay live)
@@ -610,6 +624,9 @@ async function getSearchAlerts(req, res) {
 app.get('/api/searches/:id/alerts', getSearchAlerts);
 app.get('/searches/:id/alerts', getSearchAlerts);
 
+app.all('/api/searches/:id/alerts', methodNotAllowed(['GET']));
+app.all('/searches/:id/alerts', methodNotAllowed(['GET']));
+
 async function patchAlertStatus(req, res) {
   try {
     const alertId = toInt(req.params.alert_id);
@@ -650,7 +667,8 @@ async function patchAlertStatus(req, res) {
 app.patch('/api/alerts/:alert_id/status', patchAlertStatus);
 app.patch('/alerts/:alert_id/status', patchAlertStatus);
 
-
+app.all('/api/alerts/:alert_id/status', methodNotAllowed(['PATCH']));
+app.all('/alerts/:alert_id/status', methodNotAllowed(['PATCH']));
 
 
 async function getSearchAlertsSummary(req, res) {
@@ -685,10 +703,16 @@ async function getSearchAlertsSummary(req, res) {
 app.get('/api/searches/:id/alerts/summary', getSearchAlertsSummary);
 app.get('/searches/:id/alerts/summary', getSearchAlertsSummary);
 
+// Block non-GET methods for both paths
+app.all('/api/searches/:id/alerts/summary', methodNotAllowed(['GET']));
+app.all('/searches/:id/alerts/summary', methodNotAllowed(['GET']));
+
 
 // DEV: Dispatch pending alerts for a search (MVP notifications)
-// Sends stub email(s) and marks alerts sent/error.
-app.post('/dev/searches/:id/dispatch-alerts', async (req, res) => {
+// Supports BOTH:
+//   - POST /dev/searches/:id/dispatch-alerts
+//   - GET  /dev/searches/:id/dispatch-alerts   (browser-friendly)
+async function devDispatchAlerts(req, res) {
   try {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
@@ -736,17 +760,10 @@ app.post('/dev/searches/:id/dispatch-alerts', async (req, res) => {
         const email = buildAlertEmail({ searchId, alert });
         await sendEmail({ to, subject: email.subject, text: email.text });
 
-        await pool.query(
-          `UPDATE alert_events SET status = 'sent' WHERE id = $1`,
-          [alert.alert_id]
-        );
-
+        await pool.query(`UPDATE alert_events SET status = 'sent' WHERE id = $1`, [alert.alert_id]);
         sentCount += 1;
       } catch (e) {
-        await pool.query(
-          `UPDATE alert_events SET status = 'error' WHERE id = $1`,
-          [alert.alert_id]
-        );
+        await pool.query(`UPDATE alert_events SET status = 'error' WHERE id = $1`, [alert.alert_id]);
         errorCount += 1;
         console.error('Dispatch failed for alert', alert.alert_id, e);
       }
@@ -762,10 +779,14 @@ app.post('/dev/searches/:id/dispatch-alerts', async (req, res) => {
       limit: limitNum,
     });
   } catch (err) {
-    console.error('POST /dev/searches/:id/dispatch-alerts failed:', err);
+    console.error('DEV dispatch alerts failed:', err);
     res.status(500).json({ error: 'Failed to dispatch alerts' });
   }
-});
+}
+
+app.post('/dev/searches/:id/dispatch-alerts', devDispatchAlerts);
+app.get('/dev/searches/:id/dispatch-alerts', devDispatchAlerts);
+app.all('/dev/searches/:id/dispatch-alerts', methodNotAllowed(['GET', 'POST']));
 
 
 
@@ -798,15 +819,26 @@ app.post('/searches/:id/notifications/email', async (req, res) => {
   }
 });
 
+
+
 // --------------------
-// Start server
+// 404 handler (keep last)
+// --------------------
+app.use((req, res) => {
+  res.status(404).json({
+    ok: false,
+    error: "Not Found",
+    method: req.method,
+    path: req.originalUrl
+  });
+});
+
+// --------------------
+// Start server (keep truly last)
 // --------------------
 const { startScheduler } = require('./services/scheduler');
 
 app.listen(PORT, () => {
   console.log(`GoSnaggit server is running on http://localhost:${PORT}`);
-
-  // Every 60s for MVP. Later: tier-based (15m/120m/etc).
   startScheduler({ intervalMs: 60_000 });
 });
-
