@@ -1,32 +1,31 @@
 // services/scheduler.js
-const { runDueSearchesOnce } = require('./searchRunner');
+
+const pool = require('../db');
+const { dispatchAllEnabledEmailAlerts } = require('./dispatchAlerts');
+
+let timer = null;
+let running = false;
 
 function startScheduler({ intervalMs = 60_000 } = {}) {
-    let timer = null;
-    let running = false;
+    if (timer) return; // already started
 
-    async function tick() {
-        if (running) return;
+    timer = setInterval(async () => {
+        if (running) return; // prevent overlap
         running = true;
+
         try {
-            await runDueSearchesOnce();
+            const totals = await dispatchAllEnabledEmailAlerts({ pool, limitPerSearch: 25 });
+            if (totals.dispatched > 0 || totals.error > 0) {
+                console.log('[scheduler] auto-dispatch:', totals);
+            }
         } catch (err) {
-            console.error('[scheduler] tick failed:', err);
+            console.error('[scheduler] auto-dispatch failed:', err);
         } finally {
             running = false;
         }
-    }
+    }, intervalMs);
 
-    // run once quickly after boot, then on interval
-    tick();
-    timer = setInterval(tick, intervalMs);
-
-    console.log(`[scheduler] started (every ${Math.round(intervalMs / 1000)}s)`);
-
-    return () => {
-        if (timer) clearInterval(timer);
-        console.log('[scheduler] stopped');
-    };
+    console.log(`[scheduler] started (intervalMs=${intervalMs})`);
 }
 
 module.exports = { startScheduler };
