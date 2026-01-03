@@ -265,6 +265,24 @@ app.get('/searches/deleted', async (req, res) => {
   }
 });
 
+app.get('/api/searches/deleted', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM searches
+      WHERE status = 'deleted'
+      ORDER BY created_at DESC
+      `
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('GET /api/searches/deleted failed:', err);
+    res.status(500).json({ error: 'Failed to fetch deleted searches' });
+  }
+});
+
+
 app.get('/searches/:id', async (req, res) => {
   try {
     const id = req.params.id;
@@ -333,6 +351,46 @@ app.patch('/searches/:id', async (req, res) => {
   }
 });
 
+app.patch('/api/searches/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { search_item, location, category, max_price, status } = req.body || {};
+
+    if (!search_item || String(search_item).trim() === '') {
+      return res.status(400).json({ error: 'search_item is required' });
+    }
+
+    const allowedStatuses = ['active', 'paused', 'completed', 'cancelled', 'deleted'];
+    if (status && !allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        error: "Invalid status. Use 'active', 'paused', 'completed', 'cancelled', or 'deleted'.",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE searches
+      SET search_item = $1,
+          location    = $2,
+          category    = $3,
+          max_price   = $4,
+          status      = COALESCE($5, status)
+      WHERE id = $6
+      RETURNING *
+      `,
+      [search_item, location || null, category || null, max_price ?? null, status || null, id]
+    );
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
+
+    res.json({ message: 'Search updated', search: result.rows[0] });
+  } catch (err) {
+    console.error('PATCH /api/searches/:id failed:', err);
+    res.status(500).json({ error: 'Failed to update search' });
+  }
+});
+
+
 app.patch('/searches/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
@@ -356,7 +414,31 @@ app.patch('/searches/:id/status', async (req, res) => {
   }
 });
 
-app.delete('/searches/:id', async (req, res) => {
+app.patch('/api/searches/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body || {};
+
+    const allowed = ['active', 'paused', 'completed', 'cancelled', 'deleted'];
+    if (!status || !allowed.includes(status)) {
+      return res
+        .status(400)
+        .json({ error: "Invalid status. Use 'active', 'paused', 'completed', 'cancelled', or 'deleted'." });
+    }
+
+    const result = await pool.query('UPDATE searches SET status = $1 WHERE id = $2 RETURNING *', [status, id]);
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
+
+    res.json({ message: 'Status updated', search: result.rows[0] });
+  } catch (err) {
+    console.error('PATCH /api/searches/:id/status failed:', err);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+
+async function deleteSearch(req, res) {
   try {
     const { id } = req.params;
 
@@ -374,12 +456,16 @@ app.delete('/searches/:id', async (req, res) => {
 
     res.json({ message: 'Search soft-deleted (status set to "deleted")', search: result.rows[0] });
   } catch (err) {
-    console.error('DELETE /searches/:id failed:', err);
+    console.error('DELETE search failed:', err);
     res.status(500).json({ error: 'Failed to delete search' });
   }
-});
+}
 
-app.post('/searches/:id/duplicate', async (req, res) => {
+app.delete('/searches/:id', deleteSearch);
+app.delete('/api/searches/:id', deleteSearch);
+
+
+async function duplicateSearch(req, res) {
   try {
     const { id } = req.params;
 
@@ -398,10 +484,14 @@ app.post('/searches/:id/duplicate', async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('POST /searches/:id/duplicate failed:', err);
+    console.error('POST duplicate search failed:', err);
     res.status(500).json({ error: 'Failed to duplicate search' });
   }
-});
+}
+
+app.post('/searches/:id/duplicate', duplicateSearch);
+app.post('/api/searches/:id/duplicate', duplicateSearch);
+
 
 // --------------------
 // Results
@@ -553,6 +643,82 @@ app.post('/searches/:id/refresh', async (req, res) => {
   }
 });
 
+async function refreshSearch(req, res) {
+  try {
+    const searchId = toInt(req.params.id);
+    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+
+    const check = await pool.query('SELECT id, search_item, status FROM searches WHERE id = $1', [searchId]);
+    if (check.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
+
+    if ((check.rows[0].status || '').toLowerCase() === 'deleted') {
+      return res.status(400).json({ error: 'Cannot refresh a deleted search' });
+    }
+
+    const q = (check.rows[0].search_item || '').trim();
+    if (!q) return res.status(400).json({ error: 'Search has no search_item to query eBay with' });
+
+    const token = await getEbayAppToken();
+
+    const url = new URL('https://api.ebay.com/buy/browse/v1/item_summary/search');
+    url.searchParams.set('q', q);
+    url.searchParams.set('limit', '50');
+
+    const resp = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+      },
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) return res.status(resp.status).json({ ok: false, ebayError: data });
+
+    const summaries = Array.isArray(data.itemSummaries) ? data.itemSummaries : [];
+
+    const normalized = summaries
+      .map((it) => {
+        const priceVal = it?.price?.value ?? null;
+        const currency = it?.price?.currency ?? 'USD';
+
+        return {
+          external_id: it?.itemId || it?.legacyItemId || it?.itemWebUrl || null,
+          title: it?.title || 'Untitled',
+          price: priceVal,
+          currency,
+          listing_url: it?.itemWebUrl || null,
+          image_url: it?.image?.imageUrl || null,
+          location: it?.itemLocation?.city || it?.itemLocation?.country || null,
+          condition: it?.condition || null,
+          seller_username: it?.seller?.username || null,
+          found_at: new Date().toISOString(),
+        };
+      })
+      .filter((r) => r.external_id && r.listing_url);
+
+    const { inserted } = await insertResults(pool, searchId, 'ebay', normalized);
+
+    res.json({
+      ok: true,
+      marketplace: 'ebay',
+      searchId,
+      query: q,
+      fetched: summaries.length,
+      inserted: inserted || 0,
+    });
+  } catch (err) {
+    console.error('POST refresh failed:', err);
+    res.status(500).json({ error: 'Failed to refresh search' });
+  }
+}
+
+app.post('/searches/:id/refresh', refreshSearch);
+app.post('/api/searches/:id/refresh', refreshSearch);
+app.all('/searches/:id/refresh', methodNotAllowed(['POST']));
+app.all('/api/searches/:id/refresh', methodNotAllowed(['POST']));
+
+
 // --------------------
 // Alerts feed + status patch
 // --------------------
@@ -691,7 +857,7 @@ app.all('/searches/:id/alerts/summary', methodNotAllowed(['GET']));
 // --------------------
 // Notifications (email) MVP
 // --------------------
-app.post('/searches/:id/notifications/email', async (req, res) => {
+async function upsertEmailNotification(req, res) {
   try {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
@@ -711,10 +877,16 @@ app.post('/searches/:id/notifications/email', async (req, res) => {
 
     res.json({ ok: true, searchId, channel: 'email', destination: email, enabled: enabled ?? true });
   } catch (err) {
-    console.error('POST /searches/:id/notifications/email failed:', err);
+    console.error('POST notifications/email failed:', err);
     res.status(500).json({ error: 'Failed to save notification setting' });
   }
-});
+}
+
+app.post('/searches/:id/notifications/email', upsertEmailNotification);
+app.post('/api/searches/:id/notifications/email', upsertEmailNotification);
+app.all('/searches/:id/notifications/email', methodNotAllowed(['POST']));
+app.all('/api/searches/:id/notifications/email', methodNotAllowed(['POST']));
+
 
 
 

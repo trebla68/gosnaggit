@@ -826,6 +826,12 @@
         editLink.textContent = 'Edit';
         editLink.href = `/edit-search.html?id=${search.id}`;
         editLink.title = 'Edit this search';
+        const refreshLink = document.createElement('a');
+        refreshLink.textContent = 'Refresh';
+        refreshLink.href = '#';
+        refreshLink.title = 'Refresh this search now';
+        refreshLink.classList.add('js-refresh');
+        refreshLink.dataset.id = search.id;
 
         const duplicateLink = document.createElement('a');
         duplicateLink.textContent = 'Duplicate';
@@ -912,6 +918,8 @@
         actionsTd.appendChild(document.createTextNode(' '));
         actionsTd.appendChild(editLink);
         actionsTd.appendChild(document.createTextNode(' '));
+        actionsTd.appendChild(refreshLink);
+        actionsTd.appendChild(document.createTextNode(' '));
         actionsTd.appendChild(duplicateLink);
         actionsTd.appendChild(document.createTextNode(' '));
         actionsTd.appendChild(deleteLink);
@@ -945,6 +953,42 @@
         renderTablePage(currentPage);
       }
     });
+
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.js-refresh');
+      if (!btn) return;
+
+      e.preventDefault(); // ✅ only prevent default for Refresh clicks
+
+      const id = btn.dataset.id;
+      if (!id) return;
+
+      const oldText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Refreshing…';
+
+      try {
+        const resp = await fetch(`/searches/${id}/refresh`, { method: 'POST' });
+        const data = await resp.json().catch(() => ({}));
+
+        if (!resp.ok || data.ok !== true) {
+          alert('Refresh failed');
+          console.error(data);
+          return;
+        }
+
+        alert(`Refresh complete. Inserted: ${data.inserted ?? 0}`);
+        location.reload();
+      } catch (err) {
+        console.error(err);
+        alert('Refresh failed');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
+    });
+
+
 
     async function reloadSearches() {
       try {
