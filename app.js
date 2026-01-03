@@ -498,9 +498,26 @@ app.post('/searches/:id/results', async (req, res) => {
     res.status(500).json({ error: 'Failed to save results' });
   }
 });
+app.post('/api/searches/:id/results', async (req, res) => {
+  try {
+    const searchId = toInt(req.params.id);
+    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
 
+    const marketplace = (req.body?.marketplace || '').toString().trim().toLowerCase();
+    const items = req.body?.results;
+
+    if (!marketplace) return res.status(400).json({ error: 'marketplace is required (e.g. "ebay")' });
+    if (!Array.isArray(items)) return res.status(400).json({ error: 'results must be an array' });
+
+    const { inserted } = await insertResults(pool, searchId, marketplace, items);
+    res.json({ message: 'Results saved', inserted: inserted || 0 });
+  } catch (err) {
+    console.error('POST /searches/:id/results failed:', err);
+    res.status(500).json({ error: 'Failed to save results' });
+  }
+});
 app.all('/searches/:id/results', methodNotAllowed(['GET', 'POST']));
-app.all('/api/searches/:id/results', methodNotAllowed(['GET']));
+app.all('/api/searches/:id/results', methodNotAllowed(['GET', 'POST']));
 
 // --------------------
 // Refresh (eBay live)
