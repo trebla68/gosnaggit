@@ -406,10 +406,12 @@ app.post('/searches/:id/duplicate', async (req, res) => {
 // --------------------
 // Results
 // --------------------
-app.get('/searches/:id/results', async (req, res) => {
+async function getSearchResults(req, res) {
   try {
     const searchId = toInt(req.params.id);
-    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+    if (searchId === null) {
+      return res.status(400).json({ error: 'Invalid search id' });
+    }
 
     const limitNum = clampInt(req.query.limit, { min: 1, max: 200, fallback: 50 });
     const offsetNum = clampInt(req.query.offset, { min: 0, max: 1_000_000, fallback: 0 });
@@ -441,55 +443,24 @@ app.get('/searches/:id/results', async (req, res) => {
     console.error('GET /searches/:id/results failed:', err);
     res.status(500).json({ error: 'Failed to fetch results' });
   }
-});
+}
 
-app.get('/api/searches/:id/results', async (req, res) => {
+async function postSearchResults(req, res) {
   try {
     const searchId = toInt(req.params.id);
-    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
-
-    const limitNum = clampInt(req.query.limit, { min: 1, max: 200, fallback: 50 });
-    const offsetNum = clampInt(req.query.offset, { min: 0, max: 1_000_000, fallback: 0 });
-
-    const sql = `
-      SELECT
-        id,
-        search_id,
-        marketplace,
-        external_id,
-        title,
-        price,
-        currency,
-        listing_url,
-        image_url,
-        location,
-        condition,
-        seller_username,
-        found_at
-      FROM results
-      WHERE search_id = $1
-      ORDER BY found_at DESC, id DESC
-      LIMIT $2 OFFSET $3
-    `;
-
-    const { rows } = await pool.query(sql, [searchId, limitNum, offsetNum]);
-    res.json(rows);
-  } catch (err) {
-    console.error('GET /api/searches/:id/results failed:', err);
-    res.status(500).json({ error: 'Failed to fetch results' });
-  }
-});
-
-app.post('/searches/:id/results', async (req, res) => {
-  try {
-    const searchId = toInt(req.params.id);
-    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+    if (searchId === null) {
+      return res.status(400).json({ error: 'Invalid search id' });
+    }
 
     const marketplace = (req.body?.marketplace || '').toString().trim().toLowerCase();
     const items = req.body?.results;
 
-    if (!marketplace) return res.status(400).json({ error: 'marketplace is required (e.g. "ebay")' });
-    if (!Array.isArray(items)) return res.status(400).json({ error: 'results must be an array' });
+    if (!marketplace) {
+      return res.status(400).json({ error: 'marketplace is required (e.g. "ebay")' });
+    }
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: 'results must be an array' });
+    }
 
     const { inserted } = await insertResults(pool, searchId, marketplace, items);
     res.json({ message: 'Results saved', inserted: inserted || 0 });
@@ -497,27 +468,17 @@ app.post('/searches/:id/results', async (req, res) => {
     console.error('POST /searches/:id/results failed:', err);
     res.status(500).json({ error: 'Failed to save results' });
   }
-});
-app.post('/api/searches/:id/results', async (req, res) => {
-  try {
-    const searchId = toInt(req.params.id);
-    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+}
 
-    const marketplace = (req.body?.marketplace || '').toString().trim().toLowerCase();
-    const items = req.body?.results;
+app.get('/searches/:id/results', getSearchResults);
+app.get('/api/searches/:id/results', getSearchResults);
 
-    if (!marketplace) return res.status(400).json({ error: 'marketplace is required (e.g. "ebay")' });
-    if (!Array.isArray(items)) return res.status(400).json({ error: 'results must be an array' });
+app.post('/searches/:id/results', postSearchResults);
+app.post('/api/searches/:id/results', postSearchResults);
 
-    const { inserted } = await insertResults(pool, searchId, marketplace, items);
-    res.json({ message: 'Results saved', inserted: inserted || 0 });
-  } catch (err) {
-    console.error('POST /searches/:id/results failed:', err);
-    res.status(500).json({ error: 'Failed to save results' });
-  }
-});
 app.all('/searches/:id/results', methodNotAllowed(['GET', 'POST']));
 app.all('/api/searches/:id/results', methodNotAllowed(['GET', 'POST']));
+
 
 // --------------------
 // Refresh (eBay live)
