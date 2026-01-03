@@ -56,7 +56,7 @@ function methodNotAllowed(allowed) {
 app.get('/health', (req, res) => {
   res.json({ ok: true });
 });
-
+app.all('/health', methodNotAllowed(['GET']));
 // --------------------
 // eBay (DEV token peek)
 // --------------------
@@ -70,6 +70,8 @@ if (process.env.NODE_ENV !== 'production') {
       res.status(500).json({ ok: false, error: 'Failed to get eBay token' });
     }
   });
+
+  app.all('/api/ebay/token', methodNotAllowed(['GET']));
 }
 
 // --------------------
@@ -108,7 +110,7 @@ app.get('/api/ebay/search', async (req, res) => {
     res.status(500).json({ ok: false, error: 'Failed to search eBay' });
   }
 });
-
+app.all('/api/ebay/search', methodNotAllowed(['GET']));
 // --------------------
 // DEV: Seed results for a search_id
 // --------------------
