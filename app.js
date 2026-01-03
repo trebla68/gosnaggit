@@ -574,7 +574,7 @@ app.all('/api/searches/:id/results', methodNotAllowed(['GET', 'POST']));
 // Refresh (eBay live)
 // --------------------
 
-async function refreshSearch(req, res) {
+async function refreshSearchHandler(req, res) {
   try {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
@@ -644,8 +644,8 @@ async function refreshSearch(req, res) {
   }
 }
 
-app.post('/searches/:id/refresh', refreshSearch);
-app.post('/api/searches/:id/refresh', refreshSearch);
+app.post('/searches/:id/refresh', refreshSearchHandler);
+app.post('/api/searches/:id/refresh', refreshSearchHandler);
 app.all('/searches/:id/refresh', methodNotAllowed(['POST']));
 app.all('/api/searches/:id/refresh', methodNotAllowed(['POST']));
 
