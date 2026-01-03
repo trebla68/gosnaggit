@@ -733,9 +733,6 @@ app.use((req, res) => {
 // --------------------
 // Start server (keep truly last)
 // --------------------
-const { startScheduler } = require('./services/scheduler');
-
 app.listen(PORT, () => {
   console.log(`GoSnaggit server is running on http://localhost:${PORT}`);
-  startScheduler({ intervalMs: 60_000 });
 });
