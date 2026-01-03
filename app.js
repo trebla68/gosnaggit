@@ -573,75 +573,6 @@ app.all('/api/searches/:id/results', methodNotAllowed(['GET', 'POST']));
 // --------------------
 // Refresh (eBay live)
 // --------------------
-app.post('/searches/:id/refresh', async (req, res) => {
-  try {
-    const searchId = toInt(req.params.id);
-    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
-
-    const check = await pool.query('SELECT id, search_item, status FROM searches WHERE id = $1', [searchId]);
-    if (check.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
-
-    if ((check.rows[0].status || '').toLowerCase() === 'deleted') {
-      return res.status(400).json({ error: 'Cannot refresh a deleted search' });
-    }
-
-    const q = (check.rows[0].search_item || '').trim();
-    if (!q) return res.status(400).json({ error: 'Search has no search_item to query eBay with' });
-
-    const token = await getEbayAppToken();
-
-    const url = new URL('https://api.ebay.com/buy/browse/v1/item_summary/search');
-    url.searchParams.set('q', q);
-    url.searchParams.set('limit', '50');
-
-    const resp = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
-      },
-    });
-
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) return res.status(resp.status).json({ ok: false, ebayError: data });
-
-    const summaries = Array.isArray(data.itemSummaries) ? data.itemSummaries : [];
-
-    const normalized = summaries
-      .map((it) => {
-        const priceVal = it?.price?.value ?? null;
-        const currency = it?.price?.currency ?? 'USD';
-
-        return {
-          external_id: it?.itemId || it?.legacyItemId || it?.itemWebUrl || null,
-          title: it?.title || 'Untitled',
-          price: priceVal,
-          currency,
-          listing_url: it?.itemWebUrl || null,
-          image_url: it?.image?.imageUrl || null,
-          location: it?.itemLocation?.city || it?.itemLocation?.country || null,
-          condition: it?.condition || null,
-          seller_username: it?.seller?.username || null,
-          found_at: new Date().toISOString(),
-        };
-      })
-      .filter((r) => r.external_id && r.listing_url);
-
-    const { inserted } = await insertResults(pool, searchId, 'ebay', normalized);
-
-    res.json({
-      ok: true,
-      marketplace: 'ebay',
-      searchId,
-      query: q,
-      fetched: summaries.length,
-      inserted: inserted || 0,
-    });
-  } catch (err) {
-    console.error('POST /searches/:id/refresh failed:', err);
-    res.status(500).json({ error: 'Failed to refresh search' });
-  }
-});
 
 async function refreshSearch(req, res) {
   try {
@@ -857,7 +788,7 @@ app.all('/searches/:id/alerts/summary', methodNotAllowed(['GET']));
 // --------------------
 // Notifications (email) MVP
 // --------------------
-async function upsertEmailNotification(req, res) {
+app.post('/searches/:id/notifications/email', async (req, res) => {
   try {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
@@ -877,16 +808,10 @@ async function upsertEmailNotification(req, res) {
 
     res.json({ ok: true, searchId, channel: 'email', destination: email, enabled: enabled ?? true });
   } catch (err) {
-    console.error('POST notifications/email failed:', err);
+    console.error('POST /searches/:id/notifications/email failed:', err);
     res.status(500).json({ error: 'Failed to save notification setting' });
   }
-}
-
-app.post('/searches/:id/notifications/email', upsertEmailNotification);
-app.post('/api/searches/:id/notifications/email', upsertEmailNotification);
-app.all('/searches/:id/notifications/email', methodNotAllowed(['POST']));
-app.all('/api/searches/:id/notifications/email', methodNotAllowed(['POST']));
-
+});
 
 
 
