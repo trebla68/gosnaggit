@@ -4,10 +4,10 @@
   "description": "GoSnaggit – hard-to-find item continual search app",
   "main": "index.js",
   "type": "commonjs",
-  "scripts": {
-    "start": "node app.js",
-    "worker": "node worker.js"
-  },
+"scripts": {
+  "start": "node app.js",
+  "worker": "node worker/worker.js"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trebla68/gosnaggit.git"
