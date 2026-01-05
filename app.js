@@ -9,6 +9,8 @@ const pool = require('./db');
 const { getEbayAppToken } = require('./services/ebayAuth');
 const { insertResults } = require('./services/resultsStore');
 const { sendEmail, buildAlertEmail } = require('./services/notifications');
+const { enqueueRefreshJobForSearch } = require('./services/jobs');
+
 
 
 const app = express();
@@ -571,7 +573,7 @@ app.all('/api/searches/:id/results', methodNotAllowed(['GET', 'POST']));
 
 
 // --------------------
-// Refresh (eBay live)
+// Refresh (enqueue only)
 // --------------------
 
 async function refreshSearchHandler(req, res) {
@@ -579,71 +581,25 @@ async function refreshSearchHandler(req, res) {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
 
-    const check = await pool.query('SELECT id, search_item, status FROM searches WHERE id = $1', [searchId]);
+    const check = await pool.query('SELECT id, status FROM searches WHERE id = $1', [searchId]);
     if (check.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
 
     if ((check.rows[0].status || '').toLowerCase() === 'deleted') {
       return res.status(400).json({ error: 'Cannot refresh a deleted search' });
     }
 
-    const q = (check.rows[0].search_item || '').trim();
-    if (!q) return res.status(400).json({ error: 'Search has no search_item to query eBay with' });
+    await enqueueRefreshJobForSearch(searchId);
 
-    const token = await getEbayAppToken();
-
-    const url = new URL('https://api.ebay.com/buy/browse/v1/item_summary/search');
-    url.searchParams.set('q', q);
-    url.searchParams.set('limit', '50');
-
-    const resp = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
-      },
-    });
-
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) return res.status(resp.status).json({ ok: false, ebayError: data });
-
-    const summaries = Array.isArray(data.itemSummaries) ? data.itemSummaries : [];
-
-    const normalized = summaries
-      .map((it) => {
-        const priceVal = it?.price?.value ?? null;
-        const currency = it?.price?.currency ?? 'USD';
-
-        return {
-          external_id: it?.itemId || it?.legacyItemId || it?.itemWebUrl || null,
-          title: it?.title || 'Untitled',
-          price: priceVal,
-          currency,
-          listing_url: it?.itemWebUrl || null,
-          image_url: it?.image?.imageUrl || null,
-          location: it?.itemLocation?.city || it?.itemLocation?.country || null,
-          condition: it?.condition || null,
-          seller_username: it?.seller?.username || null,
-          found_at: new Date().toISOString(),
-        };
-      })
-      .filter((r) => r.external_id && r.listing_url);
-
-    const { inserted } = await insertResults(pool, searchId, 'ebay', normalized);
-
-    res.json({
-      ok: true,
-      marketplace: 'ebay',
-      searchId,
-      query: q,
-      fetched: summaries.length,
-      inserted: inserted || 0,
-    });
+    res.json({ ok: true, enqueued: true, job_type: 'refresh', searchId });
   } catch (err) {
-    console.error('POST refresh failed:', err);
-    res.status(500).json({ error: 'Failed to refresh search' });
+    console.error('POST refresh enqueue failed:', err);
+    res.status(500).json({ error: 'Failed to enqueue refresh' });
   }
 }
 
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/dev/searches/:id/refresh', refreshSearchHandler);
+}
 app.post('/searches/:id/refresh', refreshSearchHandler);
 app.post('/api/searches/:id/refresh', refreshSearchHandler);
 app.all('/searches/:id/refresh', methodNotAllowed(['POST']));
