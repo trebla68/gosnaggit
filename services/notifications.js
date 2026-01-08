@@ -22,18 +22,30 @@ async function sendEmail({ to, subject, text }) {
   return { ok: true };
 }
 
-function buildAlertEmail({ searchId, alert }) {
-  const subject = `GoSnaggit: New listing found (Search ${searchId})`;
-  const lines = [
-    `A new listing matched Search ${searchId}:`,
-    '',
-    `Title: ${alert.title || '—'}`,
-    `Price: ${alert.price ? `${alert.price} ${alert.currency || ''}` : '—'}`,
-    `Marketplace: ${alert.marketplace || '—'}`,
-    `Link: ${alert.listing_url || '—'}`,
-    '',
-    `Alert ID: ${alert.alert_id}`,
-  ];
+/**
+ * Build ONE email that contains multiple alerts.
+ * This prevents "one email per listing" spam and scales better.
+ */
+function buildAlertEmail({ searchId, alerts }) {
+  const count = alerts.length;
+  const subject =
+    count === 1
+      ? `GoSnaggit: New listing found (Search ${searchId})`
+      : `GoSnaggit: ${count} new listings found (Search ${searchId})`;
+
+  const lines = [];
+  lines.push(`GoSnaggit found ${count} new listing${count === 1 ? '' : 's'} for Search ${searchId}:`);
+  lines.push('');
+
+  alerts.forEach((a, idx) => {
+    lines.push(`${idx + 1}) ${a.title || '—'}`);
+    lines.push(`   Price: ${a.price ? `${a.price} ${a.currency || ''}` : '—'}`);
+    lines.push(`   Marketplace: ${a.marketplace || '—'}`);
+    lines.push(`   Link: ${a.listing_url || '—'}`);
+    lines.push(`   Alert ID: ${a.alert_id}`);
+    lines.push('');
+  });
+
   return { subject, text: lines.join('\n') };
 }
 

@@ -10,7 +10,7 @@ const { getEbayAppToken } = require('./services/ebayAuth');
 const { insertResults } = require('./services/resultsStore');
 const { sendEmail, buildAlertEmail } = require('./services/notifications');
 const { enqueueRefreshJobForSearch } = require('./services/jobs');
-
+const { dispatchPendingAlertsForSearch } = require('./services/dispatchAlerts');
 
 
 const app = express();
@@ -597,13 +597,131 @@ async function refreshSearchHandler(req, res) {
   }
 }
 
+// --------------------
+// Refresh (enqueue only)
+// --------------------
+
+async function refreshSearchHandler(req, res) {
+  try {
+    const searchId = toInt(req.params.id);
+    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+
+    const check = await pool.query('SELECT id, status FROM searches WHERE id = $1', [searchId]);
+    if (check.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
+
+    if ((check.rows[0].status || '').toLowerCase() === 'deleted') {
+      return res.status(400).json({ error: 'Cannot refresh a deleted search' });
+    }
+
+    await enqueueRefreshJobForSearch(searchId);
+
+    res.json({ ok: true, enqueued: true, job_type: 'refresh', searchId });
+  } catch (err) {
+    console.error('POST refresh enqueue failed:', err);
+    res.status(500).json({ error: 'Failed to enqueue refresh' });
+  }
+}
+
+// Dev-only routes
 if (process.env.NODE_ENV !== 'production') {
   app.get('/dev/searches/:id/refresh', refreshSearchHandler);
+
+  // Dev: dispatch pending email alerts for a search
+  // Example: GET /dev/searches/2/dispatch-alerts?limit=25
+  app.get('/dev/searches/:id/dispatch-alerts', async (req, res) => {
+    try {
+      const searchId = parseInt(req.params.id, 10);
+      if (Number.isNaN(searchId)) return res.status(400).json({ error: 'Invalid search id' });
+
+      const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 25, 200));
+
+      // Pull enabled email destination for this search
+      const { rows } = await pool.query(
+        `
+        SELECT destination
+        FROM notification_settings
+        WHERE search_id = $1
+          AND channel = 'email'
+          AND is_enabled = TRUE
+          AND destination IS NOT NULL
+        LIMIT 1
+        `,
+        [searchId]
+      );
+
+      if (!rows || rows.length === 0) {
+        return res.status(400).json({
+          ok: false,
+          error: 'No enabled email notification setting found for this search',
+          search_id: searchId,
+        });
+      }
+
+      const toEmail = rows[0].destination;
+
+      const result = await dispatchPendingAlertsForSearch({
+        pool,
+        searchId,
+        toEmail,
+        limit,
+      });
+
+      return res.json({ ok: true, ...result });
+    } catch (err) {
+      console.error('GET /dev/searches/:id/dispatch-alerts failed:', err);
+
+      // Dev-only endpoint: include details to avoid "can't paste from terminal" issues
+      return res.status(500).json({
+        ok: false,
+        error: 'Failed to dispatch alerts',
+        details: err?.message || String(err),
+        stack: err?.stack || null,
+      });
+    }
+  });
+} // <-- IMPORTANT: dev-only block ends here
+
+// GET refresh info (does not enqueue; safe to call from browser)
+async function getRefreshInfo(req, res) {
+  try {
+    const searchId = toInt(req.params.id);
+    if (searchId === null) {
+      return res.status(400).json({ error: 'Invalid search id' });
+    }
+
+    const check = await pool.query(
+      'SELECT id, status FROM searches WHERE id = $1',
+      [searchId]
+    );
+
+    if (check.rowCount === 0) {
+      return res.status(404).json({ error: 'Search not found' });
+    }
+
+    res.json({
+      ok: true,
+      searchId,
+      status: check.rows[0].status,
+      note: 'GET does not enqueue. Use POST to request a refresh.',
+    });
+  } catch (err) {
+    console.error('GET refresh info failed:', err);
+    res.status(500).json({ error: 'Failed to load refresh info' });
+  }
 }
+
+
+app.get('/searches/:id/refresh', getRefreshInfo);
+app.get('/api/searches/:id/refresh', getRefreshInfo);
+
+
+// --------------------
+// Refresh (public API)
+// --------------------
 app.post('/searches/:id/refresh', refreshSearchHandler);
 app.post('/api/searches/:id/refresh', refreshSearchHandler);
-app.all('/searches/:id/refresh', methodNotAllowed(['POST']));
-app.all('/api/searches/:id/refresh', methodNotAllowed(['POST']));
+app.all('/searches/:id/refresh', methodNotAllowed(['GET', 'POST']));
+app.all('/api/searches/:id/refresh', methodNotAllowed(['GET', 'POST']));
 
 
 // --------------------
@@ -618,8 +736,7 @@ async function getSearchAlerts(req, res) {
     const offsetNum = clampInt(req.query.offset, { min: 0, max: 1_000_000, fallback: 0 });
 
     const statusRaw = req.query.status;
-    const statusParam =
-      statusRaw === undefined || statusRaw === '' ? null : String(statusRaw);
+    const statusParam = statusRaw === undefined || statusRaw === '' ? null : String(statusRaw);
 
     const sql = `
       SELECT
@@ -641,22 +758,16 @@ async function getSearchAlerts(req, res) {
       LIMIT $3 OFFSET $4
     `;
 
-    const { rows } = await pool.query(sql, [
-      searchId,
-      statusParam,
-      limitNum,
-      offsetNum,
-    ]);
-
+    const { rows } = await pool.query(sql, [searchId, statusParam, limitNum, offsetNum]);
     res.json(rows);
   } catch (err) {
     console.error('GET search alerts failed:', err);
     res.status(500).json({ error: 'Failed to fetch alerts' });
   }
 }
+
 app.get('/api/searches/:id/alerts', getSearchAlerts);
 app.get('/searches/:id/alerts', getSearchAlerts);
-
 app.all('/api/searches/:id/alerts', methodNotAllowed(['GET']));
 app.all('/searches/:id/alerts', methodNotAllowed(['GET']));
 
@@ -699,10 +810,8 @@ async function patchAlertStatus(req, res) {
 
 app.patch('/api/alerts/:alert_id/status', patchAlertStatus);
 app.patch('/alerts/:alert_id/status', patchAlertStatus);
-
 app.all('/api/alerts/:alert_id/status', methodNotAllowed(['PATCH']));
 app.all('/alerts/:alert_id/status', methodNotAllowed(['PATCH']));
-
 
 async function getSearchAlertsSummary(req, res) {
   try {
@@ -725,7 +834,6 @@ async function getSearchAlertsSummary(req, res) {
     }
 
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
-
     res.json({ ok: true, search_id: searchId, counts, total });
   } catch (err) {
     console.error('GET /searches/:id/alerts/summary failed:', err);
@@ -735,8 +843,6 @@ async function getSearchAlertsSummary(req, res) {
 
 app.get('/api/searches/:id/alerts/summary', getSearchAlertsSummary);
 app.get('/searches/:id/alerts/summary', getSearchAlertsSummary);
-
-// Block non-GET methods for both paths
 app.all('/api/searches/:id/alerts/summary', methodNotAllowed(['GET']));
 app.all('/searches/:id/alerts/summary', methodNotAllowed(['GET']));
 
@@ -770,7 +876,6 @@ app.post('/searches/:id/notifications/email', async (req, res) => {
 });
 
 
-
 // --------------------
 // 404 handler (keep last)
 // --------------------
@@ -782,6 +887,7 @@ app.use((req, res) => {
     path: req.originalUrl
   });
 });
+
 
 // --------------------
 // Start server (keep truly last)
