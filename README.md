@@ -1,2 +1,2 @@
 # gosnaggit
-GoSnaggit – hard-to-find item contimual search app
+GoSnaggit – hard-to-find item continual search app
