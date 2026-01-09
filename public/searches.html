@@ -118,7 +118,6 @@
       background-color: rgba(255, 179, 71, 0.10);
     }
 
-
     .title-block h1 {
       margin: 0 0 0.3rem;
       font-size: clamp(1.4rem, 1.9vw + 0.9rem, 1.9rem);
@@ -272,7 +271,6 @@
       animation: rowFadeIn 0.55s ease-out;
     }
 
-    /* If a row is both fading in and pulsing, delay the pulse slightly */
     .row-fade-in.row-pulse {
       animation: rowFadeIn 0.55s ease-out, rowPulse 1.2s ease-out;
       animation-delay: 0s, 0.2s;
@@ -308,18 +306,15 @@
       animation: flashFadeIn 0.6s ease-out;
     }
 
-    /* Button system (matches Home page) */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
       padding: 0.55rem 1.15rem;
-      /* dashboard-friendly */
       border-radius: 999px;
       border: none;
       font-size: 0.9rem;
-      /* dashboard-friendly */
       font-weight: 500;
       cursor: pointer;
       text-decoration: none;
@@ -519,6 +514,57 @@
         align-self: flex-start;
       }
     }
+
+    /* --- Tier controls (NEW) --- */
+    .tier-select {
+      border-radius: 999px;
+      padding: 3px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background-color: rgba(6, 8, 22, 0.95);
+      color: #e2e8f0;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .tier-select:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .tier-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(162, 167, 196, 0.9);
+    }
+
+    .tier-free .tier-dot {
+      background: rgba(162, 167, 196, 0.9);
+    }
+
+    .tier-pro .tier-dot {
+      background: rgba(255, 179, 71, 0.95);
+    }
+
+    .tier-power .tier-dot {
+      background: rgba(51, 209, 122, 0.95);
+    }
   </style>
 </head>
 
@@ -584,6 +630,7 @@
               <th>Item</th>
               <th>Location / Category</th>
               <th>Max price</th>
+              <th>Tier</th>
               <th>Status</th>
               <th>Created</th>
               <th>Actions</th>
@@ -625,9 +672,9 @@
 
     const duplicateInFlight = new Set();
     const deleteInFlight = new Set();
+    const tierInFlight = new Set();
     let pulseSearchId = null;
 
-    // Make the spinner + “busy” state obvious (tweak this if you want)
     const MIN_SPINNER_MS = 900;
 
     const tbody = document.getElementById('searches-tbody');
@@ -702,6 +749,43 @@
       return { minWait, stop };
     }
 
+    // --- Tier helpers (NEW) ---
+    function normalizeTier(t) {
+      const v = String(t || 'free').toLowerCase();
+      if (v === 'power') return 'power';
+      if (v === 'pro') return 'pro';
+      return 'free';
+    }
+
+    function tierLabel(tier) {
+      const t = normalizeTier(tier);
+      if (t === 'power') return 'Power';
+      if (t === 'pro') return 'Pro';
+      return 'Free';
+    }
+
+    function tierBadgeHTML(tier) {
+      const t = normalizeTier(tier);
+      return `<span class="tier-badge tier-${t}"><span class="tier-dot" aria-hidden="true"></span>${tierLabel(t)}</span>`;
+    }
+
+    async function setSearchTier(searchId, tier) {
+      const res = await fetch(`/api/searches/${searchId}/tier`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier })
+      });
+
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+      if (!res.ok || data?.ok === false) {
+        throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
     newSearchBtn.addEventListener('click', () => {
       window.location.href = '/search.html';
     });
@@ -747,12 +831,12 @@
       if (allSearches.length === 0) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 7;
+        td.colSpan = 8;
         td.className = 'empty-state';
         td.innerHTML = `
-    <strong>No saved searches yet.</strong><br>
-    Create your first hunt from <a href="/search.html">New search</a>.
-  `;
+          <strong>No saved searches yet.</strong><br>
+          Create your first hunt from <a href="/search.html">New search</a>.
+        `;
         tr.appendChild(td);
         tbody.appendChild(tr);
 
@@ -762,7 +846,6 @@
         nextBtn.disabled = true;
         return;
       }
-
 
       const startIndex = (page - 1) * pageSize;
       const endIndex = Math.min(startIndex + pageSize, allSearches.length);
@@ -795,6 +878,19 @@
         priceTd.textContent = search.max_price ? `$${Number(search.max_price).toFixed(2)}` : '—';
         tr.appendChild(priceTd);
 
+        // --- Tier column (NEW) ---
+        const tierTd = document.createElement('td');
+        const currentTier = normalizeTier(search.plan_tier || 'free');
+        tierTd.innerHTML = `
+          <select class="tier-select" data-search-id="${search.id}">
+            <option value="free" ${currentTier === 'free' ? 'selected' : ''}>Free</option>
+            <option value="pro" ${currentTier === 'pro' ? 'selected' : ''}>Pro</option>
+            <option value="power" ${currentTier === 'power' ? 'selected' : ''}>Power</option>
+          </select>
+          ${tierBadgeHTML(currentTier)}
+        `;
+        tr.appendChild(tierTd);
+
         const statusTd = document.createElement('td');
         statusTd.appendChild(formatStatusPill(search.status || 'unknown'));
         tr.appendChild(statusTd);
@@ -826,6 +922,7 @@
         editLink.textContent = 'Edit';
         editLink.href = `/edit-search.html?id=${search.id}`;
         editLink.title = 'Edit this search';
+
         const refreshLink = document.createElement('a');
         refreshLink.textContent = 'Refresh';
         refreshLink.href = '#';
@@ -954,11 +1051,41 @@
       }
     });
 
+    // --- Tier dropdown handler (NEW) ---
+    document.addEventListener('change', async (e) => {
+      const sel = e.target.closest('.tier-select');
+      if (!sel) return;
+
+      const searchId = sel.getAttribute('data-search-id');
+      const tier = normalizeTier(sel.value);
+
+      if (!searchId) return;
+      if (tierInFlight.has(searchId)) return;
+      tierInFlight.add(searchId);
+
+      const prevValue = sel.value;
+      sel.disabled = true;
+      setFlash(`Updating tier → ${tierLabel(tier)}…`);
+
+      try {
+        await setSearchTier(searchId, tier);
+        await reloadSearches();
+        setFlash(`Tier updated → ${tierLabel(tier)}.`, 'success');
+      } catch (err) {
+        console.error(err);
+        sel.value = prevValue;
+        setFlash('Error updating tier: ' + (err.message || String(err)), 'error');
+      } finally {
+        sel.disabled = false;
+        tierInFlight.delete(searchId);
+      }
+    });
+
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('.js-refresh');
       if (!btn) return;
 
-      e.preventDefault(); // ✅ only prevent default for Refresh clicks
+      e.preventDefault();
 
       const id = btn.dataset.id;
       if (!id) return;
@@ -988,8 +1115,6 @@
       }
     });
 
-
-
     async function reloadSearches() {
       try {
         const res = await fetch('/api/searches');
@@ -1003,7 +1128,7 @@
         tbody.innerHTML = '';
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 7;
+        td.colSpan = 8;
         td.textContent = 'Could not load searches right now. Please refresh.';
 
         tr.appendChild(td);

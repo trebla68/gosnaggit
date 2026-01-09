@@ -13,6 +13,8 @@ const { sendEmail, buildAlertEmail } = require('./services/notifications');
 const { enqueueRefreshJobForSearch } = require('./services/jobs');
 const { dispatchPendingAlertsForSearch } = require('./services/dispatchAlerts');
 const { setTierAndReschedule } = require('./services/schedule');   // ← add this line
+const { normalizeTier, maxSearchesForTier } = require('./services/tiers');
+
 
 
 
@@ -491,18 +493,58 @@ app.patch('/api/searches/:id/tier', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Invalid search id' });
     }
 
-    const tier = req.body?.tier;
-    if (!tier) {
+    const tierRaw = req.body?.tier;
+    if (!tierRaw) {
       return res.status(400).json({ ok: false, error: 'Missing tier' });
     }
 
-    const updatedTier = await setTierAndReschedule(searchId, tier);
+    const requested = normalizeTier(tierRaw);
+
+    // --- recommended robustness block (NEW) ---
+    const cur = await pool.query('SELECT plan_tier, status FROM searches WHERE id = $1', [searchId]);
+    if (cur.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'Search not found' });
+    }
+
+    if (String(cur.rows[0].status || '').toLowerCase() === 'deleted') {
+      return res.status(400).json({ ok: false, error: 'Cannot change tier for a deleted search' });
+    }
+
+    const current = normalizeTier(cur.rows[0].plan_tier);
+    if (current === requested) {
+      // no change; never block due to cap
+      return res.json({ ok: true, search_id: searchId, plan_tier: current });
+    }
+    // --- end robustness block ---
+
+    const cap = maxSearchesForTier(requested);
+
+    const countRes = await pool.query(
+      `SELECT COUNT(*)::int AS n
+       FROM searches
+       WHERE status <> 'deleted'
+         AND plan_tier = $1`,
+      [requested]
+    );
+
+    const n = countRes.rows?.[0]?.n ?? 0;
+
+    if (n >= cap) {
+      return res.status(403).json({
+        ok: false,
+        error: `Tier limit reached for ${requested.toUpperCase()}. Max ${cap} saved searches on this tier.`
+      });
+    }
+
+    const updatedTier = await setTierAndReschedule(searchId, requested);
     res.json({ ok: true, search_id: searchId, plan_tier: updatedTier });
   } catch (e) {
     console.error('PATCH /api/searches/:id/tier failed:', e);
     res.status(500).json({ ok: false, error: 'Failed to update tier' });
   }
 });
+
+
 
 app.patch('/searches/:id/tier', async (req, res) => {
   try {
@@ -511,12 +553,49 @@ app.patch('/searches/:id/tier', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Invalid search id' });
     }
 
-    const tier = req.body?.tier;
-    if (!tier) {
+    const tierRaw = req.body?.tier;
+    if (!tierRaw) {
       return res.status(400).json({ ok: false, error: 'Missing tier' });
     }
 
-    const updatedTier = await setTierAndReschedule(searchId, tier);
+    const requested = normalizeTier(tierRaw);
+
+    // --- recommended robustness block (NEW) ---
+    const cur = await pool.query('SELECT plan_tier, status FROM searches WHERE id = $1', [searchId]);
+    if (cur.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'Search not found' });
+    }
+
+    if (String(cur.rows[0].status || '').toLowerCase() === 'deleted') {
+      return res.status(400).json({ ok: false, error: 'Cannot change tier for a deleted search' });
+    }
+
+    const current = normalizeTier(cur.rows[0].plan_tier);
+    if (current === requested) {
+      return res.json({ ok: true, search_id: searchId, plan_tier: current });
+    }
+    // --- end robustness block ---
+
+    const cap = maxSearchesForTier(requested);
+
+    const countRes = await pool.query(
+      `SELECT COUNT(*)::int AS n
+       FROM searches
+       WHERE status <> 'deleted'
+         AND plan_tier = $1`,
+      [requested]
+    );
+
+    const n = countRes.rows?.[0]?.n ?? 0;
+
+    if (n >= cap) {
+      return res.status(403).json({
+        ok: false,
+        error: `Tier limit reached for ${requested.toUpperCase()}. Max ${cap} saved searches on this tier.`
+      });
+    }
+
+    const updatedTier = await setTierAndReschedule(searchId, requested);
     res.json({ ok: true, search_id: searchId, plan_tier: updatedTier });
   } catch (e) {
     console.error('PATCH /searches/:id/tier failed:', e);
@@ -897,6 +976,8 @@ app.patch('/api/alerts/:alert_id/status', patchAlertStatus);
 app.patch('/alerts/:alert_id/status', patchAlertStatus);
 app.all('/api/alerts/:alert_id/status', methodNotAllowed(['PATCH']));
 app.all('/alerts/:alert_id/status', methodNotAllowed(['PATCH']));
+app.all('/api/searches/:id/tier', methodNotAllowed(['PATCH']));
+app.all('/searches/:id/tier', methodNotAllowed(['PATCH']));
 
 async function getSearchAlertsSummary(req, res) {
   try {

@@ -19,8 +19,19 @@ function dispatchIntervalMinutesForTier(_tier) {
     return 5;
 }
 
+// Tier limits (MVP defaults)
+function maxSearchesForTier(tier) {
+    const t = normalizeTier(tier);
+    if (t === 'power') return 100;
+    if (t === 'pro') return 25;
+    return 5; // free
+}
+
+
 module.exports = {
     normalizeTier,
     refreshIntervalMinutesForTier,
     dispatchIntervalMinutesForTier,
+    maxSearchesForTier,
 };
+
