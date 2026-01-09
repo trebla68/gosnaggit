@@ -1,6 +1,7 @@
 // services/jobs.js
 const crypto = require("crypto");
 const pool = require("../db");
+const { bumpNextRefreshAt } = require("./schedule");
 
 function workerId() {
   const host = process.env.HOSTNAME || "local";
@@ -31,19 +32,20 @@ async function ensureDispatchJobExists() {
 }
 
 async function enqueueRefreshJobsFromActiveSearches() {
-  // Create refresh jobs on a schedule, not "NOW()" every tick.
-  // Only enqueue if there is NO queued/running refresh job
-  // AND there has NOT been a recent succeeded refresh.
-  //
-  // Tune this interval as you like (e.g., 10 minutes).
-  const refreshIntervalMinutes = Number(process.env.REFRESH_INTERVAL_MINUTES || 10);
+  // Tiered scheduling:
+  // - Only enqueue refresh jobs for searches that are DUE (next_refresh_at <= NOW()).
+  // - Avoid duplicates: do not enqueue if queued/running refresh already exists.
+  // - After enqueueing, bump next_refresh_at forward based on plan_tier.
 
-  await pool.query(
+  const batchLimit = Number(process.env.REFRESH_DUE_BATCH_LIMIT || 25);
+
+  // 1) Find due searches that don't already have a queued/running refresh job
+  const { rows: due } = await pool.query(
     `
-    INSERT INTO jobs (job_type, search_id, status, run_at)
-    SELECT 'refresh', s.id, 'queued', NOW()
+    SELECT s.id, s.plan_tier
     FROM searches s
     WHERE s.status = 'active'
+      AND COALESCE(s.next_refresh_at, NOW()) <= NOW()
       AND NOT EXISTS (
         SELECT 1
         FROM jobs j
@@ -51,18 +53,37 @@ async function enqueueRefreshJobsFromActiveSearches() {
           AND j.search_id = s.id
           AND j.status IN ('queued', 'running')
       )
-      AND NOT EXISTS (
-        SELECT 1
-        FROM jobs j2
-        WHERE j2.job_type = 'refresh'
-          AND j2.search_id = s.id
-          AND j2.status = 'succeeded'
-          AND j2.finished_at >= NOW() - ( ($1::text || ' minutes')::interval )
-      )
+    ORDER BY COALESCE(s.next_refresh_at, NOW()) ASC, s.id ASC
+    LIMIT $1
     `,
-    [String(refreshIntervalMinutes)]
+    [batchLimit]
   );
+
+  if (!due.length) return;
+
+  // 2) Enqueue jobs + bump schedule
+  // (Leader lock means only one worker runs, but we still keep it safe & simple.)
+  for (const s of due) {
+    await pool.query(
+      `
+      INSERT INTO jobs (job_type, search_id, status, run_at)
+      SELECT 'refresh', $1, 'queued', NOW()
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM jobs
+        WHERE job_type='refresh'
+          AND search_id=$1
+          AND status IN ('queued','running')
+      )
+      `,
+      [s.id]
+    );
+
+    // Move the schedule forward so it won't enqueue again next tick
+    await bumpNextRefreshAt(s.id, s.plan_tier);
+  }
 }
+
 
 
 async function enqueueRefreshJobForSearch(searchId) {

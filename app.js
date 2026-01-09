@@ -12,6 +12,8 @@ const { createNewListingAlert } = require('./services/alerts');
 const { sendEmail, buildAlertEmail } = require('./services/notifications');
 const { enqueueRefreshJobForSearch } = require('./services/jobs');
 const { dispatchPendingAlertsForSearch } = require('./services/dispatchAlerts');
+const { setTierAndReschedule } = require('./services/schedule');   // ← add this line
+
 
 
 const app = express();
@@ -476,6 +478,49 @@ app.patch('/api/searches/:id/status', async (req, res) => {
   } catch (err) {
     console.error('PATCH /api/searches/:id/status failed:', err);
     res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+// --------------------
+// Search tier (Free / Pro / Power)
+// --------------------
+app.patch('/api/searches/:id/tier', async (req, res) => {
+  try {
+    const searchId = toInt(req.params.id);
+    if (searchId === null) {
+      return res.status(400).json({ ok: false, error: 'Invalid search id' });
+    }
+
+    const tier = req.body?.tier;
+    if (!tier) {
+      return res.status(400).json({ ok: false, error: 'Missing tier' });
+    }
+
+    const updatedTier = await setTierAndReschedule(searchId, tier);
+    res.json({ ok: true, search_id: searchId, plan_tier: updatedTier });
+  } catch (e) {
+    console.error('PATCH /api/searches/:id/tier failed:', e);
+    res.status(500).json({ ok: false, error: 'Failed to update tier' });
+  }
+});
+
+app.patch('/searches/:id/tier', async (req, res) => {
+  try {
+    const searchId = toInt(req.params.id);
+    if (searchId === null) {
+      return res.status(400).json({ ok: false, error: 'Invalid search id' });
+    }
+
+    const tier = req.body?.tier;
+    if (!tier) {
+      return res.status(400).json({ ok: false, error: 'Missing tier' });
+    }
+
+    const updatedTier = await setTierAndReschedule(searchId, tier);
+    res.json({ ok: true, search_id: searchId, plan_tier: updatedTier });
+  } catch (e) {
+    console.error('PATCH /searches/:id/tier failed:', e);
+    res.status(500).json({ ok: false, error: 'Failed to update tier' });
   }
 });
 

@@ -430,450 +430,307 @@
     </div>
 
     <script>
-        // ===== helpers =====
-        function toInt(v) {
-            const n = parseInt(v, 10);
-            return Number.isFinite(n) ? n : null;
+        // -----------------------------------------
+        // GoSnaggit Alerts UI Controller (TABLE + CHIPS)
+        // Works with your existing HTML structure.
+        // -----------------------------------------
+
+        const qs = new URLSearchParams(window.location.search);
+        const searchId = qs.get("search_id") || qs.get("id");
+        if (!searchId) alert("Missing search_id in URL. Example: search-alerts.html?search_id=2");
+
+        // UI state
+        let currentStatus = "pending"; // pending | sent | dismissed | error | all
+        let limit = 5;                 // match your UI label default
+        let offset = 0;                // pagination offset
+
+        // Helpers
+        function $(sel) { return document.querySelector(sel); }
+        function esc(s) {
+            return String(s ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;");
         }
 
-        function fmtMoney(price, currency) {
-            if (price == null || price === '') return '—';
-            const num = Number(price);
-            if (!Number.isFinite(num)) return String(price);
-            const cur = currency || 'USD';
-            try {
-                return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(num);
-            } catch {
-                return num.toFixed(2) + ' ' + cur;
+        function showFlash(kind, msg) {
+            const el = $("#flash");
+            if (!el) return;
+            el.className = "flash" + (kind ? ` ${kind}` : "");
+            el.textContent = msg || "";
+            el.style.display = msg ? "block" : "none";
+        }
+
+        function setSubtitle() {
+            const el = $("#subtitle");
+            if (el) el.textContent = `Alerts (Search ${searchId})`;
+            const sid = $("#searchId");
+            if (sid) sid.textContent = searchId;
+        }
+
+        function buildAlertsUrl() {
+            const base = `/api/searches/${searchId}/alerts?limit=${limit}&offset=${offset}`;
+            if (currentStatus && currentStatus !== "all") return `${base}&status=${encodeURIComponent(currentStatus)}`;
+            return base;
+        }
+
+        async function fetchJSON(url, options) {
+            const res = await fetch(url, options);
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); } catch { data = { raw: text }; }
+            if (!res.ok) {
+                const msg = data?.error || data?.message || `HTTP ${res.status}`;
+                throw new Error(msg);
             }
+            return data;
         }
 
-        function fmtDate(iso) {
-            if (!iso) return '—';
-            const d = new Date(iso);
-            if (Number.isNaN(d.getTime())) return iso;
-            return d.toLocaleString();
-        }
-
-        function pill(status) {
-            const s = (status || '').toLowerCase();
-            const el = document.createElement('span');
-            el.className = 'pill ' + (s || '');
-            const dot = document.createElement('span');
-            dot.className = 'dot';
-            el.appendChild(dot);
-            const txt = document.createElement('span');
-            txt.textContent = s || '—';
-            el.appendChild(txt);
-            return el;
-        }
-
-        function setFlash(msg, kind) {
-            const el = document.getElementById('flash');
-            if (!msg) {
-                el.style.display = 'none';
-                el.className = 'flash';
-                el.textContent = '';
-                return;
-            }
-            el.style.display = 'block';
-            el.className = 'flash ' + (kind || '');
-            el.textContent = msg;
-        }
-
-        function getUrl() {
-            // IMPORTANT: avoids "url.searchParams is undefined"
-            return new URL(window.location.href);
-        }
-
-        // ===== state =====
-        const LIMIT = 5;
-
-        const subtitleEl = document.getElementById('subtitle');
-        const searchIdEl = document.getElementById('searchId');
-        const summaryLineEl = document.getElementById('summaryLine');
-        const rangeLineEl = document.getElementById('rangeLine');
-        const tbody = document.getElementById('tbody');
-        const emptyEl = document.getElementById('empty');
-        const chipsWrap = document.getElementById('chips');
-
-        const refreshBtn = document.getElementById('refreshBtn');
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const pageLabel = document.getElementById('pageLabel');
-        const limitLabel = document.getElementById('limitLabel');
-        limitLabel.textContent = String(LIMIT);
-
-        const backToDetail = document.getElementById('backToDetail');
-
-        // Pull search id from URL: ?id=2  OR  ?search_id=2
-        const url0 = getUrl();
-        const searchId = toInt(url0.searchParams.get('id')) ?? toInt(url0.searchParams.get('search_id'));
-
-        // Default filter = All (no status param means "All")
-        const allowedStatuses = ['', 'pending', 'sent', 'dismissed', 'error'];
-        let currentStatus = (url0.searchParams.get('status') || '').toLowerCase();
-        if (!allowedStatuses.includes(currentStatus)) currentStatus = '';
-
-        let offset = toInt(url0.searchParams.get('offset')) ?? 0;
-        if (offset < 0) offset = 0;
-
-        let summaryCounts = { pending: 0, sent: 0, dismissed: 0, error: 0 };
-        let totalAll = 0;
-        let lastRowsLength = 0;
-
-        // chips data (labels)
-        const chipDefs = [
-            { status: '', label: 'All' },
-            { status: 'pending', label: 'Pending' },
-            { status: 'sent', label: 'Sent' },
-            { status: 'dismissed', label: 'Dismissed' },
-            { status: 'error', label: 'Error' }
-        ];
-
-        // ===== URL sync helpers =====
-        function writeUrlState() {
-            const u = getUrl();
-            // keep id/search_id as-is, only update status/offset
-            if (currentStatus === '') u.searchParams.delete('status');
-            else u.searchParams.set('status', currentStatus);
-
-            if (!offset) u.searchParams.delete('offset');
-            else u.searchParams.set('offset', String(offset));
-
-            history.replaceState(null, '', u.toString());
-        }
-
-        function setActiveChip(status) {
-            const chips = chipsWrap.querySelectorAll('.chip');
-            chips.forEach(ch => ch.classList.toggle('active', ch.dataset.status === status));
-        }
-
-        function totalForCurrentFilter() {
-            if (!currentStatus) return totalAll;
-            return Number(summaryCounts[currentStatus] || 0);
-        }
-
-        function updatePagerUi() {
-            const total = totalForCurrentFilter();
-
-            const canPrev = offset > 0;
-            const canNext = (offset + lastRowsLength) < total;
-
-            prevBtn.disabled = !canPrev;
-            nextBtn.disabled = !canNext;
-
-            const pageNum = total === 0 ? 0 : Math.floor(offset / LIMIT) + 1;
-            const pageCount = total === 0 ? 0 : Math.max(1, Math.ceil(total / LIMIT));
-            pageLabel.textContent = `Page ${pageNum} of ${pageCount}`;
-
-            if (total === 0) {
-                rangeLineEl.textContent = 'Showing 0 of 0';
-            } else {
-                const start = offset + 1;
-                const end = Math.min(offset + lastRowsLength, total);
-                rangeLineEl.textContent = `Showing ${start}-${end} of ${total}`;
-            }
-        }
-
-        // ===== API calls =====
+        // ----------------------------
+        // API calls
+        // ----------------------------
         async function loadSummary() {
-            const res = await fetch(`/api/searches/${searchId}/alerts/summary`);
-            if (!res.ok) throw new Error(`Summary failed (${res.status})`);
-            const data = await res.json();
-
-            summaryCounts = data.counts || { pending: 0, sent: 0, dismissed: 0, error: 0 };
-            totalAll = Number(data.total || 0);
-
-            summaryLineEl.textContent =
-                `Counts: pending ${summaryCounts.pending || 0}, sent ${summaryCounts.sent || 0}, dismissed ${summaryCounts.dismissed || 0}, error ${summaryCounts.error || 0}, total ${totalAll}`;
-
-            renderChips(); // update chip counts
+            return fetchJSON(`/api/searches/${searchId}/alerts/summary`);
         }
 
         async function loadAlerts() {
-            const qs = new URLSearchParams();
-            if (currentStatus) qs.set('status', currentStatus);
-            qs.set('limit', String(LIMIT));
-            qs.set('offset', String(offset));
-
-            const res = await fetch(`/api/searches/${searchId}/alerts?` + qs.toString());
-            if (!res.ok) throw new Error(`Alerts failed (${res.status})`);
-            const rows = await res.json();
-
-            lastRowsLength = Array.isArray(rows) ? rows.length : 0;
-            renderRows(Array.isArray(rows) ? rows : []);
-            updatePagerUi();
+            const url = buildAlertsUrl();
+            return fetchJSON(url);
         }
 
         async function patchAlertStatus(alertId, status) {
-            const res = await fetch(`/api/alerts/${alertId}/status`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+            return fetchJSON(`/api/alerts/${alertId}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status })
             });
-
-            // Your server sometimes returns HTML error pages; handle both JSON and text.
-            const ct = (res.headers.get('content-type') || '').toLowerCase();
-            if (!res.ok) {
-                if (ct.includes('application/json')) {
-                    const j = await res.json().catch(() => ({}));
-                    throw new Error(j.error || `PATCH failed (${res.status})`);
-                } else {
-                    const t = await res.text().catch(() => '');
-                    throw new Error(t ? t : `PATCH failed (${res.status})`);
-                }
-            }
-
-            if (ct.includes('application/json')) return res.json();
-            return res.text();
         }
 
-        // ===== render =====
-        function renderChips() {
-            chipsWrap.innerHTML = '';
-            for (const c of chipDefs) {
-                const el = document.createElement('div');
-                el.className = 'chip';
-                el.dataset.status = c.status;
-
-                const label = document.createElement('span');
-                label.textContent = c.label;
-                el.appendChild(label);
-
-                const count = document.createElement('span');
-                count.className = 'count';
-                let n = 0;
-                if (c.status === '') n = totalAll;
-                else n = Number(summaryCounts[c.status] || 0);
-                count.textContent = String(n);
-                el.appendChild(count);
-
-                el.addEventListener('click', async () => {
-                    currentStatus = c.status;      // '' means All
-                    offset = 0;                    // reset to first page
-                    setActiveChip(currentStatus);
-                    writeUrlState();
-                    await refreshAll();
-                });
-
-                chipsWrap.appendChild(el);
-            }
-            setActiveChip(currentStatus);
+        async function dispatchAlertsDev(sendLimit = 25) {
+            return fetchJSON(`/dev/searches/${searchId}/dispatch-alerts?limit=${sendLimit}`);
         }
 
-        function renderRows(rows) {
-            tbody.innerHTML = '';
-            emptyEl.style.display = rows.length ? 'none' : 'block';
+        // ----------------------------
+        // Render chips + table
+        // ----------------------------
+        function renderChips(counts) {
+            const chips = $("#chips");
+            if (!chips) return;
 
-            for (const a of rows) {
-                const tr = document.createElement('tr');
+            const pending = counts?.pending ?? 0;
+            const sent = counts?.sent ?? 0;
+            const dismissed = counts?.dismissed ?? 0;
+            const error = counts?.error ?? 0;
+            const total = counts?.total ?? (pending + sent + dismissed + error);
 
-                // ID
-                const tdId = document.createElement('td');
-                tdId.textContent = a.alert_id ?? '—';
-                tr.appendChild(tdId);
+            const items = [
+                { key: "pending", label: "Pending", count: pending },
+                { key: "sent", label: "Sent", count: sent },
+                { key: "dismissed", label: "Dismissed", count: dismissed },
+                { key: "error", label: "Error", count: error },
+                { key: "all", label: "All", count: total },
+            ];
 
-                // Status
-                const tdStatus = document.createElement('td');
-                tdStatus.appendChild(pill(a.status));
-                tr.appendChild(tdStatus);
-
-                // Title
-                const tdTitle = document.createElement('td');
-                tdTitle.textContent = a.title || '—';
-                const sub = document.createElement('span');
-                sub.className = 'sub';
-                sub.textContent = (a.marketplace || '—') + (a.external_id ? (' • ' + a.external_id) : '');
-                tdTitle.appendChild(sub);
-                tr.appendChild(tdTitle);
-
-                // Price
-                const tdPrice = document.createElement('td');
-                tdPrice.textContent = fmtMoney(a.price, a.currency);
-                tr.appendChild(tdPrice);
-
-                // Listing link
-                const tdLink = document.createElement('td');
-                if (a.listing_url) {
-                    const link = document.createElement('a');
-                    link.href = a.listing_url;
-                    link.target = '_blank';
-                    link.rel = 'noreferrer';
-                    link.textContent = 'Open listing';
-                    link.style.color = 'rgba(255,179,71,1)';
-                    link.style.textDecoration = 'none';
-                    link.addEventListener('mouseover', () => link.style.textDecoration = 'underline');
-                    link.addEventListener('mouseout', () => link.style.textDecoration = 'none');
-                    tdLink.appendChild(link);
-                } else {
-                    tdLink.textContent = '—';
-                }
-                tr.appendChild(tdLink);
-
-                // Created
-                const tdCreated = document.createElement('td');
-                tdCreated.textContent = fmtDate(a.alert_created_at);
-                tr.appendChild(tdCreated);
-
-                // Actions
-                const tdActions = document.createElement('td');
-                const wrap = document.createElement('div');
-                wrap.className = 'actions';
-
-                const status = (a.status || '').toLowerCase();
-                const alertId = a.alert_id;
-
-                // Dismiss button (only show when not dismissed)
-                if (status !== 'dismissed') {
-                    const dismissBtn = document.createElement('button');
-                    dismissBtn.className = 'action-btn danger';
-                    dismissBtn.type = 'button';
-                    dismissBtn.textContent = 'Dismiss';
-                    dismissBtn.addEventListener('click', async () => {
-                        try {
-                            dismissBtn.disabled = true;
-                            setFlash('', '');
-                            await patchAlertStatus(alertId, 'dismissed');
-                            setFlash(`Alert ${alertId} dismissed`, 'ok');
-                            await refreshAllKeepPageIfPossible();
-                        } catch (e) {
-                            setFlash('Error: ' + e.message, 'bad');
-                        } finally {
-                            dismissBtn.disabled = false;
-                        }
-                    });
-                    wrap.appendChild(dismissBtn);
-                }
-
-                // Re-open button (only show when dismissed)
-                if (status === 'dismissed') {
-                    const reopenBtn = document.createElement('button');
-                    reopenBtn.className = 'action-btn';
-                    reopenBtn.type = 'button';
-                    reopenBtn.textContent = 'Re-open';
-                    reopenBtn.addEventListener('click', async () => {
-                        try {
-                            reopenBtn.disabled = true;
-                            setFlash('', '');
-                            await patchAlertStatus(alertId, 'pending');
-                            setFlash(`Alert ${alertId} re-opened (pending)`, 'ok');
-                            await refreshAllKeepPageIfPossible();
-                        } catch (e) {
-                            setFlash('Error: ' + e.message, 'bad');
-                        } finally {
-                            reopenBtn.disabled = false;
-                        }
-                    });
-                    wrap.appendChild(reopenBtn);
-                }
-
-                // If neither button was added (edge case), show —
-                if (wrap.children.length === 0) {
-                    const span = document.createElement('span');
-                    span.className = 'mini';
-                    span.textContent = '—';
-                    wrap.appendChild(span);
-                }
-
-                tdActions.appendChild(wrap);
-                tr.appendChild(tdActions);
-
-                tbody.appendChild(tr);
-            }
+            chips.innerHTML = items.map(it => `
+      <div class="chip ${it.key === currentStatus ? "active" : ""}" data-chip="${it.key}">
+        ${esc(it.label)} <span class="count">(${it.count})</span>
+      </div>
+    `).join("");
         }
 
-        // ===== refresh flows =====
+        function renderSummaryLine(counts) {
+            const el = $("#summaryLine");
+            if (!el) return;
+
+            const p = counts?.pending ?? 0;
+            const s = counts?.sent ?? 0;
+            const d = counts?.dismissed ?? 0;
+            const e = counts?.error ?? 0;
+            const t = counts?.total ?? (p + s + d + e);
+
+            el.textContent = `Counts: pending ${p} • sent ${s} • dismissed ${d} • error ${e} • total ${t}`;
+        }
+
+        function renderPagerLabel() {
+            const pageLabel = $("#pageLabel");
+            const limitLabel = $("#limitLabel");
+            if (limitLabel) limitLabel.textContent = String(limit);
+
+            const page = Math.floor(offset / limit) + 1;
+            if (pageLabel) pageLabel.textContent = `Page ${page}`;
+        }
+
+        function pillClass(status) {
+            const s = String(status || "").toLowerCase();
+            if (s === "pending") return "pending";
+            if (s === "sent") return "sent";
+            if (s === "dismissed") return "dismissed";
+            if (s === "error") return "error";
+            return "";
+        }
+
+        function renderTable(rows) {
+            const tbody = $("#tbody");
+            const empty = $("#empty");
+            if (!tbody) return;
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                tbody.innerHTML = "";
+                if (empty) empty.style.display = "block";
+                if ($("#rangeLine")) $("#rangeLine").textContent = "Showing 0";
+                return;
+            }
+
+            if (empty) empty.style.display = "none";
+            if ($("#rangeLine")) $("#rangeLine").textContent = `Showing ${rows.length} (offset ${offset}, limit ${limit})`;
+
+            tbody.innerHTML = rows.map(a => {
+                const id = esc(a.alert_id);
+                const status = String(a.status || "").toLowerCase();
+                const statusPill = `
+        <span class="pill ${pillClass(status)}">
+          <span class="dot" aria-hidden="true"></span>${esc(status)}
+        </span>
+      `;
+
+                const title = esc(a.title);
+                const marketplace = esc(a.marketplace);
+                const ext = esc(a.external_id);
+                const price = esc(a.price);
+                const currency = esc(a.currency);
+                const url = esc(a.listing_url);
+                const created = esc(a.alert_created_at);
+
+                const toggleLabel = (status === "dismissed") ? "Reopen" : "Dismiss";
+                const nextStatus = (status === "dismissed") ? "pending" : "dismissed";
+
+                return `
+        <tr data-alert-id="${id}">
+          <td class="mono">${id}</td>
+          <td>${statusPill}</td>
+          <td>
+            ${title}
+            <span class="sub">(${marketplace}) <span class="mono">${ext}</span></span>
+          </td>
+          <td class="mono">${currency} ${price}</td>
+          <td><a class="btn" style="padding:6px 10px; border-radius:10px;" href="${url}" target="_blank" rel="noopener">Open</a></td>
+          <td class="mono">${created}</td>
+          <td>
+            <div class="actions">
+              <button class="action-btn" data-action="toggle" data-next="${esc(nextStatus)}">${toggleLabel}</button>
+            </div>
+          </td>
+        </tr>
+      `;
+            }).join("");
+        }
+
+        // ----------------------------
+        // Main refresh
+        // ----------------------------
         async function refreshAll() {
+            showFlash("", "");
+            renderPagerLabel();
+
             try {
-                setFlash('', '');
-                await loadSummary();
+                const summary = await loadSummary();
+                const counts = summary?.counts || {};
 
-                // If the current offset is beyond total (after status changes), clamp it.
-                const total = totalForCurrentFilter();
-                if (total === 0) offset = 0;
-                else if (offset >= total) offset = Math.max(0, (Math.ceil(total / LIMIT) - 1) * LIMIT);
+                renderChips(counts);
+                renderSummaryLine(counts);
 
-                writeUrlState();
-                await loadAlerts();
+                const rows = await loadAlerts();
+                renderTable(rows);
             } catch (e) {
-                console.error(e);
-                setFlash('Error: ' + e.message, 'bad');
+                showFlash("bad", e.message || String(e));
+                renderTable([]); // show empty + avoid stale table
             }
         }
 
-        async function refreshAllKeepPageIfPossible() {
-            // Same as refreshAll, but tries to keep you on a valid page even if counts change
-            await refreshAll();
-        }
+        // ----------------------------
+        // Events
+        // ----------------------------
+        document.addEventListener("click", async (e) => {
+            // chips
+            const chip = e.target.closest("[data-chip]");
+            if (chip) {
+                currentStatus = chip.getAttribute("data-chip");
+                offset = 0;
+                await refreshAll();
+                return;
+            }
 
-        // ===== events =====
-        refreshBtn.addEventListener('click', async () => {
-            await refreshAll();
-        });
+            // table actions
+            const btn = e.target.closest("button[data-action]");
+            if (btn) {
+                const tr = e.target.closest("tr[data-alert-id]");
+                const alertId = tr?.getAttribute("data-alert-id");
+                if (!alertId) return;
 
-        const sendNowBtn = document.getElementById('sendNowBtn');
-
-        sendNowBtn.addEventListener('click', async () => {
-            try {
-                // optional: disable button while sending
-                sendNowBtn.disabled = true;
-                sendNowBtn.textContent = 'Sending…';
-
-                const limit = 5; // you can change this later
-                const res = await fetch(`/dev/searches/${searchId}/dispatch-alerts?limit=${limit}`, { method: 'POST' });
-                const data = await res.json().catch(() => ({}));
-
-                if (!res.ok) {
-                    const msg = data?.error || `Dispatch failed (HTTP ${res.status})`;
-                    throw new Error(msg);
+                if (btn.dataset.action === "toggle") {
+                    const next = btn.getAttribute("data-next");
+                    try {
+                        btn.disabled = true;
+                        await patchAlertStatus(alertId, next);
+                        showFlash("ok", `Updated alert ${alertId} → ${next}`);
+                        await refreshAll();
+                    } catch (err) {
+                        showFlash("bad", err.message || String(err));
+                    } finally {
+                        btn.disabled = false;
+                    }
                 }
+                return;
+            }
 
-                // show what happened
-                setFlash(`Sent ${data.sent ?? 0} alert(s) to ${data.to || 'recipient'}.`, 'ok');
+            // refresh button
+            const refreshBtn = e.target.closest("#refreshBtn");
+            if (refreshBtn) {
+                offset = 0;
+                await refreshAll();
+                return;
+            }
 
-                // refresh the page data so statuses update
-                await loadSummary();
-                await loadAlerts();
-            } catch (e) {
-                console.error(e);
-                setFlash('Error: ' + e.message, 'bad');
-            } finally {
-                sendNowBtn.disabled = false;
-                sendNowBtn.textContent = 'Send now';
+            // send now button (dev)
+            const sendNowBtn = e.target.closest("#sendNowBtn");
+            if (sendNowBtn) {
+                try {
+                    sendNowBtn.disabled = true;
+                    const result = await dispatchAlertsDev(25);
+                    showFlash("ok", `Dispatch complete. sent=${result.sent} emailed=${result.emailed} error=${result.error}`);
+                    await refreshAll();
+                } catch (err) {
+                    showFlash("bad", err.message || String(err));
+                } finally {
+                    sendNowBtn.disabled = false;
+                }
+                return;
+            }
+
+            // pager
+            const prevBtn = e.target.closest("#prevBtn");
+            if (prevBtn) {
+                offset = Math.max(0, offset - limit);
+                await refreshAll();
+                return;
+            }
+
+            const nextBtn = e.target.closest("#nextBtn");
+            if (nextBtn) {
+                offset = offset + limit;
+                await refreshAll();
+                return;
             }
         });
 
-
-        prevBtn.addEventListener('click', async () => {
-            offset = Math.max(0, offset - LIMIT);
-            writeUrlState();
-            await refreshAll();
-        });
-
-        nextBtn.addEventListener('click', async () => {
-            offset = offset + LIMIT;
-            writeUrlState();
-            await refreshAll();
-        });
-
-        // ===== init =====
-        if (!searchId) {
-            searchIdEl.textContent = '—';
-            subtitleEl.textContent = 'Alerts (missing ?id=...)';
-            setFlash('Missing search id. Open this page from Saved Searches → Alerts.', 'bad');
-        } else {
-            searchIdEl.textContent = String(searchId);
-            subtitleEl.textContent = 'Alerts for Search ' + searchId;
-
-            // Make Search Detail button keep the same id
-            backToDetail.href = `search-detail.html?id=${searchId}`;
-
-            // Make sure URL has a consistent starting state (status + offset)
-            writeUrlState();
-            refreshAll();
-        }
+        // Init
+        setSubtitle();
+        renderPagerLabel();
+        refreshAll();
     </script>
+
+
 </body>
 
 </html>
