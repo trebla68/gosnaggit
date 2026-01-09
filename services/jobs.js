@@ -31,20 +31,39 @@ async function ensureDispatchJobExists() {
 }
 
 async function enqueueRefreshJobsFromActiveSearches() {
-  // Creates a refresh job for any active search that does not already have a queued/running refresh job.
-  await pool.query(`
+  // Create refresh jobs on a schedule, not "NOW()" every tick.
+  // Only enqueue if there is NO queued/running refresh job
+  // AND there has NOT been a recent succeeded refresh.
+  //
+  // Tune this interval as you like (e.g., 10 minutes).
+  const refreshIntervalMinutes = Number(process.env.REFRESH_INTERVAL_MINUTES || 10);
+
+  await pool.query(
+    `
     INSERT INTO jobs (job_type, search_id, status, run_at)
     SELECT 'refresh', s.id, 'queued', NOW()
     FROM searches s
     WHERE s.status = 'active'
       AND NOT EXISTS (
-        SELECT 1 FROM jobs j
-        WHERE j.job_type='refresh'
+        SELECT 1
+        FROM jobs j
+        WHERE j.job_type = 'refresh'
           AND j.search_id = s.id
-          AND j.status IN ('queued','running')
+          AND j.status IN ('queued', 'running')
       )
-  `);
+      AND NOT EXISTS (
+        SELECT 1
+        FROM jobs j2
+        WHERE j2.job_type = 'refresh'
+          AND j2.search_id = s.id
+          AND j2.status = 'succeeded'
+          AND j2.finished_at >= NOW() - ( ($1::text || ' minutes')::interval )
+      )
+    `,
+    [String(refreshIntervalMinutes)]
+  );
 }
+
 
 async function enqueueRefreshJobForSearch(searchId) {
   await pool.query(`
