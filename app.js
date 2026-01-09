@@ -8,6 +8,7 @@ const path = require('path');
 const pool = require('./db');
 const { getEbayAppToken } = require('./services/ebayAuth');
 const { insertResults } = require('./services/resultsStore');
+const { createNewListingAlert } = require('./services/alerts');
 const { sendEmail, buildAlertEmail } = require('./services/notifications');
 const { enqueueRefreshJobForSearch } = require('./services/jobs');
 const { dispatchPendingAlertsForSearch } = require('./services/dispatchAlerts');
@@ -183,6 +184,45 @@ if (process.env.NODE_ENV !== 'production') {
     } catch (err) {
       console.error('POST /dev/seed-results failed:', err);
       res.status(500).json({ error: 'Failed to seed results' });
+    }
+  });
+  // --------------------
+  // DEV: Seed alert_events from existing results for a search_id
+  // --------------------
+  app.post('/dev/seed-alerts', async (req, res) => {
+    try {
+      const searchId = toInt(req.query.search_id ?? req.body?.search_id);
+      if (searchId === null) return res.status(400).json({ error: 'Missing or invalid search_id' });
+
+      const limit = clampInt(req.query.limit ?? req.body?.limit, { min: 1, max: 200, fallback: 10 });
+
+      const r = await pool.query(
+        `
+      SELECT id, marketplace, external_id
+      FROM results
+      WHERE search_id = $1
+      ORDER BY found_at DESC NULLS LAST, id DESC
+      LIMIT $2
+      `,
+        [searchId, limit]
+      );
+
+      let inserted = 0;
+      for (const row of r.rows) {
+        const a = await createNewListingAlert({
+          pool,
+          searchId,
+          resultId: row.id,
+          marketplace: row.marketplace,
+          externalId: row.external_id,
+        });
+        if (a.inserted) inserted += 1;
+      }
+
+      res.json({ ok: true, searchId, considered: r.rowCount, inserted });
+    } catch (err) {
+      console.error('POST /dev/seed-alerts failed:', err);
+      res.status(500).json({ ok: false, error: 'Failed to seed alerts' });
     }
   });
 }
