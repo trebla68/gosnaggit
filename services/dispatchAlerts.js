@@ -5,22 +5,49 @@ const { sendEmail, buildAlertEmail } = require('./notifications');
 /**
  * Dispatch up to `limit` pending alerts for a single search, in ONE email.
  * Uses row-level locking to prevent double-sends if multiple dispatchers run.
+ *
+ * Tightened behavior:
+ * - Only picks pending alerts that have a result_id (prevents blank listings in emails)
+ * - Returns pending_before / pending_after for easier debugging
+ * - Updates are guarded with AND status='pending' for extra safety
  */
 async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit = 25 }) {
     if (!pool) throw new Error('dispatchPendingAlertsForSearch requires { pool }');
     if (!searchId) throw new Error('dispatchPendingAlertsForSearch requires { searchId }');
     if (!toEmail) throw new Error('dispatchPendingAlertsForSearch requires { toEmail }');
 
-    // We lock the chosen pending rows so concurrent dispatchers don't grab them too.
-    // This makes it safe for worker + dev triggers, or multiple workers in the future.
     const client = await pool.connect();
 
     try {
         await client.query('BEGIN');
 
-        // 1) Select and lock up to `limit` pending alerts for this search
+        // Snapshot pending count (useful for debugging/telemetry)
+        const { rows: beforeRows } = await client.query(
+            `
+      SELECT COUNT(*)::int AS pending_before
+      FROM alert_events
+      WHERE search_id = $1
+        AND status = 'pending'
+      `,
+            [searchId]
+        );
+        const pending_before = beforeRows[0]?.pending_before ?? 0;
+
+        // Pick + lock pending alert_events rows first (NO joins here),
+        // then join to results for email details.
+        // This avoids: "FOR UPDATE cannot be applied to the nullable side of an outer join"
         const { rows: pending } = await client.query(
             `
+      WITH picked AS (
+        SELECT ae.id
+        FROM alert_events ae
+        WHERE ae.search_id = $1
+          AND ae.status = 'pending'
+          AND ae.result_id IS NOT NULL
+        ORDER BY ae.created_at ASC, ae.id ASC
+        LIMIT $2
+        FOR UPDATE SKIP LOCKED
+      )
       SELECT
         ae.id AS alert_id,
         ae.search_id,
@@ -33,53 +60,82 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
         r.marketplace,
         r.external_id
       FROM alert_events ae
+      JOIN picked p ON p.id = ae.id
       LEFT JOIN results r ON r.id = ae.result_id
-      WHERE ae.search_id = $1
-        AND ae.status = 'pending'
       ORDER BY ae.created_at ASC, ae.id ASC
-      LIMIT $2
-      FOR UPDATE SKIP LOCKED
       `,
             [searchId, limit]
         );
 
         if (pending.length === 0) {
             await client.query('COMMIT');
-            return { search_id: searchId, to: toEmail, selected: 0, emailed: 0, sent: 0, error: 0 };
+            return {
+                search_id: searchId,
+                to: toEmail,
+                pending_before,
+                pending_after: pending_before,
+                selected: 0,
+                emailed: 0,
+                sent: 0,
+                error: 0,
+            };
         }
 
         // Collect ids once (we update in bulk)
         const alertIds = pending.map((a) => a.alert_id);
 
-        // 2) Build ONE email and send it (outside the DB mutation step, but still within tx)
-        // If this fails, we'll mark the whole batch as error.
+        // Build ONE email and send it
         const email = buildAlertEmail({ searchId, alerts: pending });
 
         try {
             await sendEmail({ to: toEmail, subject: email.subject, text: email.text });
 
-            // 3) Mark all selected as sent in ONE statement
+            // Mark all selected as sent in ONE statement (guarded)
             await client.query(
-                `UPDATE alert_events SET status = 'sent' WHERE id = ANY($1::int[])`,
+                `UPDATE alert_events SET status = 'sent' WHERE id = ANY($1::int[]) AND status = 'pending'`,
                 [alertIds]
             );
+
+            const { rows: afterRows } = await client.query(
+                `
+        SELECT COUNT(*)::int AS pending_after
+        FROM alert_events
+        WHERE search_id = $1
+          AND status = 'pending'
+        `,
+                [searchId]
+            );
+            const pending_after = afterRows[0]?.pending_after ?? 0;
 
             await client.query('COMMIT');
 
             return {
                 search_id: searchId,
                 to: toEmail,
+                pending_before,
+                pending_after,
                 selected: pending.length,
                 emailed: 1,
                 sent: pending.length,
                 error: 0,
             };
         } catch (e) {
-            // If email sending fails, mark the batch error (still safe + atomic)
+            // If email sending fails, mark the batch error (guarded)
             await client.query(
-                `UPDATE alert_events SET status = 'error' WHERE id = ANY($1::int[])`,
+                `UPDATE alert_events SET status = 'error' WHERE id = ANY($1::int[]) AND status = 'pending'`,
                 [alertIds]
             );
+
+            const { rows: afterRows } = await client.query(
+                `
+        SELECT COUNT(*)::int AS pending_after
+        FROM alert_events
+        WHERE search_id = $1
+          AND status = 'pending'
+        `,
+                [searchId]
+            );
+            const pending_after = afterRows[0]?.pending_after ?? 0;
 
             await client.query('COMMIT');
 
@@ -88,6 +144,8 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
             return {
                 search_id: searchId,
                 to: toEmail,
+                pending_before,
+                pending_after,
                 selected: pending.length,
                 emailed: 0,
                 sent: 0,
@@ -106,8 +164,10 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
     }
 }
 
+/**
+ * Dispatch pending alerts for every search that has an enabled email destination.
+ */
 async function dispatchAllEnabledEmailAlerts({ pool, limitPerSearch = 25 }) {
-    // Pull enabled email destinations for searches
     const { rows: settings } = await pool.query(
         `
     SELECT search_id, destination
