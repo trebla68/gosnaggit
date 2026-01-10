@@ -735,7 +735,6 @@ app.post('/api/searches/:id/results', postSearchResults);
 app.all('/searches/:id/results', methodNotAllowed(['GET', 'POST']));
 app.all('/api/searches/:id/results', methodNotAllowed(['GET', 'POST']));
 
-
 // --------------------
 // Refresh (enqueue only)
 // --------------------
@@ -991,13 +990,13 @@ app.all('/searches/:id/alerts/summary', methodNotAllowed(['GET']));
 // --------------------
 // Notifications (email) MVP
 // --------------------
-app.post('/searches/:id/notifications/email', async (req, res) => {
+async function notificationsEmailHandler(req, res) {
   try {
     const searchId = toInt(req.params.id);
-    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+    if (searchId === null) return res.status(400).json({ ok: false, error: 'Invalid search id' });
 
     const { email, enabled } = req.body || {};
-    if (!email) return res.status(400).json({ error: 'email is required' });
+    if (!email) return res.status(400).json({ ok: false, error: 'email is required' });
 
     await pool.query(
       `
@@ -1009,12 +1008,29 @@ app.post('/searches/:id/notifications/email', async (req, res) => {
       [searchId, email, enabled]
     );
 
-    res.json({ ok: true, searchId, channel: 'email', destination: email, enabled: enabled ?? true });
+    return res.json({
+      ok: true,
+      searchId,
+      channel: 'email',
+      destination: email,
+      enabled: enabled ?? true,
+    });
   } catch (err) {
-    console.error('POST /searches/:id/notifications/email failed:', err);
-    res.status(500).json({ error: 'Failed to save notification setting' });
+    console.error('POST notifications email failed:', err);
+    return res.status(500).json({ ok: false, error: 'Failed to save notification setting' });
   }
-});
+}
+
+// Existing route (keep)
+app.post('/searches/:id/notifications/email', notificationsEmailHandler);
+
+// NEW: API mirror route (add)
+app.post('/api/searches/:id/notifications/email', notificationsEmailHandler);
+
+// Guards MUST come after the real handlers
+app.all('/searches/:id/notifications/email', methodNotAllowed(['POST']));
+app.all('/api/searches/:id/notifications/email', methodNotAllowed(['POST']));
+
 
 
 // --------------------

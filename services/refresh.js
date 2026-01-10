@@ -18,14 +18,31 @@ async function refreshSearchNow({ searchId }) {
     if (status === 'deleted') {
         throw new Error('Cannot refresh a deleted search');
     }
+
+    // Always return the richer metrics object (even on early returns)
+    const zeroMetrics = {
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        inserted: 0,       // created + updated (back-compat meaning)
+        processed: 0,      // valid rows processed (had external_id + listing_url)
+        total_incoming: 0, // total raw items seen (items.length summed)
+    };
+
     if (status === 'paused') {
         return {
             ok: true,
             searchId,
             query: check.rows[0].search_item || '',
             fetched: 0,
+
+            // back-compat:
             inserted: 0,
             alertsInserted: 0,
+
+            // new metrics:
+            results: { ...zeroMetrics },
+
             note: 'Search is paused',
         };
     }
@@ -42,8 +59,14 @@ async function refreshSearchNow({ searchId }) {
             searchId,
             query: q,
             fetched: 0,
+
+            // back-compat:
             inserted: 0,
             alertsInserted: 0,
+
+            // new metrics:
+            results: { ...zeroMetrics },
+
             note: 'No listings found (or marketplaces unavailable)',
         };
     }
@@ -57,9 +80,17 @@ async function refreshSearchNow({ searchId }) {
         byMarketplace.get(mp).push(item);
     }
 
+    // Totals (existing/back-compat)
     let fetchedTotal = 0;
     let insertedTotal = 0;
     let alertsInsertedTotal = 0;
+
+    // Totals (new metrics)
+    let createdTotal = 0;
+    let updatedTotal = 0;
+    let skippedTotal = 0;
+    let processedTotal = 0;
+    let totalIncomingTotal = 0;
 
     // 4) Insert results + 5) Load ids + 6) Create alerts, per marketplace
     for (const [marketplace, items] of byMarketplace.entries()) {
@@ -78,16 +109,30 @@ async function refreshSearchNow({ searchId }) {
                 location: it.location || null,
                 condition: it.condition || null,
                 seller_username: it.seller_username || null,
-                found_at: new Date().toISOString(),
+                found_at: it.found_at ?? null,
+                raw: null,
             }))
             .filter((r) => r.external_id && r.listing_url);
 
+        // Track raw incoming for metrics (even if normalization drops some)
+        totalIncomingTotal += Array.isArray(items) ? items.length : 0;
+
         if (normalized.length === 0) continue;
 
-        // Insert results
+        // Insert/Upsert results (now returns richer metrics)
         const ins = await insertResults(pool, searchId, marketplace, normalized);
+
         const insertedCount = ins?.inserted || 0;
         insertedTotal += insertedCount;
+
+        createdTotal += ins?.created || 0;
+        updatedTotal += ins?.updated || 0;
+        skippedTotal += ins?.skipped || 0;
+        processedTotal += ins?.processed || 0;
+
+        // If you want total_incoming to reflect only what you passed to insertResults,
+        // uncomment the next line and remove the earlier totalIncomingTotal += items.length
+        // totalIncomingTotal += ins?.total_incoming || 0;
 
         // Load result ids for externals (so alerts always have result_id)
         const externals = normalized.map((r) => r.external_id);
@@ -120,7 +165,7 @@ async function refreshSearchNow({ searchId }) {
                 externalId: r.external_id,
             });
 
-            if (a.inserted) alertsInsertedTotal += 1;
+            if (a && a.inserted) alertsInsertedTotal += 1;
         }
     }
 
@@ -129,8 +174,20 @@ async function refreshSearchNow({ searchId }) {
         searchId,
         query: q,
         fetched: fetchedTotal,
+
+        // back-compat:
         inserted: insertedTotal,
         alertsInserted: alertsInsertedTotal,
+
+        // new metrics:
+        results: {
+            created: createdTotal,
+            updated: updatedTotal,
+            skipped: skippedTotal,
+            inserted: insertedTotal,      // created + updated (insertResults back-compat)
+            processed: processedTotal,    // valid rows processed by insertResults
+            total_incoming: totalIncomingTotal,
+        },
     };
 }
 
