@@ -761,31 +761,6 @@ async function refreshSearchHandler(req, res) {
   }
 }
 
-// --------------------
-// Refresh (enqueue only)
-// --------------------
-
-async function refreshSearchHandler(req, res) {
-  try {
-    const searchId = toInt(req.params.id);
-    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
-
-    const check = await pool.query('SELECT id, status FROM searches WHERE id = $1', [searchId]);
-    if (check.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
-
-    if ((check.rows[0].status || '').toLowerCase() === 'deleted') {
-      return res.status(400).json({ error: 'Cannot refresh a deleted search' });
-    }
-
-    await enqueueRefreshJobForSearch(searchId);
-
-    res.json({ ok: true, enqueued: true, job_type: 'refresh', searchId });
-  } catch (err) {
-    console.error('POST refresh enqueue failed:', err);
-    res.status(500).json({ error: 'Failed to enqueue refresh' });
-  }
-}
-
 // Dev-only routes
 if (process.env.NODE_ENV !== 'production') {
   app.get('/dev/searches/:id/refresh', refreshSearchHandler);
