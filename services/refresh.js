@@ -1,7 +1,7 @@
 // services/refresh.js
 
 const pool = require('../db');
-const { getEbayAppToken } = require('./ebayAuth');
+const { runMarketplaceSearches } = require('./marketplaces');
 const { insertResults } = require('./resultsStore');
 const { createNewListingAlert } = require('./alerts');
 
@@ -13,110 +13,124 @@ async function refreshSearchNow({ searchId }) {
     );
     if (check.rowCount === 0) throw new Error('Search not found');
 
-    if ((check.rows[0].status || '').toLowerCase() === 'deleted') {
+    const status = (check.rows[0].status || '').toLowerCase();
+
+    if (status === 'deleted') {
         throw new Error('Cannot refresh a deleted search');
     }
-    if ((check.rows[0].status || '').toLowerCase() === 'paused') {
-        return { ok: true, searchId, query: check.rows[0].search_item || '', fetched: 0, inserted: 0, alertsInserted: 0, note: 'Search is paused' };
+    if (status === 'paused') {
+        return {
+            ok: true,
+            searchId,
+            query: check.rows[0].search_item || '',
+            fetched: 0,
+            inserted: 0,
+            alertsInserted: 0,
+            note: 'Search is paused',
+        };
     }
 
     const q = (check.rows[0].search_item || '').trim();
-    if (!q) throw new Error('Search has no search_item to query eBay with');
+    if (!q) throw new Error('Search has no search_item to query');
 
-    // 2) Fetch from eBay
-    const token = await getEbayAppToken();
+    // 2) Fetch from marketplaces (fail-soft happens inside runMarketplaceSearches)
+    const listings = await runMarketplaceSearches(check.rows[0]);
 
-    const url = new URL('https://api.ebay.com/buy/browse/v1/item_summary/search');
-    url.searchParams.set('q', q);
-    url.searchParams.set('limit', '50');
-
-    const resp = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-            Authorization: `Bearer ${token}`,
-            'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
-        },
-    });
-
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) {
-        throw new Error(`eBay error ${resp.status}: ${JSON.stringify(data).slice(0, 500)}`);
-    }
-
-    const summaries = Array.isArray(data.itemSummaries) ? data.itemSummaries : [];
-
-    // 3) Normalize
-    const normalized = summaries
-        .map((it) => {
-            const priceVal = it?.price?.value ?? null;
-            const currency = it?.price?.currency ?? 'USD';
-            const externalId = it?.itemId || it?.legacyItemId || it?.itemWebUrl || null;
-
-            return {
-                external_id: externalId,
-                title: it?.title || 'Untitled',
-                price: priceVal,
-                currency,
-                listing_url: it?.itemWebUrl || null,
-                image_url: it?.image?.imageUrl || null,
-                location: it?.itemLocation?.city || it?.itemLocation?.country || null,
-                condition: it?.condition || null,
-                seller_username: it?.seller?.username || null,
-                found_at: new Date().toISOString(),
-            };
-        })
-        .filter((r) => r.external_id && r.listing_url);
-
-    // 4) Insert results
-    // IMPORTANT: we need a way to map external_id -> result row id so alerts can store result_id.
-    // Your resultsStore should return inserted rows or at least IDs. If it currently only returns a count,
-    // we follow up by selecting the matching result ids from the DB.
-    const ins = await insertResults(pool, searchId, 'ebay', normalized);
-    const insertedCount = ins?.inserted || 0;
-
-    // 5) Load result ids for these externals (so alerts always have result_id)
-    const externals = normalized.map((r) => r.external_id);
-
-    // If externals is empty, skip
-    let resultsByExternal = new Map();
-    if (externals.length > 0) {
-        const { rows: resultRows } = await pool.query(
-            `
-      SELECT id, external_id
-      FROM results
-      WHERE search_id = $1
-        AND marketplace = 'ebay'
-        AND external_id = ANY($2::text[])
-      `,
-            [searchId, externals]
-        );
-        resultsByExternal = new Map(resultRows.map((r) => [r.external_id, r.id]));
-    }
-
-    // 6) Create alerts (dedupe prevents duplicates)
-    let alertsInserted = 0;
-    for (const r of normalized) {
-        const resultId = resultsByExternal.get(r.external_id);
-        if (!resultId) continue; // Should be rare; but prevents NULL result_id forever.
-
-        const a = await createNewListingAlert({
-            pool,
+    if (!Array.isArray(listings) || listings.length === 0) {
+        return {
+            ok: true,
             searchId,
-            resultId,
-            marketplace: 'ebay',
-            externalId: r.external_id,
-        });
+            query: q,
+            fetched: 0,
+            inserted: 0,
+            alertsInserted: 0,
+            note: 'No listings found (or marketplaces unavailable)',
+        };
+    }
 
-        if (a.inserted) alertsInserted += 1;
+    // 3) Group listings by marketplace
+    const byMarketplace = new Map();
+    for (const item of listings) {
+        const mp = String(item.marketplace || '').toLowerCase().trim();
+        if (!mp) continue;
+        if (!byMarketplace.has(mp)) byMarketplace.set(mp, []);
+        byMarketplace.get(mp).push(item);
+    }
+
+    let fetchedTotal = 0;
+    let insertedTotal = 0;
+    let alertsInsertedTotal = 0;
+
+    // 4) Insert results + 5) Load ids + 6) Create alerts, per marketplace
+    for (const [marketplace, items] of byMarketplace.entries()) {
+        fetchedTotal += items.length;
+
+        const normalized = items
+            .map((it) => ({
+                external_id: it.external_id,
+                title: it.title || 'Untitled',
+                price: it.price ?? null,
+                currency: it.currency || 'USD',
+                listing_url: it.listing_url || null,
+
+                // optional extras
+                image_url: it.image_url || null,
+                location: it.location || null,
+                condition: it.condition || null,
+                seller_username: it.seller_username || null,
+                found_at: new Date().toISOString(),
+            }))
+            .filter((r) => r.external_id && r.listing_url);
+
+        if (normalized.length === 0) continue;
+
+        // Insert results
+        const ins = await insertResults(pool, searchId, marketplace, normalized);
+        const insertedCount = ins?.inserted || 0;
+        insertedTotal += insertedCount;
+
+        // Load result ids for externals (so alerts always have result_id)
+        const externals = normalized.map((r) => r.external_id);
+
+        let resultsByExternal = new Map();
+        if (externals.length > 0) {
+            const { rows: resultRows } = await pool.query(
+                `
+        SELECT id, external_id
+        FROM results
+        WHERE search_id = $1
+          AND marketplace = $2
+          AND external_id = ANY($3::text[])
+        `,
+                [searchId, marketplace, externals]
+            );
+            resultsByExternal = new Map(resultRows.map((r) => [r.external_id, r.id]));
+        }
+
+        // Create alerts (dedupe prevents duplicates)
+        for (const r of normalized) {
+            const resultId = resultsByExternal.get(r.external_id);
+            if (!resultId) continue;
+
+            const a = await createNewListingAlert({
+                pool,
+                searchId,
+                resultId,
+                marketplace,
+                externalId: r.external_id,
+            });
+
+            if (a.inserted) alertsInsertedTotal += 1;
+        }
     }
 
     return {
         ok: true,
         searchId,
         query: q,
-        fetched: summaries.length,
-        inserted: insertedCount,
-        alertsInserted,
+        fetched: fetchedTotal,
+        inserted: insertedTotal,
+        alertsInserted: alertsInsertedTotal,
     };
 }
 
