@@ -24,10 +24,15 @@ async function refreshSearchNow({ searchId }) {
         created: 0,
         updated: 0,
         skipped: 0,
-        inserted: 0,       // created + updated (back-compat meaning)
+
+        // NOTE: "inserted" is the historical/back-compat "touched" number (created + updated).
+        // We keep it inside results for compatibility, but we will NOT treat it as "new inserts".
+        inserted: 0,
+
         processed: 0,      // valid rows processed (had external_id + listing_url)
         total_incoming: 0, // total raw items seen (items.length summed)
     };
+
 
     if (status === 'paused') {
         return {
@@ -39,6 +44,9 @@ async function refreshSearchNow({ searchId }) {
             // back-compat:
             inserted: 0,
             alertsInserted: 0,
+            updated: 0,
+            skipped: 0,
+            touched: 0,
 
             // new metrics:
             results: { ...zeroMetrics },
@@ -62,7 +70,11 @@ async function refreshSearchNow({ searchId }) {
 
             // back-compat:
             inserted: 0,
+            updated: 0,
+            skipped: 0,
+            touched: 0,
             alertsInserted: 0,
+
 
             // new metrics:
             results: { ...zeroMetrics },
@@ -80,17 +92,19 @@ async function refreshSearchNow({ searchId }) {
         byMarketplace.get(mp).push(item);
     }
 
-    // Totals (existing/back-compat)
+    // Totals
     let fetchedTotal = 0;
-    let insertedTotal = 0;
     let alertsInsertedTotal = 0;
 
-    // Totals (new metrics)
+    // Truthful metrics
     let createdTotal = 0;
     let updatedTotal = 0;
     let skippedTotal = 0;
     let processedTotal = 0;
     let totalIncomingTotal = 0;
+
+    // Back-compat combined metric (created + updated)
+    let touchedTotal = 0;
 
     // 4) Insert results + 5) Load ids + 6) Create alerts, per marketplace
     for (const [marketplace, items] of byMarketplace.entries()) {
@@ -122,13 +136,13 @@ async function refreshSearchNow({ searchId }) {
         // Insert/Upsert results (now returns richer metrics)
         const ins = await insertResults(pool, searchId, marketplace, normalized);
 
-        const insertedCount = ins?.inserted || 0;
-        insertedTotal += insertedCount;
-
         createdTotal += ins?.created || 0;
         updatedTotal += ins?.updated || 0;
         skippedTotal += ins?.skipped || 0;
         processedTotal += ins?.processed || 0;
+
+        // Back-compat: created + updated
+        touchedTotal += (ins?.created || 0) + (ins?.updated || 0);
 
         // If you want total_incoming to reflect only what you passed to insertResults,
         // uncomment the next line and remove the earlier totalIncomingTotal += items.length
@@ -175,17 +189,20 @@ async function refreshSearchNow({ searchId }) {
         query: q,
         fetched: fetchedTotal,
 
-        // back-compat:
-        inserted: insertedTotal,
+        // Top-level (truthful + easy to read)
+        inserted: createdTotal,               // NEW rows only
+        updated: updatedTotal,                // changed rows
+        skipped: skippedTotal,                // unchanged rows
+        touched: touchedTotal,                // created + updated (old meaning)
         alertsInserted: alertsInsertedTotal,
 
-        // new metrics:
+        // Detailed metrics (kept for compatibility/debugging)
         results: {
             created: createdTotal,
             updated: updatedTotal,
             skipped: skippedTotal,
-            inserted: insertedTotal,      // created + updated (insertResults back-compat)
-            processed: processedTotal,    // valid rows processed by insertResults
+            inserted: touchedTotal,          // back-compat meaning: created + updated
+            processed: processedTotal,
             total_incoming: totalIncomingTotal,
         },
     };

@@ -498,7 +498,7 @@
       // Support BOTH styles:
       // - ?search_id=2 (current)
       // - ?id=2 (older links / your error text)
-      const search_id = params.get('search_id') || params.get('id');
+      const search_id = params.get('search_id') || params.get('searchId') || params.get('id');
 
       return {
         search_id,
@@ -737,7 +737,7 @@
 
     function updateUrl() {
       const params = new URLSearchParams(window.location.search);
-      params.set('search_id', searchId);
+      params.set('searchId', searchId);
       params.set('page', String(currentPage));
       const newUrl = window.location.pathname + '?' + params.toString();
       window.history.replaceState({}, '', newUrl);

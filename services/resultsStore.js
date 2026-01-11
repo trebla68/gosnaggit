@@ -41,9 +41,7 @@ async function upsertResultWithMetrics({
         image_url       = EXCLUDED.image_url,
         location        = EXCLUDED.location,
         condition       = EXCLUDED.condition,
-        seller_username = EXCLUDED.seller_username,
-        found_at        = EXCLUDED.found_at,
-        raw             = EXCLUDED.raw
+        seller_username = EXCLUDED.seller_username
       -- Prevent no-op updates so we can count "skipped"
       WHERE
         results.title           IS DISTINCT FROM EXCLUDED.title OR
@@ -53,9 +51,8 @@ async function upsertResultWithMetrics({
         results.image_url       IS DISTINCT FROM EXCLUDED.image_url OR
         results.location        IS DISTINCT FROM EXCLUDED.location OR
         results.condition       IS DISTINCT FROM EXCLUDED.condition OR
-        results.seller_username IS DISTINCT FROM EXCLUDED.seller_username OR
-        results.found_at        IS DISTINCT FROM EXCLUDED.found_at OR
-        results.raw             IS DISTINCT FROM EXCLUDED.raw
+        results.seller_username IS DISTINCT FROM EXCLUDED.seller_username
+
       RETURNING
         id,
         (xmax = 0) AS inserted
