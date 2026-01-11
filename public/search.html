@@ -439,13 +439,13 @@
       e.preventDefault();
       messageEl.style.display = 'none';
 
+      const maxPriceEl = document.getElementById('max_price');
+
       const payload = {
         search_item: document.getElementById('search_item').value.trim(),
         location: document.getElementById('location').value.trim() || null,
         category: document.getElementById('category').value.trim() || null,
-        max_price: document.getElementById('max_price').value
-          ? document.getElementById('max_price').value
-          : null
+        max_price: (maxPriceEl.value.trim() === '' ? null : Number(maxPriceEl.value)),
       };
 
       // ✅ Add this block
