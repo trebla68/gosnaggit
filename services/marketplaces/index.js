@@ -53,13 +53,15 @@ function logOnceEvery(name, ms, message) {
 async function safeRun(name, fn) {
     try {
         const out = await fn();
-        return Array.isArray(out) ? out : [];
+        const items = Array.isArray(out) ? out : [];
+        return { ok: true, items, error: null };
     } catch (err) {
         const msg = err && err.message ? err.message : String(err);
         console.warn(`[marketplaces] ${name} failed (fail-soft): ${msg}`);
-        return [];
+        return { ok: false, items: [], error: msg };
     }
 }
+
 
 // --------------------
 // Marketplace runner
@@ -67,81 +69,59 @@ async function safeRun(name, fn) {
 
 async function runMarketplaceSearches(search) {
     const results = [];
-    const ran = [];
-    const skipped = [];
+    const marketplaces = {};
 
-    // eBay: default ON unless explicitly disabled with MARKETPLACE_EBAY=false
-    const ebayEnabled = !isDisabledFalse('MARKETPLACE_EBAY');
-    if (ebayEnabled) {
-        const ebayResults = await safeRun('ebay', () => searchEbay(search));
-        results.push(...ebayResults);
-        ran.push('ebay');
+    // Per-search selection (DB column). If missing, treat as default.
+    const sel = (search && search.marketplaces && typeof search.marketplaces === 'object')
+        ? search.marketplaces
+        : { ebay: true, etsy: false, facebook: false, craigslist: false };
+
+    // Global env “hard off” switches still win
+    const envAllows = (key) => process.env[`MARKETPLACE_${key.toUpperCase()}`] !== 'false';
+    const want = (key) => !!sel[key];
+
+    // eBay
+    if (want('ebay') && envAllows('ebay')) {
+        const r = await safeRun('ebay', () => searchEbay(search));
+        results.push(...r.items);
+        marketplaces.ebay = { enabled: true, selected: true, ran: true, ok: r.ok, count: r.items.length, error: r.error };
     } else {
-        skipped.push('ebay(env)');
+        marketplaces.ebay = { enabled: envAllows('ebay'), selected: want('ebay'), ran: false, skipped: true };
     }
 
-    // Etsy: only ON when MARKETPLACE_ETSY=true
-    const etsyEnabled = boolEnv('MARKETPLACE_ETSY', false);
-    if (!etsyEnabled) {
-        skipped.push('etsy(env)');
-    } else if (inCooldown('etsy')) {
-        skipped.push('etsy(cooldown)');
+    // Etsy
+    if (want('etsy') && envAllows('etsy')) {
+        const r = await safeRun('etsy', () => searchEtsy(search));
+        results.push(...r.items);
+        marketplaces.etsy = { enabled: true, selected: true, ran: true, ok: r.ok, count: r.items.length, error: r.error };
     } else {
-        // Etsy is special: if it fails (common while key is pending), we cooldown for 30 minutes
-        try {
-            const etsyResults = await searchEtsy(search);
-            results.push(...(Array.isArray(etsyResults) ? etsyResults : []));
-            ran.push('etsy');
-        } catch (err) {
-            const msg = err && err.message ? err.message : String(err);
-            console.warn(`[marketplaces] etsy failed (fail-soft): ${msg}`);
-
-            // Cooldown: 30 minutes (reduces spam while key is unapproved)
-            setCooldown('etsy', 30 * 60 * 1000);
-
-            // Also log a friendlier line, but not more than once every 5 minutes
-            logOnceEvery(
-                'etsy',
-                5 * 60 * 1000,
-                `[marketplaces] etsy is in cooldown for 30m after failure (likely key pending/endpoint unavailable)`
-            );
-
-            skipped.push('etsy(failed→cooldown)');
-        }
+        marketplaces.etsy = { enabled: envAllows('etsy'), selected: want('etsy'), ran: false, skipped: true };
     }
 
-    // Facebook: only ON when MARKETPLACE_FACEBOOK=true (and module exists)
-    const fbEnabled = boolEnv('MARKETPLACE_FACEBOOK', false);
-    if (!fbEnabled) {
-        skipped.push('facebook(env)');
+    // Future placeholders
+    if (want('facebook') && envAllows('facebook')) {
+        marketplaces.facebook = { enabled: true, selected: true, ran: false, skipped: true, note: "not implemented" };
+        // const r = await safeRun('facebook', () => searchFacebook(search));
+        // results.push(...r.items);
+        // marketplaces.facebook = { enabled: true, selected: true, ran: true, ok: r.ok, count: r.items.length, error: r.error };
     } else {
-        // If you later add services/marketplaces/facebook.js, uncomment the require at top.
-        // const fbResults = await safeRun('facebook', () => searchFacebook(search));
-        // results.push(...fbResults);
-        // ran.push('facebook');
-        skipped.push('facebook(not-wired)');
+        marketplaces.facebook = { enabled: envAllows('facebook'), selected: want('facebook'), ran: false, skipped: true };
     }
 
-    // Craigslist: only ON when MARKETPLACE_CRAIGSLIST=true (and module exists)
-    const clEnabled = boolEnv('MARKETPLACE_CRAIGSLIST', false);
-    if (!clEnabled) {
-        skipped.push('craigslist(env)');
+    if (want('craigslist') && envAllows('craigslist')) {
+        marketplaces.craigslist = { enabled: true, selected: true, ran: false, skipped: true, note: "not implemented" };
+        // const r = await safeRun('craigslist', () => searchCraigslist(search));
+        // results.push(...r.items);
+        // marketplaces.craigslist = { enabled: true, selected: true, ran: true, ok: r.ok, count: r.items.length, error: r.error };
     } else {
-        // If you later add services/marketplaces/craigslist.js, uncomment the require at top.
-        // const clResults = await safeRun('craigslist', () => searchCraigslist(search));
-        // results.push(...clResults);
-        // ran.push('craigslist');
-        skipped.push('craigslist(not-wired)');
+        marketplaces.craigslist = { enabled: envAllows('craigslist'), selected: want('craigslist'), ran: false, skipped: true };
     }
 
-    // One summary line per refresh call
-    console.log(
-        `[marketplaces] ran=${ran.length ? ran.join(',') : 'none'} skipped=${skipped.length ? skipped.join(',') : 'none'} total=${results.length}`
-    );
-
-    return results;
+    return { results, marketplaces };
 }
 
+
 module.exports = {
-    runMarketplaceSearches,
+    runMarketplaceSearches
 };
+

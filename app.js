@@ -45,6 +45,26 @@ function clampInt(value, { min, max, fallback }) {
   return Math.max(min, Math.min(max, n));
 }
 
+function parseMoneyToNumber(v) {
+  if (v === undefined || v === null) return null;
+  const s = String(v).trim();
+  if (s === '') return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+
+function normalizeMarketplaces(input) {
+  const def = { ebay: true, etsy: false, facebook: false, craigslist: false };
+  if (!input || typeof input !== 'object') return def;
+
+  const out = { ...def };
+  for (const k of Object.keys(def)) {
+    if (k in input) out[k] = !!input[k];
+  }
+  return out;
+}
+
 function methodNotAllowed(allowed) {
   return (req, res) => {
     res.status(405).json({
@@ -237,27 +257,31 @@ if (process.env.NODE_ENV !== 'production') {
 async function createSearch(req, res) {
   try {
     const { search_item, location, category, max_price, status } = req.body || {};
+    const maxPriceNum = parseMoneyToNumber(max_price);
 
     if (!search_item || String(search_item).trim() === '') {
       return res.status(400).json({ error: 'search_item is required' });
     }
 
     const finalStatus = status ?? 'active';
+    const marketplaces = normalizeMarketplaces(req.body.marketplaces);
 
     const result = await pool.query(
       `
-      INSERT INTO searches (search_item, location, category, max_price, status)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-      `,
+  INSERT INTO searches (search_item, location, category, max_price, status, marketplaces)
+  VALUES ($1, $2, $3, $4, $5, $6)
+  RETURNING *
+  `,
       [
         String(search_item).trim(),
         location ?? null,
         category ?? null,
-        max_price ?? null,
-        finalStatus
+        maxPriceNum,
+        finalStatus,
+        marketplaces
       ]
     );
+
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -363,6 +387,9 @@ app.patch('/searches/:id', async (req, res) => {
     const { id } = req.params;
     const { search_item, location, category, max_price, status } = req.body || {};
 
+    const maxPriceNum = parseMoneyToNumber(max_price);
+
+
     if (!search_item || String(search_item).trim() === '') {
       return res.status(400).json({ error: 'search_item is required' });
     }
@@ -385,7 +412,7 @@ app.patch('/searches/:id', async (req, res) => {
       WHERE id = $6
       RETURNING *
       `,
-      [search_item, location || null, category || null, max_price ?? null, status || null, id]
+      [search_item, location || null, category || null, maxPriceNum, status || null, id]
     );
 
     if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
@@ -402,6 +429,9 @@ app.patch('/api/searches/:id', async (req, res) => {
     const { id } = req.params;
     const { search_item, location, category, max_price, status } = req.body || {};
 
+    const maxPriceNum = parseMoneyToNumber(max_price);
+
+
     if (!search_item || String(search_item).trim() === '') {
       return res.status(400).json({ error: 'search_item is required' });
     }
@@ -424,7 +454,7 @@ app.patch('/api/searches/:id', async (req, res) => {
       WHERE id = $6
       RETURNING *
       `,
-      [search_item, location || null, category || null, max_price ?? null, status || null, id]
+      [search_item, location || null, category || null, maxPriceNum, status || null, id]
     );
 
     if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
@@ -637,12 +667,12 @@ async function duplicateSearch(req, res) {
 
     const result = await pool.query(
       `
-      INSERT INTO searches (search_item, location, category, max_price, status)
-      SELECT search_item, location, category, max_price, status
-      FROM searches
-      WHERE id = $1
-      RETURNING *;
-      `,
+  INSERT INTO searches (search_item, location, category, max_price, status, marketplaces)
+  SELECT search_item, location, category, max_price, status, marketplaces
+  FROM searches
+  WHERE id = $1
+  RETURNING *;
+  `,
       [id]
     );
 

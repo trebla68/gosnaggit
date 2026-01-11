@@ -16,7 +16,7 @@ async function refreshSearchNow({ searchId }) {
     const status = (check.rows[0].status || '').toLowerCase();
 
     if (status === 'deleted') {
-        throw new Error('Cannot refresh a deleted search');
+        return { ok: true, skipped: true, reason: 'deleted' };
     }
 
     // Always return the richer metrics object (even on early returns)
@@ -59,7 +59,8 @@ async function refreshSearchNow({ searchId }) {
     if (!q) throw new Error('Search has no search_item to query');
 
     // 2) Fetch from marketplaces (fail-soft happens inside runMarketplaceSearches)
-    const listings = await runMarketplaceSearches(check.rows[0]);
+    const { results: listings, marketplaces } = await runMarketplaceSearches(check.rows[0]);
+
 
     if (!Array.isArray(listings) || listings.length === 0) {
         return {
@@ -75,13 +76,15 @@ async function refreshSearchNow({ searchId }) {
             touched: 0,
             alertsInserted: 0,
 
-
             // new metrics:
             results: { ...zeroMetrics },
+
+            marketplaces,
 
             note: 'No listings found (or marketplaces unavailable)',
         };
     }
+
 
     // 3) Group listings by marketplace
     const byMarketplace = new Map();
@@ -189,23 +192,26 @@ async function refreshSearchNow({ searchId }) {
         query: q,
         fetched: fetchedTotal,
 
+        marketplaces,
+
         // Top-level (truthful + easy to read)
-        inserted: createdTotal,               // NEW rows only
-        updated: updatedTotal,                // changed rows
-        skipped: skippedTotal,                // unchanged rows
-        touched: touchedTotal,                // created + updated (old meaning)
+        inserted: createdTotal,
+        updated: updatedTotal,
+        skipped: skippedTotal,
+        touched: touchedTotal,
         alertsInserted: alertsInsertedTotal,
 
-        // Detailed metrics (kept for compatibility/debugging)
+        // Detailed metrics
         results: {
             created: createdTotal,
             updated: updatedTotal,
             skipped: skippedTotal,
-            inserted: touchedTotal,          // back-compat meaning: created + updated
+            inserted: touchedTotal,
             processed: processedTotal,
             total_incoming: totalIncomingTotal,
         },
     };
+
 }
 
 module.exports = { refreshSearchNow };
