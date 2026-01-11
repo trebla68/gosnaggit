@@ -393,6 +393,21 @@
           <p class="field-hint">Set a rough cap so you can quickly see which finds are in range.</p>
           <input id="max_price" name="max_price" type="number" min="0" step="0.01" placeholder="e.g., 500">
 
+          <!-- Advanced options -->
+          <details class="advanced">
+            <summary>Advanced options</summary>
+
+            <div class="field">
+              <label>Marketplaces</label>
+              <div class="checkbox-row">
+                <label><input type="checkbox" id="mk_ebay" checked> eBay</label>
+                <label><input type="checkbox" id="mk_etsy"> Etsy</label>
+                <label><input type="checkbox" id="mk_facebook"> Facebook</label>
+                <label><input type="checkbox" id="mk_craigslist"> Craigslist</label>
+              </div>
+            </div>
+          </details>
+
           <div class="actions">
             <button type="submit" class="btn btn-primary">
               <span>Start search prototype</span>
@@ -431,6 +446,14 @@
         max_price: document.getElementById('max_price').value
           ? document.getElementById('max_price').value
           : null
+      };
+
+      // ✅ Add this block
+      payload.marketplaces = {
+        ebay: document.getElementById('mk_ebay')?.checked ?? true,
+        etsy: document.getElementById('mk_etsy')?.checked ?? false,
+        facebook: document.getElementById('mk_facebook')?.checked ?? false,
+        craigslist: document.getElementById('mk_craigslist')?.checked ?? false,
       };
 
       if (!payload.search_item) {
