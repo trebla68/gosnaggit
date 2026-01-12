@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <title>GoSnaggit – Create a Search</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
     :root {
       --bg: #0b1020;
@@ -326,6 +327,32 @@
       font-size: 0.76rem;
       color: var(--text-muted);
     }
+
+
+    .checkbox-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .badge.badge-soon {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-left: 6px;
+      opacity: 0.9;
+      border: 1px solid rgba(255, 179, 71, 0.35);
+      background: rgba(255, 179, 71, 0.12);
+    }
+
+    .help {
+      margin-top: 8px;
+      font-size: 13px;
+      opacity: 0.85;
+      color: var(--text-muted);
+    }
   </style>
 </head>
 
@@ -396,15 +423,23 @@
           <!-- Advanced options -->
           <details class="advanced">
             <summary>Advanced options</summary>
-
             <div class="field">
               <label>Marketplaces</label>
+
               <div class="checkbox-row">
                 <label><input type="checkbox" id="mk_ebay" checked> eBay</label>
-                <label><input type="checkbox" id="mk_etsy"> Etsy</label>
+
+                <label id="mk_etsy_wrap">
+                  <input type="checkbox" id="mk_etsy">
+                  <span id="mk_etsy_label">Etsy</span>
+                  <span class="badge badge-soon" id="mk_etsy_badge" style="display:none;">Coming soon</span>
+                </label>
+
                 <label><input type="checkbox" id="mk_facebook"> Facebook</label>
                 <label><input type="checkbox" id="mk_craigslist"> Craigslist</label>
               </div>
+
+              <div class="help" id="mk_help" style="display:none;"></div>
             </div>
           </details>
 
@@ -483,6 +518,7 @@
           messageEl.className = 'message success';
           messageEl.style.display = 'block';
           form.reset();
+          applyMarketplaceAvailability(); // re-apply disabled/coming-soon state after reset
         })
         .catch(err => {
           messageEl.textContent = 'Error creating search: ' + err.message;
@@ -494,6 +530,61 @@
     viewSearchesBtn.addEventListener('click', function () {
       window.location.href = '/searches.html';
     });
+
+    async function applyMarketplaceAvailability() {
+      const etsyWrap = document.getElementById('mk_etsy_wrap');
+      const etsyCb = document.getElementById('mk_etsy');
+      const etsyLabel = document.getElementById('mk_etsy_label');
+      const etsyBadge = document.getElementById('mk_etsy_badge');
+      const help = document.getElementById('mk_help');
+
+      if (!etsyCb) return;
+
+      try {
+        const r = await fetch('/api/config', { cache: 'no-store' });
+        const cfg = await r.json();
+
+        const etsyAvailable = !!(cfg && cfg.marketplaces && cfg.marketplaces.etsy && cfg.marketplaces.etsy.available);
+
+        if (!etsyAvailable) {
+          etsyCb.checked = false;
+          etsyCb.disabled = true;
+
+          if (etsyBadge) etsyBadge.style.display = 'inline-block';
+          if (etsyLabel) etsyLabel.textContent = 'Etsy';
+
+          if (help) {
+            help.style.display = 'block';
+            help.textContent = 'Etsy is coming soon. This build searches eBay only.';
+          }
+
+          if (etsyWrap) etsyWrap.title = 'Coming soon — not enabled in this build';
+        } else {
+          etsyCb.disabled = false;
+          if (etsyBadge) etsyBadge.style.display = 'none';
+          if (help) help.style.display = 'none';
+          if (etsyWrap) etsyWrap.title = '';
+        }
+      } catch (e) {
+        // Fail-safe: prevent confusion
+        etsyCb.checked = false;
+        etsyCb.disabled = true;
+
+        if (etsyBadge) etsyBadge.style.display = 'inline-block';
+        if (help) {
+          help.style.display = 'block';
+          help.textContent = 'Etsy is coming soon. This build searches eBay only.';
+        }
+        if (etsyWrap) etsyWrap.title = 'Coming soon — not enabled in this build';
+      }
+    }
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+      applyMarketplaceAvailability();
+    });
+
+
   </script>
 </body>
 

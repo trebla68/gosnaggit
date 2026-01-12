@@ -31,6 +31,22 @@ if (typeof fetch !== 'function') {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ✅ INSERT HERE
+// --------------------
+// Client config (marketplaces availability)
+// --------------------
+app.get('/api/config', (req, res) => {
+  const etsyEnabled = process.env.MARKETPLACE_ETSY === 'true';
+
+  res.json({
+    ok: true,
+    marketplaces: {
+      ebay: { available: true },
+      etsy: { available: etsyEnabled }
+    }
+  });
+});
+
 // --------------------
 // Helpers
 // --------------------
