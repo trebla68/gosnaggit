@@ -389,7 +389,7 @@
       cursor: default;
     }
 
-    #message {
+    .message {
       margin-top: 0.6rem;
       font-size: 0.8rem;
       color: var(--text-muted);
@@ -446,6 +446,26 @@
       color: var(--accent);
       font-size: 0.75rem;
       line-height: 1.3;
+    }
+
+    /* Empty state polish (wins over earlier empty-state rules) */
+    #empty-state.empty-state {
+      border: 1px dashed rgba(148, 163, 184, 0.25);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(6, 8, 22, 0.35);
+    }
+
+    #empty-state .empty-title {
+      font-weight: 650;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    #empty-state .empty-subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
     }
   </style>
 </head>
@@ -577,6 +597,20 @@
     const refreshBtn = document.getElementById('refresh-button');
     const messageEl = document.getElementById('message');
 
+    function setLoading(isLoading, label) {
+      if (isLoading) {
+        resultsMetaEl.textContent = label || 'Loading…';
+        refreshBtn.disabled = true;
+      } else {
+        refreshBtn.disabled = false;
+      }
+    }
+
+    function showEmpty(show) {
+      emptyStateEl.style.display = show ? 'block' : 'none';
+    }
+
+
     let currentPage = initialPage || 1;
     const limitPerPage = 6;
     let totalPages = 1;
@@ -635,9 +669,11 @@
     function loadResults() {
       if (!searchId) return;
 
-      resultsMetaEl.textContent = 'Loading results…';
+      setLoading(true, 'Loading results…');
       messageEl.textContent = '';
       messageEl.className = '';
+      resultsGrid.innerHTML = '';
+      showEmpty(false);
 
       const offset = (currentPage - 1) * limitPerPage;
 
@@ -668,6 +704,7 @@
             : 'No results yet — this hunt is ready and will populate as sources are checked.';
 
           resultsGrid.innerHTML = '';
+          setLoading(false);
 
           if (results.length === 0) {
             emptyStateEl.style.display = 'block';
@@ -742,11 +779,15 @@
 
       <div class="result-footer">
         <span>${location} • ${postedAt}</span>
-        <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
+        <div class="result-actions">
+          <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
+          <button type="button" class="copy-link" data-url="${url}">Copy link</button>
+        </div>
       </div>
     </div>
   </div>
 `;
+
 
 
               resultsGrid.appendChild(card);
@@ -757,15 +798,16 @@
           }
 
           // Update the simple page indicator
-          pageSummaryEl.textContent = `Page ${currentPage}`;
+          pageSummaryEl.textContent = `Page ${currentPage}${gotFullPage ? '+' : ''}`;
+          setLoading(false);
         })
         .catch(err => {
+          setLoading(false);
           resultsGrid.innerHTML = '';
           emptyStateEl.style.display = 'block';
 
-          resultsMetaEl.textContent = 'Results aren’t available right now.';
-          messageEl.textContent =
-            'Tip: if this search was deleted or the server was restarted, go back to Saved searches and open Results again.';
+          resultsMetaEl.textContent = 'Could not load results.';
+          messageEl.textContent = 'Please try again. If this keeps happening, restart the server.';
           messageEl.className = 'message-error';
 
           prevPageBtn.disabled = true;
@@ -780,12 +822,47 @@
       nextPageBtn.disabled = currentPage >= totalPages;
     }
 
+    resultsGrid.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.copy-link');
+      if (!btn) return;
+
+      const url = btn.getAttribute('data-url');
+      if (!url || url === '#') return;
+
+      try {
+        btn.disabled = true;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = url;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+
+        const old = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => (btn.textContent = old), 900);
+      } catch (err) {
+        const old = btn.textContent;
+        btn.textContent = 'Copy failed';
+        setTimeout(() => (btn.textContent = old), 1200);
+      } finally {
+        setTimeout(() => (btn.disabled = false), 300);
+      }
+    });
+
+
     prevPageBtn.addEventListener('click', function () {
       if (prevPageBtn.disabled) return;
 
       currentPage -= 1;
       loadResults();
       updateUrl();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
 
@@ -795,6 +872,7 @@
       currentPage += 1;
       loadResults();
       updateUrl();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
 
@@ -807,6 +885,8 @@
         if (!r.ok) throw new Error('Refresh failed');
 
         await loadSearchContext();
+        currentPage = 1;
+        updateUrl();
         await loadResults();
       } catch (e) {
         messageEl.textContent = e.message;
