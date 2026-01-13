@@ -317,10 +317,17 @@ async function getSearches(req, res) {
   try {
     const result = await pool.query(
       `
-      SELECT *
-      FROM searches
-      WHERE status IS NULL OR status <> 'deleted'
-      ORDER BY created_at DESC
+      SELECT
+        s.*,
+        r.last_found_at
+      FROM searches s
+      LEFT JOIN (
+        SELECT search_id, MAX(found_at) AS last_found_at
+        FROM results
+        GROUP BY search_id
+      ) r ON r.search_id = s.id
+      WHERE s.status IS NULL OR s.status <> 'deleted'
+      ORDER BY r.last_found_at DESC NULLS LAST, s.created_at DESC
       `
     );
     res.json(result.rows);
@@ -329,6 +336,7 @@ async function getSearches(req, res) {
     res.status(500).json({ error: 'Failed to fetch searches' });
   }
 }
+
 
 app.get('/api/searches', getSearches);
 app.get('/searches', getSearches); // keep old working for now
