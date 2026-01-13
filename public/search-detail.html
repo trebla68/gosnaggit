@@ -520,7 +520,7 @@
                 metaStatus.textContent = status;
                 metaMaxPrice.textContent = maxPrice;
 
-                viewResultsLink.href = '/search-results.html?id=' + encodeURIComponent(searchId);
+                viewResultsLink.href = '/search-results.html?search_id=' + encodeURIComponent(searchId);
                 editSearchLink.href = '/edit-search.html?id=' + encodeURIComponent(searchId);
 
                 setMessage('Loaded search details.', 'success');

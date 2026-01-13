@@ -910,12 +910,12 @@
 
         const resultsLink = document.createElement('a');
         resultsLink.textContent = 'Results';
-        resultsLink.href = `/search-results.html?id=${search.id}`;
+        resultsLink.href = `/search-results.html?search_id=${search.id}`;
         resultsLink.title = 'View results found for this search';
 
         const alertsLink = document.createElement('a');
         alertsLink.textContent = 'Alerts';
-        alertsLink.href = `/search-alerts.html?id=${search.id}`;
+        alertsLink.href = `/search-alerts.html?search_id=${search.id}`;
         alertsLink.title = 'View alerts for this search (pending/sent/dismissed/error)';
 
         const editLink = document.createElement('a');

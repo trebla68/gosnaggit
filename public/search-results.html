@@ -597,6 +597,27 @@
     const refreshBtn = document.getElementById('refresh-button');
     const messageEl = document.getElementById('message');
 
+    // --------------------
+    // Safety helpers (avoid accidental HTML/URL injection)
+    // --------------------
+    function escapeHtml(v) {
+      return String(v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function safeUrl(raw, fallback) {
+      const fb = fallback === undefined ? '#' : fallback;
+      const s = String(raw || '').trim();
+      if (!s) return fb;
+      // Allow only http(s) URLs (and tolerate protocol-relative)
+      if (/^https?:\/\//i.test(s) || /^\/\//.test(s)) return s;
+      return fb;
+    }
+
     function setLoading(isLoading, label) {
       if (isLoading) {
         resultsMetaEl.textContent = label || 'Loading…';
@@ -613,8 +634,8 @@
 
     let currentPage = initialPage || 1;
     const limitPerPage = 6;
-    let totalPages = 1;
-    let totalResults = 0;
+    // Note: backend does not currently return total count/pages.
+    // We use "gotFullPage" to decide if "Next" should be enabled.
 
     if (!searchId) {
       resultsMetaEl.textContent = 'No search selected.';
@@ -718,23 +739,23 @@
               const card = document.createElement('div');
               card.className = 'result-card';
 
-              const title = r.title || 'Listing';
-              const source = r.marketplace || 'Marketplace';
+              const titleRaw = r.title || 'Listing';
+              const sourceRaw = r.marketplace || 'Marketplace';
 
               const price =
                 r.price != null
                   ? `${r.currency ? r.currency + ' ' : '$'}${Number(r.price).toFixed(2)}`
                   : '—';
 
-              const condition = r.condition || 'Unknown';
-              const location = r.location || 'Online';
+              const conditionRaw = r.condition || 'Unknown';
+              const locationRaw = r.location || 'Online';
               const postedAt = r.found_at
                 ? new Date(r.found_at).toLocaleDateString()
                 : '—';
 
-              const url = r.listing_url || '#';
+              const url = safeUrl(r.listing_url || '#', '#');
 
-              const img = r.image_url || '';
+              const img = safeUrl(r.image_url || '', '');
               const mp = (r.marketplace || 'Marketplace').toString();
               const mpLabel = mp.charAt(0).toUpperCase() + mp.slice(1);
 
@@ -756,7 +777,11 @@
                 return `$${n.toFixed(2)}`;
               })();
 
-              const titleEsc = title; // keep as-is (you were already inserting title directly)
+              const titleEsc = escapeHtml(titleRaw);
+              const sourceEsc = escapeHtml(sourceRaw);
+              const conditionEsc = escapeHtml(conditionRaw);
+              const locationEsc = escapeHtml(locationRaw);
+              const mpLabelEsc = escapeHtml(mpLabel);
 
               card.innerHTML = `
   <div class="result-top">
@@ -768,17 +793,17 @@
       <div class="result-header">${titleEsc}</div>
 
       <div class="result-source-row">
-        <span class="mp-pill">${mpLabel}</span>
-        <span class="result-source">${source}</span>
+        <span class="mp-pill">${mpLabelEsc}</span>
+        <span class="result-source">${sourceEsc}</span>
       </div>
 
       <div class="result-price-row">
-        <span class="price-pill">${priceText}</span>
-        <span class="condition-pill">${condition}</span>
+        <span class="price-pill">${escapeHtml(priceText)}</span>
+        <span class="condition-pill">${conditionEsc}</span>
       </div>
 
       <div class="result-footer">
-        <span>${location} • ${postedAt}</span>
+        <span>${locationEsc} • ${escapeHtml(postedAt)}</span>
         <div class="result-actions">
           <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
           <button type="button" class="copy-link" data-url="${url}">Copy link</button>
@@ -815,12 +840,6 @@
         });
     }
 
-
-    function updatePagination() {
-      pageSummaryEl.textContent = `Page ${currentPage} of ${totalPages}`;
-      prevPageBtn.disabled = currentPage <= 1;
-      nextPageBtn.disabled = currentPage >= totalPages;
-    }
 
     resultsGrid.addEventListener('click', async (e) => {
       const btn = e.target.closest('.copy-link');
