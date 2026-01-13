@@ -377,10 +377,24 @@
       background-color: rgba(22, 30, 68, 0.9);
     }
 
-    .cell-sub {
-      display: block;
-      font-size: 0.72rem;
-      color: var(--text-muted);
+    .badge-new {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+
+      color: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 165, 0, 0.22);
+      border: 1px solid rgba(255, 165, 0, 0.55);
+
+      box-shadow: 0 0 14px rgba(255, 165, 0, 0.25);
+    }
+
+    .cell-main {
+      line-height: 1.2;
     }
 
     .status-pill {
@@ -632,6 +646,7 @@
               <th>Max price</th>
               <th>Tier</th>
               <th>Status</th>
+              <th>Last result</th>
               <th>Created</th>
               <th>Actions</th>
             </tr>
@@ -769,6 +784,26 @@
       return `<span class="tier-badge tier-${t}"><span class="tier-dot" aria-hidden="true"></span>${tierLabel(t)}</span>`;
     }
 
+    /* ---------- NEW helpers: "seen" tracking for NEW badge ---------- */
+
+    function getSeenKey(searchId) {
+      return `gosnaggit_seen_search_${searchId}`;
+    }
+
+    function getLastSeen(searchId) {
+      const v = localStorage.getItem(getSeenKey(searchId));
+      if (!v) return null;
+      const t = new Date(v).getTime();
+      return Number.isFinite(t) ? t : null;
+    }
+
+    function setLastSeen(searchId, isoString) {
+      if (!isoString) return;
+      localStorage.setItem(getSeenKey(searchId), isoString);
+    }
+
+    /* --------------------------------------------------------------- */
+
     async function setSearchTier(searchId, tier) {
       const res = await fetch(`/api/searches/${searchId}/tier`, {
         method: 'PATCH',
@@ -785,6 +820,7 @@
       }
       return data;
     }
+
 
     newSearchBtn.addEventListener('click', () => {
       window.location.href = '/search.html';
@@ -831,7 +867,7 @@
       if (allSearches.length === 0) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 8;
+        td.colSpan = 9;
         td.className = 'empty-state';
         td.innerHTML = `
           <strong>No saved searches yet.</strong><br>
@@ -895,6 +931,28 @@
         statusTd.appendChild(formatStatusPill(search.status || 'unknown'));
         tr.appendChild(statusTd);
 
+        // --- Last result column ---
+        const lastTd = document.createElement('td');
+
+        const lastText = formatDateTime(search.last_found_at);
+        const lastLine = lastText ? `Last result: ${lastText}` : 'No results yet';
+        const seenTs = getLastSeen(search.id);
+        const foundTs = search.last_found_at ? new Date(search.last_found_at).getTime() : null;
+
+        const isNewForYou = foundTs && (!seenTs || foundTs > seenTs);
+        const newBadge = isNewForYou
+          ? `<span class="badge-new" title="New since you last checked">NEW</span>`
+          : '';
+
+
+        lastTd.innerHTML =
+          '<div class="cell-meta">' +
+          '<div class="cell-main">' + escapeHtml(lastLine) + ' ' + newBadge + '</div>' +
+          '</div>';
+
+        tr.appendChild(lastTd);
+
+
         const createdTd = document.createElement('td');
         const createdDate = search.created_at ? new Date(search.created_at) : null;
         createdTd.textContent = createdDate ? createdDate.toLocaleString() : '—';
@@ -912,6 +970,9 @@
         resultsLink.textContent = 'Results';
         resultsLink.href = `/search-results.html?search_id=${search.id}`;
         resultsLink.title = 'View results found for this search';
+        resultsLink.addEventListener('click', () => {
+          setLastSeen(search.id, search.last_found_at);
+        });
 
         const alertsLink = document.createElement('a');
         alertsLink.textContent = 'Alerts';
@@ -1114,6 +1175,36 @@
         btn.textContent = oldText;
       }
     });
+
+    function formatDateTime(dt) {
+      if (!dt) return null;
+      const d = new Date(dt);
+      if (Number.isNaN(d.getTime())) return null;
+      return d.toLocaleString([], {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    }
+
+    function isRecent(dt, hours = 24) {
+      if (!dt) return false;
+      const t = new Date(dt).getTime();
+      if (!Number.isFinite(t)) return false;
+      return (Date.now() - t) <= hours * 60 * 60 * 1000;
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
 
     async function reloadSearches() {
       try {
