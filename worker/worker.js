@@ -22,9 +22,13 @@ const {
   finalizeJobSuccess,
   failJobAndRequeue,
   reaper,
+  rescheduleDispatchJob,
 } = require('../services/jobs');
 
+
 const { refreshSearchNow } = require('../services/refresh');
+const { dispatchAllEnabledEmailAlerts } = require('../services/dispatchAlerts');
+
 
 const WID = workerId();
 let shuttingDown = false;
@@ -111,6 +115,57 @@ async function processRefreshJobs() {
   }
 }
 
+async function processDispatchJobs() {
+  const leaseMinutes = 2;
+  const batchSize = 1;
+
+  const jobs = await claimJobs({ jobType: 'dispatch', batchSize, workerId: WID, leaseMinutes });
+
+  for (const job of jobs) {
+    if (shuttingDown) return;
+
+    // heartbeat to keep lease alive
+    let hbOk = true;
+    const hbIntervalMs = 30_000;
+    const hbTimer = setInterval(async () => {
+      try {
+        const ok = await heartbeatJob({ jobId: job.id, workerId: WID, extendMinutes: leaseMinutes });
+        if (!ok) hbOk = false;
+      } catch (_) {
+        hbOk = false;
+      }
+    }, hbIntervalMs);
+
+    try {
+      const limitPerSearch = envInt('DISPATCH_LIMIT_PER_SEARCH', 25);
+      const result = await dispatchAllEnabledEmailAlerts({ pool, limitPerSearch });
+
+      clearInterval(hbTimer);
+
+      if (!hbOk) {
+        log('job.lease_lost', { jobId: job.id });
+        continue;
+      }
+
+      const finalized = await finalizeJobSuccess({ jobId: job.id, workerId: WID, result });
+      if (!finalized) {
+        log('job.finalize_failed', { jobId: job.id });
+        continue;
+      }
+
+      // Keep the “one circulating dispatch job” behavior going
+      await rescheduleDispatchJob();
+      log('dispatch.ok', { jobId: job.id, ...result });
+    } catch (err) {
+      clearInterval(hbTimer);
+      const msg = err && err.message ? err.message : String(err);
+      await failJobAndRequeue({ job, workerId: WID, errorMessage: msg, retryCap: 10 });
+      log('dispatch.error', { jobId: job.id, error: msg });
+    }
+  }
+}
+
+
 async function main() {
   log('worker.start');
 
@@ -149,6 +204,8 @@ async function main() {
 
       // work the queue
       await processRefreshJobs();
+      await processDispatchJobs();
+
 
       // clean up expired leases
       await reaper({ workerId: WID, leaseMinutes: 2, scanLimit: 50 });
