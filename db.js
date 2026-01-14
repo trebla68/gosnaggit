@@ -11,4 +11,9 @@ const pool = new Pool({
   },
 });
 
+// Prevent worker crashes when Neon drops idle connections
+pool.on('error', (err) => {
+  console.error('[db] idle client error:', err && err.message ? err.message : err);
+});
+
 module.exports = pool;
