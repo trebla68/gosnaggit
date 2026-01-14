@@ -20,6 +20,43 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
 
     try {
         await client.query('BEGIN');
+        // --------------------
+        // Per-search cooldown guard (prevents email spam)
+        // --------------------
+        const cooldownSec = Number(process.env.DISPATCH_COOLDOWN_SECONDS || 300); // default 5 minutes
+        if (cooldownSec > 0) {
+            const { rows: cdRows } = await client.query(
+                `
+          SELECT
+            MAX(sent_at) AS last_sent_at,
+            EXTRACT(EPOCH FROM (NOW() - MAX(sent_at)))::int AS seconds_since_last_sent
+          FROM alert_events
+          WHERE search_id = $1
+            AND status = 'sent'
+            AND sent_at IS NOT NULL
+          `,
+                [searchId]
+            );
+
+            const secondsSince = cdRows && cdRows[0] ? cdRows[0].seconds_since_last_sent : null;
+
+            if (secondsSince !== null && secondsSince < cooldownSec) {
+                await client.query('ROLLBACK');
+                return {
+                    ok: true,
+                    search_id: searchId,
+                    selected: 0,
+                    emailed: 0,
+                    sent: 0,
+                    error: 0,
+                    skipped: true,
+                    reason: 'cooldown',
+                    seconds_since_last_sent: secondsSince,
+                    cooldown_seconds: cooldownSec,
+                };
+            }
+        }
+
 
         // Snapshot pending count (useful for debugging/telemetry)
         const { rows: beforeRows } = await client.query(
@@ -179,7 +216,8 @@ async function dispatchAllEnabledEmailAlerts({ pool, limitPerSearch = 25 }) {
     `
     );
 
-    const totals = { searches: 0, selected: 0, emailed: 0, sent: 0, error: 0 };
+    const totals = { searches: 0, selected: 0, emailed: 0, sent: 0, error: 0, skipped: 0, cooldown_skipped: 0 };
+
 
     for (const s of settings) {
         totals.searches += 1;
@@ -195,10 +233,17 @@ async function dispatchAllEnabledEmailAlerts({ pool, limitPerSearch = 25 }) {
         totals.emailed += r.emailed;
         totals.sent += r.sent;
         totals.error += r.error;
+
+        // Track skipped (cooldown) searches
+        if (r && r.skipped) {
+            totals.skipped += 1;
+            if (r.reason === 'cooldown') totals.cooldown_skipped += 1;
+        }
     }
 
     return totals;
 }
+
 
 module.exports = {
     dispatchPendingAlertsForSearch,
