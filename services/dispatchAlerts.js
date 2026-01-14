@@ -229,6 +229,16 @@ async function dispatchAllEnabledEmailAlerts({ pool, limitPerSearch = 25 }) {
             limit: limitPerSearch,
         });
 
+        // Log when a search is skipped (cooldown, etc)
+        if (r && r.skipped) {
+            console.log('[dispatch] skipped', {
+                search_id: s.search_id,
+                reason: r.reason,
+                seconds_since_last_sent: r.seconds_since_last_sent,
+                cooldown_seconds: r.cooldown_seconds,
+            });
+        }
+
         totals.selected += r.selected;
         totals.emailed += r.emailed;
         totals.sent += r.sent;
@@ -239,6 +249,7 @@ async function dispatchAllEnabledEmailAlerts({ pool, limitPerSearch = 25 }) {
             totals.skipped += 1;
             if (r.reason === 'cooldown') totals.cooldown_skipped += 1;
         }
+
     }
 
     return totals;
