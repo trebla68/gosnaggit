@@ -129,7 +129,7 @@ async function processDispatchJobs() {
     const hbIntervalMs = 30_000;
     const hbTimer = setInterval(async () => {
       try {
-        const ok = await heartbeatJob({ jobId: job.id, workerId: WID, extendMinutes: leaseMinutes });
+        const ok = await heartbeatJob({ jobId: job.id, workerId: WID, leaseMinutes });
         if (!ok) hbOk = false;
       } catch (_) {
         hbOk = false;

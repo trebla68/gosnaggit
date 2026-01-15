@@ -135,7 +135,10 @@ async function claimJobs({ jobType, batchSize, workerId, leaseMinutes }) {
   return rows;
 }
 
-async function heartbeatJob({ jobId, workerId, leaseMinutes }) {
+async function heartbeatJob({ jobId, workerId, leaseMinutes, extendMinutes }) {
+  const minutes = leaseMinutes ?? extendMinutes;
+  if (!Number.isFinite(Number(minutes))) return false;
+
   // Strict-mode heartbeat: only extend lease if still owned.
   const sql = `
     UPDATE jobs
@@ -146,7 +149,7 @@ async function heartbeatJob({ jobId, workerId, leaseMinutes }) {
       AND lease_expires_at > NOW()
     RETURNING id;
   `;
-  const { rowCount } = await pool.query(sql, [jobId, workerId, String(leaseMinutes)]);
+  const { rowCount } = await pool.query(sql, [jobId, workerId, String(minutes)]);
   return rowCount === 1;
 }
 
