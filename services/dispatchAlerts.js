@@ -34,6 +34,25 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
         inTxn = true;
 
         // --------------------
+        // Crash-safety: requeue stuck "sending" rows back to pending
+        // (e.g. if a worker crashed after claiming but before marking sent/error)
+        // Runs even if cooldown skips sending.
+        // --------------------
+        const stuckMin = Number(process.env.DISPATCH_SENDING_STUCK_MINUTES || 15);
+        if (stuckMin > 0) {
+            await client.query(
+                `
+        UPDATE alert_events
+        SET status = 'pending'
+        WHERE search_id = $1
+          AND status = 'sending'
+          AND created_at < NOW() - ($2 * INTERVAL '1 minute')
+        `,
+                [searchId, stuckMin]
+            );
+        }
+
+        // --------------------
         // Per-search cooldown guard (prevents email spam)
         // --------------------
         const cooldownSec = Number(process.env.DISPATCH_COOLDOWN_SECONDS || 300); // default 5 minutes
@@ -70,23 +89,7 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
             }
         }
 
-        // --------------------
-        // Crash-safety: requeue stuck "sending" rows back to pending
-        // (e.g. if a worker crashed after claiming but before marking sent/error)
-        // --------------------
-        const stuckMin = Number(process.env.DISPATCH_SENDING_STUCK_MINUTES || 15);
-        if (stuckMin > 0) {
-            await client.query(
-                `
-        UPDATE alert_events
-        SET status = 'pending'
-        WHERE search_id = $1
-          AND status = 'sending'
-          AND created_at < NOW() - ($2 * INTERVAL '1 minute')
-        `,
-                [searchId, stuckMin]
-            );
-        }
+
 
         // Snapshot pending count (useful telemetry/debug)
         {
