@@ -1,6 +1,7 @@
 // services/dispatchAlerts.js
 
 const { sendEmail, buildAlertEmail } = require('./notifications');
+console.log("### dispatchAlerts.js LOADED from:", __filename);
 
 /**
  * Dispatch up to `limit` pending alerts for a single search, in ONE email.
@@ -116,6 +117,7 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
       WHERE ae.search_id = $1
         AND ae.status = 'pending'
         AND ae.result_id IS NOT NULL
+         AND (ae.next_attempt_at IS NULL OR ae.next_attempt_at <= NOW())
       ORDER BY ae.created_at ASC, ae.id ASC
       FOR UPDATE SKIP LOCKED
       LIMIT $2
@@ -144,14 +146,15 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
         // Mark claimed rows as "sending" (guarded) so other workers won't touch them
         await client.query(
             `
-      UPDATE alert_events
-      SET status = 'sending', error_message = NULL
-      WHERE id = ANY($1::int[])
-        AND status = 'pending'
-      `,
+  UPDATE alert_events
+  SET status = 'sending',
+      error_message = NULL,
+      last_attempt_at = NOW()
+  WHERE id = ANY($1::int[])
+    AND status = 'pending'
+  `,
             [alertIds]
         );
-
         await client.query('COMMIT');
         inTxn = false;
 
@@ -162,20 +165,20 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
             `
       SELECT
         ae.id AS alert_id,
-        ae.search_id,
-        ae.status,
-        ae.created_at AS alert_created_at,
-        r.title,
-        r.price,
-        r.currency,
-        r.listing_url,
-        r.marketplace,
-        r.external_id
+            ae.search_id,
+            ae.status,
+            ae.created_at AS alert_created_at,
+            r.title,
+            r.price,
+            r.currency,
+            r.listing_url,
+            r.marketplace,
+            r.external_id
       FROM alert_events ae
       LEFT JOIN results r ON r.id = ae.result_id
-      WHERE ae.id = ANY($1::int[])
+      WHERE ae.id = ANY($1:: int[])
       ORDER BY ae.created_at ASC, ae.id ASC
-      `,
+            `,
             [alertIds]
         );
 
@@ -188,21 +191,27 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
             // Mark all selected as sent (guarded: only rows we claimed)
             await client.query(
                 `
-        UPDATE alert_events
-        SET status = 'sent', sent_at = NOW(), error_message = NULL
-        WHERE id = ANY($1::int[])
-          AND status = 'sending'
-        `,
+  UPDATE alert_events
+  SET status = 'sent',
+      sent_at = NOW(),
+      error_message = NULL,
+      attempt_count = 0,
+      next_attempt_at = NULL
+  WHERE id = ANY($1::int[])
+    AND status = 'sending'
+  `,
                 [alertIds]
             );
 
+
+
             const { rows: afterRows } = await client.query(
                 `
-        SELECT COUNT(*)::int AS pending_after
+        SELECT COUNT(*):: int AS pending_after
         FROM alert_events
         WHERE search_id = $1
           AND status = 'pending'
-        `,
+            `,
                 [searchId]
             );
             const pending_after = afterRows[0]?.pending_after ?? 0;
@@ -218,32 +227,48 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
                 sent: pending.length,
                 error: 0,
             };
-        } catch (e) {
-            const msg = (e && e.message ? e.message : String(e)).slice(0, 500);
+        } catch (err) {
+            const msg = (err?.message ? String(err.message) : String(err)).slice(0, 500);
+
 
             // If email sending fails, mark the batch error (guarded: only rows we claimed)
+            const baseSec = Number(process.env.DISPATCH_RETRY_BASE_SECONDS || 60);     // 1 min
+            const maxSec = Number(process.env.DISPATCH_RETRY_MAX_SECONDS || 3600);  // 1 hour
+            const maxAttempts = Number(process.env.DISPATCH_RETRY_MAX_ATTEMPTS || 8); // after this -> terminal error
+
             await client.query(
                 `
-        UPDATE alert_events
-        SET status = 'error', error_message = $2
-        WHERE id = ANY($1::int[])
-          AND status = 'sending'
-        `,
-                [alertIds, msg]
+  UPDATE alert_events
+  SET
+    attempt_count = attempt_count + 1,
+    error_message = $2,
+    status = CASE
+      WHEN (attempt_count + 1) >= $3 THEN 'error'
+      ELSE 'pending'
+    END,
+    next_attempt_at = CASE
+      WHEN (attempt_count + 1) >= $3 THEN NULL
+      ELSE NOW() + (LEAST($4, $5 * POWER(2, attempt_count)) * INTERVAL '1 second')
+    END
+  WHERE id = ANY($1::int[])
+    AND status = 'sending'
+  `,
+                [alertIds, msg, maxAttempts, maxSec, baseSec]
             );
+
 
             const { rows: afterRows } = await client.query(
                 `
-        SELECT COUNT(*)::int AS pending_after
+        SELECT COUNT(*):: int AS pending_after
         FROM alert_events
         WHERE search_id = $1
           AND status = 'pending'
-        `,
+            `,
                 [searchId]
             );
             const pending_after = afterRows[0]?.pending_after ?? 0;
 
-            console.error('Auto-dispatch failed for search', searchId, e);
+            console.error('Auto-dispatch failed for search', searchId, err);
 
             return {
                 ok: false,
@@ -284,7 +309,7 @@ async function dispatchAllEnabledEmailAlerts({ pool, limitPerSearch = 25 }) {
       AND is_enabled = TRUE
       AND destination IS NOT NULL
     ORDER BY search_id ASC
-    `
+            `
     );
 
     const totals = {
@@ -308,8 +333,8 @@ async function dispatchAllEnabledEmailAlerts({ pool, limitPerSearch = 25 }) {
                 toEmail: s.destination,
                 limit: limitPerSearch,
             });
-        } catch (e) {
-            const msg = e && e.message ? e.message : String(e);
+        } catch (err) {
+            const msg = err?.message ? String(err.message) : String(err);
             console.error('[dispatch] search failed', { search_id: s.search_id, error: msg });
             totals.error += 1;
             continue;
