@@ -10,6 +10,12 @@ function requireEnv(name) {
 
 async function sendEmail({ to, subject, text }) {
   const from = requireEnv('ALERTS_FROM_EMAIL');
+  
+  // TEST switch: force email failures to validate retry/backoff behavior
+  if (process.env.FORCE_EMAIL_FAIL === 'true') {
+    throw new Error('TEST: forced email failure');
+  }
+
 
   // MVP stub: log instead of sending
   console.log('--- EMAIL (stub) ---');

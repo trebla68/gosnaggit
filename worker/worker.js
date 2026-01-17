@@ -1,6 +1,17 @@
 // worker/worker.js
 require('dotenv').config();
 
+process.on('unhandledRejection', (err) => {
+  console.error('[worker] Unhandled promise rejection:', err);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[worker] Uncaught exception:', err);
+  process.exit(1);
+});
+
+
 function envInt(name, fallback) {
   const raw = process.env[name];
   if (raw === undefined || raw === '') return fallback;
