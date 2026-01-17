@@ -368,4 +368,44 @@ async function dispatchAllEnabledEmailAlerts({ pool, limitPerSearch = 25 }) {
 module.exports = {
     dispatchPendingAlertsForSearch,
     dispatchAllEnabledEmailAlerts,
+    requeueStuckSendingAlerts,
 };
+
+
+// Requeue alerts that are stuck in "sending" (e.g., worker crashed mid-send)
+async function requeueStuckSendingAlerts({ pool, stuckMinutes = 10, searchId = null, limit = 500 }) {
+    const minutes = Number(stuckMinutes) || 10;
+    const lim = Math.max(1, Math.min(Number(limit) || 500, 5000));
+    const sid = searchId === null || searchId === undefined ? null : Number(searchId);
+
+    const { rows } = await pool.query(
+        `
+    WITH stuck AS (
+      SELECT id
+      FROM alert_events
+      WHERE status = 'sending'
+        AND last_attempt_at IS NOT NULL
+        AND last_attempt_at < NOW() - ($1 * INTERVAL '1 minute')
+        AND ($2::int IS NULL OR search_id = $2)
+      ORDER BY last_attempt_at ASC, id ASC
+      LIMIT $3
+      FOR UPDATE SKIP LOCKED
+    )
+    UPDATE alert_events ae
+    SET status = 'pending',
+        next_attempt_at = NOW()
+    FROM stuck
+    WHERE ae.id = stuck.id
+    RETURNING ae.id
+    `,
+        [minutes, sid, lim]
+    );
+
+    return {
+        ok: true,
+        stuck_minutes: minutes,
+        search_id: sid,
+        requeued: rows.length,
+    };
+}
+

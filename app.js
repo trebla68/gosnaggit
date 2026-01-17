@@ -11,7 +11,7 @@ const { insertResults } = require('./services/resultsStore');
 const { createNewListingAlert } = require('./services/alerts');
 const { sendEmail, buildAlertEmail } = require('./services/notifications');
 const { enqueueRefreshJobForSearch } = require('./services/jobs');
-const { dispatchPendingAlertsForSearch } = require('./services/dispatchAlerts');
+const { dispatchPendingAlertsForSearch, requeueStuckSendingAlerts } = require('./services/dispatchAlerts');
 const { setTierAndReschedule } = require('./services/schedule');   // ← add this line
 const { normalizeTier, maxSearchesForTier } = require('./services/tiers');
 
@@ -871,6 +871,31 @@ if (process.env.NODE_ENV !== 'production') {
       });
     }
   });
+  // Dev: requeue stuck "sending" alerts back to pending
+  // Example: GET /dev/requeue-stuck-alerts?minutes=10&limit=500&searchId=2
+  app.get('/dev/requeue-stuck-alerts', async (req, res) => {
+    try {
+      const minutes = Math.max(1, Math.min(parseInt(req.query.minutes, 10) || 10, 1440));
+      const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 500, 5000));
+
+      const sidRaw = req.query.searchId;
+      const searchId =
+        sidRaw === undefined || sidRaw === null || sidRaw === ''
+          ? null
+          : Number(sidRaw);
+
+      const result = await requeueStuckSendingAlerts({ pool, stuckMinutes: minutes, searchId, limit });
+      return res.json(result);
+    } catch (err) {
+      return res.status(500).json({
+        ok: false,
+        error: 'Failed to requeue stuck sending alerts',
+        details: err?.message || String(err),
+        stack: err?.stack || null,
+      });
+    }
+  });
+
 } // <-- IMPORTANT: dev-only block ends here
 
 // GET refresh info (does not enqueue; safe to call from browser)
