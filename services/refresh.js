@@ -3,7 +3,63 @@
 const pool = require('../db');
 const { runMarketplaceSearches } = require('./marketplaces');
 const { insertResults } = require('./resultsStore');
-const { createNewListingAlert } = require('./alerts');
+
+// Backfill: insert alert_events for ANY results missing alerts (search-wide, future-safe)
+async function insertMissingAlertEventsForSearch({ pool, searchId, limit = 5000 }) {
+    const sql = `
+    INSERT INTO alert_events (search_id, result_id, status, dedupe_key, created_at)
+    SELECT r.search_id, r.id, 'pending',
+       ('search:' || r.search_id::text || ':result:' || r.id::text),
+       NOW()
+    FROM results r
+    WHERE r.search_id = $1
+      AND NOT EXISTS (
+        SELECT 1
+        FROM alert_events a
+        WHERE a.search_id = r.search_id
+          AND a.result_id = r.id
+      )
+    ORDER BY r.found_at DESC NULLS LAST
+    LIMIT $2
+    RETURNING id
+  `;
+    const res = await pool.query(sql, [searchId, limit]);
+    return res.rowCount || 0;
+}
+
+
+/**
+ * Insert "missing" alert_events for results that match (search_id, marketplace, external_id IN externals)
+ * and do NOT already have an alert_event row (search_id, result_id).
+ *
+ * Returns number inserted.
+ */
+async function insertMissingAlertEventsForBatch({ pool, searchId, marketplace, externals, limit = 1000 }) {
+    if (!Array.isArray(externals) || externals.length === 0) return 0;
+
+    const sql = `
+    INSERT INTO alert_events (search_id, result_id, status, dedupe_key, created_at)
+    SELECT r.search_id, r.id, 'pending',
+       ('search:' || r.search_id::text || ':result:' || r.id::text),
+       NOW()
+    FROM results r
+    WHERE r.search_id = $1
+      AND r.marketplace = $2
+      AND r.external_id = ANY($3::text[])
+      AND NOT EXISTS (
+        SELECT 1
+        FROM alert_events a
+        WHERE a.search_id = r.search_id
+          AND a.result_id = r.id
+      )
+    ORDER BY r.found_at DESC NULLS LAST
+    LIMIT $4
+    RETURNING id
+  `;
+
+    const res = await pool.query(sql, [searchId, marketplace, externals, limit]);
+    return res.rowCount || 0;
+}
 
 async function refreshSearchNow({ searchId }) {
     // 1) Validate search
@@ -25,14 +81,12 @@ async function refreshSearchNow({ searchId }) {
         updated: 0,
         skipped: 0,
 
-        // NOTE: "inserted" is the historical/back-compat "touched" number (created + updated).
-        // We keep it inside results for compatibility, but we will NOT treat it as "new inserts".
+        // NOTE: "inserted" is historical/back-compat "touched" number (created + updated).
         inserted: 0,
 
         processed: 0,      // valid rows processed (had external_id + listing_url)
         total_incoming: 0, // total raw items seen (items.length summed)
     };
-
 
     if (status === 'paused') {
         return {
@@ -61,7 +115,6 @@ async function refreshSearchNow({ searchId }) {
     // 2) Fetch from marketplaces (fail-soft happens inside runMarketplaceSearches)
     const { results: listings, marketplaces } = await runMarketplaceSearches(check.rows[0]);
 
-
     if (!Array.isArray(listings) || listings.length === 0) {
         return {
             ok: true,
@@ -84,7 +137,6 @@ async function refreshSearchNow({ searchId }) {
             note: 'No listings found (or marketplaces unavailable)',
         };
     }
-
 
     // 3) Group listings by marketplace
     const byMarketplace = new Map();
@@ -109,7 +161,7 @@ async function refreshSearchNow({ searchId }) {
     // Back-compat combined metric (created + updated)
     let touchedTotal = 0;
 
-    // 4) Insert results + 5) Load ids + 6) Create alerts, per marketplace
+    // 4) Insert results + 5) Create alerts in bulk, per marketplace
     for (const [marketplace, items] of byMarketplace.entries()) {
         fetchedTotal += items.length;
 
@@ -147,44 +199,21 @@ async function refreshSearchNow({ searchId }) {
         // Back-compat: created + updated
         touchedTotal += (ins?.created || 0) + (ins?.updated || 0);
 
-        // If you want total_incoming to reflect only what you passed to insertResults,
-        // uncomment the next line and remove the earlier totalIncomingTotal += items.length
-        // totalIncomingTotal += ins?.total_incoming || 0;
-
-        // Load result ids for externals (so alerts always have result_id)
+        // Bulk insert missing alert_events for these results
         const externals = normalized.map((r) => r.external_id);
+        const insertedAlerts = await insertMissingAlertEventsForBatch({
+            pool,
+            searchId,
+            marketplace,
+            externals,
+            limit: 1000,
+        });
 
-        let resultsByExternal = new Map();
-        if (externals.length > 0) {
-            const { rows: resultRows } = await pool.query(
-                `
-        SELECT id, external_id
-        FROM results
-        WHERE search_id = $1
-          AND marketplace = $2
-          AND external_id = ANY($3::text[])
-        `,
-                [searchId, marketplace, externals]
-            );
-            resultsByExternal = new Map(resultRows.map((r) => [r.external_id, r.id]));
-        }
-
-        // Create alerts (dedupe prevents duplicates)
-        for (const r of normalized) {
-            const resultId = resultsByExternal.get(r.external_id);
-            if (!resultId) continue;
-
-            const a = await createNewListingAlert({
-                pool,
-                searchId,
-                resultId,
-                marketplace,
-                externalId: r.external_id,
-            });
-
-            if (a && a.inserted) alertsInsertedTotal += 1;
-        }
+        alertsInsertedTotal += insertedAlerts;
     }
+
+    const backfilled = await insertMissingAlertEventsForSearch({ pool, searchId, limit: 5000 });
+    alertsInsertedTotal += backfilled;
 
     return {
         ok: true,
@@ -211,7 +240,6 @@ async function refreshSearchNow({ searchId }) {
             total_incoming: totalIncomingTotal,
         },
     };
-
 }
 
 module.exports = { refreshSearchNow };
