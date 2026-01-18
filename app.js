@@ -818,7 +818,7 @@ async function refreshSearchHandler(req, res) {
 if (process.env.NODE_ENV !== 'production') {
   app.get('/dev/searches/:id/refresh', refreshSearchHandler);
 
-  // Dev: dispatch pending email alerts for a search
+  // Dev: dispatch pending email alerts for a search (respects cooldown)
   // Example: GET /dev/searches/2/dispatch-alerts?limit=25
   app.get('/dev/searches/:id/dispatch-alerts', async (req, res) => {
     try {
@@ -861,8 +861,6 @@ if (process.env.NODE_ENV !== 'production') {
       return res.json({ ok: true, ...result });
     } catch (err) {
       console.error('GET /dev/searches/:id/dispatch-alerts failed:', err);
-
-      // Dev-only endpoint: include details to avoid "can't paste from terminal" issues
       return res.status(500).json({
         ok: false,
         error: 'Failed to dispatch alerts',
@@ -871,6 +869,60 @@ if (process.env.NODE_ENV !== 'production') {
       });
     }
   });
+
+  // Dev: dispatch pending email alerts for a search (ignores cooldown)
+  // Example: GET /dev/searches/2/dispatch-alerts-now?limit=25
+  app.get('/dev/searches/:id/dispatch-alerts-now', async (req, res) => {
+    try {
+      const searchId = parseInt(req.params.id, 10);
+      if (Number.isNaN(searchId)) return res.status(400).json({ error: 'Invalid search id' });
+
+      const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 25, 200));
+
+      // Pull enabled email destination for this search
+      const { rows } = await pool.query(
+        `
+        SELECT destination
+        FROM notification_settings
+        WHERE search_id = $1
+          AND channel = 'email'
+          AND is_enabled = TRUE
+          AND destination IS NOT NULL
+        LIMIT 1
+        `,
+        [searchId]
+      );
+
+      if (!rows || rows.length === 0) {
+        return res.status(400).json({
+          ok: false,
+          error: 'No enabled email notification setting found for this search',
+          search_id: searchId,
+        });
+      }
+
+      const toEmail = rows[0].destination;
+
+      const result = await dispatchPendingAlertsForSearch({
+        pool,
+        searchId,
+        toEmail,
+        limit,
+        ignoreCooldown: true,
+      });
+
+      return res.json({ ok: true, ...result });
+    } catch (err) {
+      console.error('GET /dev/searches/:id/dispatch-alerts-now failed:', err);
+      return res.status(500).json({
+        ok: false,
+        error: 'Failed to dispatch alerts (now)',
+        details: err?.message || String(err),
+        stack: err?.stack || null,
+      });
+    }
+  });
+
   // Dev: requeue stuck "sending" alerts back to pending
   // Example: GET /dev/requeue-stuck-alerts?minutes=10&limit=500&searchId=2
   app.get('/dev/requeue-stuck-alerts', async (req, res) => {
@@ -926,7 +978,6 @@ async function getRefreshInfo(req, res) {
     res.status(500).json({ error: 'Failed to load refresh info' });
   }
 }
-
 
 app.get('/searches/:id/refresh', getRefreshInfo);
 app.get('/api/searches/:id/refresh', getRefreshInfo);

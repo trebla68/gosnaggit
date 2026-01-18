@@ -16,7 +16,8 @@ console.log("### dispatchAlerts.js LOADED from:", __filename);
  * - DISPATCH_COOLDOWN_SECONDS (default 300)
  * - DISPATCH_SENDING_STUCK_MINUTES (default 15)
  */
-async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit = 25 }) {
+async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit, ignoreCooldown = false }) {
+    ignoreCooldown = !!ignoreCooldown;
     if (!pool) throw new Error('dispatchPendingAlertsForSearch requires { pool }');
     if (!searchId) throw new Error('dispatchPendingAlertsForSearch requires { searchId }');
     if (!toEmail) throw new Error('dispatchPendingAlertsForSearch requires { toEmail }');
@@ -57,7 +58,7 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit =
         // Per-search cooldown guard (prevents email spam)
         // --------------------
         const cooldownSec = Number(process.env.DISPATCH_COOLDOWN_SECONDS || 300); // default 5 minutes
-        if (cooldownSec > 0) {
+        if (!ignoreCooldown && cooldownSec > 0) {
             const { rows: cdRows } = await client.query(
                 `
         SELECT
