@@ -695,23 +695,17 @@
     const alertsSummaryCache = new Map();
 
     async function getAlertsSummary(searchId) {
-      if (alertsSummaryCache.has(searchId)) return alertsSummaryCache.get(searchId);
+      const id = String(searchId);
+      if (alertsSummaryCache.has(id)) return alertsSummaryCache.get(id);
 
-      const p = (async () => {
-        try {
-          const res = await fetch(`/api/searches/${searchId}/alerts/summary`);
-          if (!res.ok) return null;
-          const data = await res.json().catch(() => null);
-          if (!data || data.ok === false) return null;
-          return data;
-        } catch (err) {
-          return null;
-        }
-      })();
+      const p = fetch(`/api/searches/${encodeURIComponent(id)}/alerts/summary`)
+        .then((r) => r.json().catch(() => ({})))
+        .catch(() => ({}));
 
-      alertsSummaryCache.set(searchId, p);
+      alertsSummaryCache.set(id, p);
       return p;
     }
+
 
     const MIN_SPINNER_MS = 900;
 
@@ -1027,6 +1021,14 @@
         refreshLink.classList.add('js-refresh');
         refreshLink.dataset.id = search.id;
 
+        // --- NEW: Refresh + Send (demo flow) ---
+        const refreshSendLink = document.createElement('a');
+        refreshSendLink.textContent = 'Refresh + Send';
+        refreshSendLink.href = '#';
+        refreshSendLink.title = 'Refresh this search and send alerts now (demo)';
+        refreshSendLink.classList.add('js-refresh-send');
+        refreshSendLink.dataset.id = search.id;
+
         const duplicateLink = document.createElement('a');
         duplicateLink.textContent = 'Duplicate';
         duplicateLink.title = 'Duplicate';
@@ -1114,9 +1116,12 @@
         actionsTd.appendChild(document.createTextNode(' '));
         actionsTd.appendChild(refreshLink);
         actionsTd.appendChild(document.createTextNode(' '));
+        actionsTd.appendChild(refreshSendLink);
+        actionsTd.appendChild(document.createTextNode(' '));
         actionsTd.appendChild(duplicateLink);
         actionsTd.appendChild(document.createTextNode(' '));
         actionsTd.appendChild(deleteLink);
+
 
         tr.appendChild(actionsTd);
         tbody.appendChild(tr);
@@ -1212,6 +1217,69 @@
       }
     });
 
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.js-refresh-send');
+      if (!btn) return;
+
+      e.preventDefault();
+
+      const id = btn.dataset.id;
+      if (!id) return;
+
+      const oldText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Refresh + Send…';
+
+      try {
+        // 1) Refresh (dev route)
+        const r1 = await fetch(`/dev/searches/${id}/refresh`);
+        const d1 = await r1.json().catch(() => ({}));
+        if (!r1.ok || d1.ok !== true) {
+          alert('Refresh failed');
+          console.error(d1);
+          return;
+        }
+
+        // Wait up to ~10s for pending alerts to appear (worker timing varies)
+        let pending = 0;
+        for (let i = 0; i < 10; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const s = await fetch(`/api/searches/${id}/alerts/summary`);
+          const sd = await s.json().catch(() => ({}));
+          pending = sd?.counts?.pending ?? 0;
+          if (Number.isFinite(pending) && pending > 0) break;
+        }
+
+        if (!Number.isFinite(pending) || pending <= 0) {
+          alert('Demo complete — no pending alerts to send (no new listings).');
+          location.reload();
+          return;
+        }
+
+
+        // 2) Dispatch now (ignore cooldown)
+        const r2 = await fetch(`/dev/searches/${id}/dispatch-alerts-now?limit=25`);
+        const d2 = await r2.json().catch(() => ({}));
+        if (!r2.ok || d2.ok !== true) {
+          alert('Dispatch failed');
+          console.error(d2);
+          return;
+        }
+
+        const sent = d2.sent ?? 0;
+        alert(sent > 0 ? `Sent ${sent} alert(s).` : 'No pending alerts to send.');
+
+        location.reload();
+      } catch (err) {
+        console.error(err);
+        alert('Refresh + Send failed');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
+    });
+
+
     function formatDateTime(dt) {
       if (!dt) return null;
       const d = new Date(dt);
@@ -1275,6 +1343,53 @@
       currentPage = 1;
       await reloadSearches();
     }
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.js-refresh-send');
+      if (!btn) return;
+
+      e.preventDefault();
+
+      const id = btn.dataset.id;
+      if (!id) return;
+
+      const oldText = btn.textContent;
+      btn.classList.add('is-busy');
+      btn.textContent = 'Refresh + Send…';
+
+      try {
+        // 1) Refresh (enqueue job)
+        const r1 = await fetch(`/dev/searches/${id}/refresh`);
+        const d1 = await r1.json().catch(() => ({}));
+        if (!r1.ok || d1.ok !== true) {
+          alert(`Refresh failed: ${d1.error || 'Unknown error'}`);
+          console.error(d1);
+          return;
+        }
+
+        // 2) Give worker a moment to process the job
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+
+        // 3) Dispatch now (ignore cooldown)
+        const r2 = await fetch(`/dev/searches/${id}/dispatch-alerts-now?limit=25`);
+        const d2 = await r2.json().catch(() => ({}));
+        if (!r2.ok || d2.ok !== true) {
+          alert(`Dispatch failed: ${d2.error || 'Unknown error'}`);
+          console.error(d2);
+          return;
+        }
+
+        const sent = d2.sent ?? 0;
+        alert(sent > 0 ? `Sent ${sent} alert(s).` : 'Demo complete — no pending alerts to send (no new listings).');
+
+        location.reload();
+      } catch (err) {
+        console.error(err);
+        alert('Refresh + Send failed');
+      } finally {
+        btn.classList.remove('is-busy');
+        btn.textContent = oldText;
+      }
+    });
 
     document.addEventListener('DOMContentLoaded', init);
   </script>
