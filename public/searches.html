@@ -690,6 +690,29 @@
     const tierInFlight = new Set();
     let pulseSearchId = null;
 
+    // --- Alerts summary cache (for "Alerts (N)" badge) ---
+    // Cache promises so we only hit the API once per searchId per page load.
+    const alertsSummaryCache = new Map();
+
+    async function getAlertsSummary(searchId) {
+      if (alertsSummaryCache.has(searchId)) return alertsSummaryCache.get(searchId);
+
+      const p = (async () => {
+        try {
+          const res = await fetch(`/api/searches/${searchId}/alerts/summary`);
+          if (!res.ok) return null;
+          const data = await res.json().catch(() => null);
+          if (!data || data.ok === false) return null;
+          return data;
+        } catch (err) {
+          return null;
+        }
+      })();
+
+      alertsSummaryCache.set(searchId, p);
+      return p;
+    }
+
     const MIN_SPINNER_MS = 900;
 
     const tbody = document.getElementById('searches-tbody');
@@ -978,6 +1001,19 @@
         alertsLink.textContent = 'Alerts';
         alertsLink.href = `/search-alerts.html?search_id=${search.id}`;
         alertsLink.title = 'View alerts for this search (pending/sent/dismissed/error)';
+
+        // Show a demo-friendly pending count: Alerts (N)
+        // Non-blocking: render immediately, then update when summary arrives.
+        getAlertsSummary(search.id).then((summary) => {
+          if (!alertsLink.isConnected) return;
+          const pending = summary?.counts?.pending;
+          if (Number.isFinite(pending) && pending > 0) {
+            alertsLink.textContent = `Alerts (${pending})`;
+            const c = summary.counts;
+            alertsLink.title = `Alerts: ${c.pending} pending, ${c.sent} sent, ${c.dismissed} dismissed, ${c.error} error`;
+          }
+        });
+
 
         const editLink = document.createElement('a');
         editLink.textContent = 'Edit';
