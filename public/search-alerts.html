@@ -6,6 +6,17 @@
     <title>GoSnaggit – Alerts</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.22);
+            font-size: 12px;
+        }
+
         :root {
             --bg: #0b1020;
             --card-bg: #151a2b;
@@ -389,6 +400,18 @@
                         <span class="mini" id="rangeLine">Showing —</span>
                     </div>
                 </div>
+                <!-- ✅ Summary bar (must live INSIDE the card so it doesn't float/un-clickable) -->
+                <div class="alerts-summary" id="alerts-summary" style="margin: 14px 0 0 0;">
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <div class="pill pending"><span class="dot"></span> Pending: <strong id="sum-pending">—</strong>
+                        </div>
+                        <div class="pill sent"><span class="dot"></span> Sent: <strong id="sum-sent">—</strong></div>
+                        <div class="pill dismissed"><span class="dot"></span> Dismissed: <strong
+                                id="sum-dismissed">—</strong></div>
+                        <div class="pill error"><span class="dot"></span> Error: <strong id="sum-error">—</strong></div>
+                    </div>
+                </div>
+
             </div>
 
             <div class="chips" id="chips">
@@ -438,6 +461,22 @@
         const qs = new URLSearchParams(window.location.search);
         const searchId = qs.get("search_id") || qs.get("id");
         if (!searchId) alert("Missing search_id in URL. Example: search-alerts.html?search_id=2");
+
+        async function loadAlertsSummary() {
+            try {
+                const res = await fetch(`/api/searches/${encodeURIComponent(searchId)}/alerts/summary`);
+                const data = await res.json().catch(() => null);
+                if (!res.ok || !data || data.ok !== true) return;
+
+                document.getElementById('sum-pending').textContent = data.counts?.pending ?? 0;
+                document.getElementById('sum-sent').textContent = data.counts?.sent ?? 0;
+                document.getElementById('sum-dismissed').textContent = data.counts?.dismissed ?? 0;
+                document.getElementById('sum-error').textContent = data.counts?.error ?? 0;
+            } catch (_) {
+                // fail-soft
+            }
+        }
+
 
         // UI state
         let currentStatus = "pending"; // pending | sent | dismissed | error | all
@@ -728,6 +767,8 @@
         setSubtitle();
         renderPagerLabel();
         refreshAll();
+        loadAlertsSummary();
+
     </script>
 
 
