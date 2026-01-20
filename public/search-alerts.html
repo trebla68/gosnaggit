@@ -6,16 +6,6 @@
     <title>GoSnaggit – Alerts</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            background: rgba(0, 0, 0, 0.22);
-            font-size: 12px;
-        }
 
         :root {
             --bg: #0b1020;
@@ -142,6 +132,18 @@
             flex-wrap: wrap;
         }
 
+        
+        .alerts-summary {
+            margin: 14px 0 0 0;
+        }
+
+        .alerts-summary-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+
         .titleline {
             display: flex;
             flex-direction: column;
@@ -227,10 +229,13 @@
 
         .table-wrap {
             padding: 12px 16px 14px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         table {
             width: 100%;
+            min-width: 940px;
             border-collapse: collapse;
             table-layout: fixed;
         }
@@ -401,8 +406,8 @@
                     </div>
                 </div>
                 <!-- ✅ Summary bar (must live INSIDE the card so it doesn't float/un-clickable) -->
-                <div class="alerts-summary" id="alerts-summary" style="margin: 14px 0 0 0;">
-                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <div class="alerts-summary" id="alerts-summary">
+                    <div class="alerts-summary-row">
                         <div class="pill pending"><span class="dot"></span> Pending: <strong id="sum-pending">—</strong>
                         </div>
                         <div class="pill sent"><span class="dot"></span> Sent: <strong id="sum-sent">—</strong></div>
