@@ -5,6 +5,9 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
 const pool = require('./db');
 const { getEbayAppToken } = require('./services/ebayAuth');
 const { insertResults } = require('./services/resultsStore');
@@ -21,6 +24,21 @@ const { normalizeTier, maxSearchesForTier } = require('./services/tiers');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+  if (reason && typeof reason === 'object' && 'stack' in reason) {
+    console.error(reason.stack);
+  }
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  if (err && err.stack) console.error(err.stack);
+});
+
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
 if (typeof fetch !== 'function') {
   throw new Error('This app requires Node.js 18+ (global fetch is not available).');
 }
@@ -30,6 +48,33 @@ if (typeof fetch !== 'function') {
 // --------------------
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(helmet({
+  // Full CSP would break your current inline scripts/styles unless configured carefully.
+  contentSecurityPolicy: false
+}));
+
+const readLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 240,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method !== 'GET',
+});
+
+const writeLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === 'GET',
+});
+
+// Apply to API surfaces (includes your legacy non-/api JSON routes)
+app.use(['/api', '/searches', '/results', '/alerts'], readLimiter);
+app.use(['/api', '/searches', '/results', '/alerts'], writeLimiter);
+
+
 
 // ✅ INSERT HERE
 // --------------------
@@ -67,6 +112,20 @@ function parseMoneyToNumber(v) {
   if (s === '') return null;
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
+}
+function normalizeEmail(value) {
+  if (value === undefined || value === null) return null;
+  const s = String(value).trim();
+  if (s === '') return null;
+  if (s.length > 254) return null;
+
+  // Basic sanity check (not perfect, but blocks obvious junk)
+  const at = s.indexOf('@');
+  if (at <= 0) return null;
+  if (s.indexOf('.', at) === -1) return null;
+  if (s.includes(' ')) return null;
+
+  return s.toLowerCase();
 }
 
 
@@ -272,7 +331,7 @@ if (process.env.NODE_ENV !== 'production') {
 // --------------------
 async function createSearch(req, res) {
   try {
-    const { search_item, location, category, max_price, status } = req.body || {};
+    const { search_item, location, category, max_price, status, plan_tier, tier } = req.body || {};
     const maxPriceNum = parseMoneyToNumber(max_price);
 
     if (!search_item || String(search_item).trim() === '') {
@@ -280,12 +339,14 @@ async function createSearch(req, res) {
     }
 
     const finalStatus = status ?? 'active';
+    const finalTier = normalizeTier(plan_tier ?? tier ?? 'free');
+
     const marketplaces = normalizeMarketplaces(req.body.marketplaces);
 
     const result = await pool.query(
       `
-  INSERT INTO searches (search_item, location, category, max_price, status, marketplaces)
-  VALUES ($1, $2, $3, $4, $5, $6)
+  INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces)
+  VALUES ($1, $2, $3, $4, $5, $6, $7)
   RETURNING *
   `,
       [
@@ -294,8 +355,10 @@ async function createSearch(req, res) {
         category ?? null,
         maxPriceNum,
         finalStatus,
+        finalTier,
         marketplaces
       ]
+
     );
 
 
@@ -691,8 +754,8 @@ async function duplicateSearch(req, res) {
 
     const result = await pool.query(
       `
-  INSERT INTO searches (search_item, location, category, max_price, status, marketplaces)
-  SELECT search_item, location, category, max_price, status, marketplaces
+  INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces)
+  SELECT search_item, location, category, max_price, status, plan_tier, marketplaces
   FROM searches
   WHERE id = $1
   RETURNING *;
@@ -985,6 +1048,9 @@ app.get('/api/searches/:id/refresh', getRefreshInfo);
 
 // --------------------
 // Refresh (public API)
+// GET  /searches/:id/refresh      -> info about next refresh / status
+// POST /searches/:id/refresh      -> trigger a refresh now
+// (same for /api/* mirrors)
 // --------------------
 app.post('/searches/:id/refresh', refreshSearchHandler);
 app.post('/api/searches/:id/refresh', refreshSearchHandler);
@@ -1126,7 +1192,9 @@ async function notificationsEmailHandler(req, res) {
     if (searchId === null) return res.status(400).json({ ok: false, error: 'Invalid search id' });
 
     const { email, enabled } = req.body || {};
-    if (!email) return res.status(400).json({ ok: false, error: 'email is required' });
+    const emailNorm = normalizeEmail(email);
+    if (!emailNorm) return res.status(400).json({ ok: false, error: 'Valid email is required' });
+
 
     await pool.query(
       `
@@ -1135,14 +1203,14 @@ async function notificationsEmailHandler(req, res) {
       ON CONFLICT (search_id, channel)
       DO UPDATE SET destination=EXCLUDED.destination, is_enabled=EXCLUDED.is_enabled
       `,
-      [searchId, email, enabled]
+      [searchId, emailNorm, enabled]
     );
 
     return res.json({
       ok: true,
       searchId,
       channel: 'email',
-      destination: email,
+      destination: emailNorm,
       enabled: enabled ?? true,
     });
   } catch (err) {
@@ -1175,6 +1243,13 @@ app.use((req, res) => {
   });
 });
 
+// --------------------
+// Global error handler (must be AFTER routes, BEFORE listen)
+// --------------------
+app.use((err, req, res, next) => {
+  console.error('[unhandled]', err);
+  res.status(500).json({ ok: false, error: 'Internal server error' });
+});
 
 // --------------------
 // Start server (keep truly last)
