@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
 
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>GoSnaggit – Search Details</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
+<meta charset="utf-8"/>
+<title>GoSnaggit – Search Details</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<style>
         :root {
             --bg: #0b1020;
             --card-bg: #151a2b;
@@ -315,106 +315,82 @@
             opacity: 0.9;
         }
     </style>
-</head>
+<link href="/app.css" rel="stylesheet"/><script defer="True" src="/app.js"></script></head>
+<body><header class="app-header" id="gs-header"></header>
+<main class="gs-page">
+<div class="shell">
+<div class="inner">
 
-<body>
-    <div class="shell">
-        <div class="inner">
-            <header>
-                <div class="logo-left">
-                    <div class="logo-mark">G</div>
-                    <div class="logo-text">
-                        <span>GoSnaggit</span>
-                        <span>Search details</span>
-                    </div>
-                </div>
-                <nav class="nav-links">
-                    <a href="/index.html">Home</a>
-                    <a href="/searches.html">Saved searches</a>
-                </nav>
-            </header>
-
-            <div>
-                <h1 id="title">Search details</h1>
-                <p class="subtitle" id="subtitle">
+<div>
+<h1 id="title">Search details</h1>
+<p class="subtitle" id="subtitle">
                     Reviewing one saved hunt. In future, this view can expand into a full activity log and alert
                     history.
                 </p>
-            </div>
-
-            <div class="layout">
-                <!-- LEFT: main detail fields -->
-                <div class="card">
-                    <div class="section-title">Core search details</div>
-                    <dl>
-                        <dt>Search item</dt>
-                        <dd id="field-item" class="muted">—</dd>
-
-                        <dt>Location</dt>
-                        <dd id="field-location" class="muted">—</dd>
-
-                        <dt>Category</dt>
-                        <dd id="field-category" class="muted">—</dd>
-
-                        <dt>Max price</dt>
-                        <dd id="field-max-price" class="muted">—</dd>
-
-                        <dt>Status</dt>
-                        <dd id="field-status">
-                            <span id="status-pill" class="status-pill status-active">active</span>
-                        </dd>
-                    </dl>
-
-                    <div class="chips-row">
-                        <span class="chip" id="chip-id">ID: —</span>
-                        <span class="chip" id="chip-created">Created: —</span>
-                    </div>
-
-                    <div class="actions-row">
-                        <a href="/searches.html" class="btn btn-ghost">← Back to saved searches</a>
-                        <a href="#" id="view-results-link" class="btn btn-secondary">View results</a>
-                        <a href="#" id="edit-search-link" class="btn btn-primary">Edit this search</a>
-                    </div>
-
-                    <div id="message" class="message"></div>
-                </div>
-
-                <!-- RIGHT: meta / context -->
-                <div class="card">
-                    <div class="section-title">Meta & context</div>
-                    <ul class="meta-list">
-                        <li>
-                            <span class="meta-label">Internal ID</span>
-                            <span class="meta-value" id="meta-id">—</span>
-                        </li>
-                        <li>
-                            <span class="meta-label">Created at</span>
-                            <span class="meta-value" id="meta-created">—</span>
-                        </li>
-                        <li>
-                            <span class="meta-label">Current status</span>
-                            <span class="meta-value" id="meta-status">—</span>
-                        </li>
-                        <li>
-                            <span class="meta-label">Max price</span>
-                            <span class="meta-value" id="meta-max-price">—</span>
-                        </li>
-                    </ul>
-                    <div class="message" id="meta-note">
+</div>
+<div class="layout">
+<!-- LEFT: main detail fields -->
+<div class="card">
+<div class="section-title">Core search details</div>
+<dl>
+<dt>Search item</dt>
+<dd class="muted" id="field-item">—</dd>
+<dt>Location</dt>
+<dd class="muted" id="field-location">—</dd>
+<dt>Category</dt>
+<dd class="muted" id="field-category">—</dd>
+<dt>Max price</dt>
+<dd class="muted" id="field-max-price">—</dd>
+<dt>Status</dt>
+<dd id="field-status">
+<span class="status-pill status-active" id="status-pill">active</span>
+</dd>
+</dl>
+<div class="chips-row">
+<span class="chip" id="chip-id">ID: —</span>
+<span class="chip" id="chip-created">Created: —</span>
+</div>
+<div class="actions-row">
+<a class="btn btn-ghost" href="/searches.html">← Back to saved searches</a>
+<a class="btn btn-secondary" href="#" id="view-results-link">View results</a>
+<a class="btn btn-primary" href="#" id="edit-search-link">Edit this search</a>
+</div>
+<div class="message" id="message"></div>
+</div>
+<!-- RIGHT: meta / context -->
+<div class="card">
+<div class="section-title">Meta &amp; context</div>
+<ul class="meta-list">
+<li>
+<span class="meta-label">Internal ID</span>
+<span class="meta-value" id="meta-id">—</span>
+</li>
+<li>
+<span class="meta-label">Created at</span>
+<span class="meta-value" id="meta-created">—</span>
+</li>
+<li>
+<span class="meta-label">Current status</span>
+<span class="meta-value" id="meta-status">—</span>
+</li>
+<li>
+<span class="meta-label">Max price</span>
+<span class="meta-value" id="meta-max-price">—</span>
+</li>
+</ul>
+<div class="message" id="meta-note">
                         This search’s status and price ceiling will later influence how often your background engine
                         looks for new
                         matches.
                     </div>
-                </div>
-            </div>
-
-            <footer>
+</div>
+</div>
+<footer>
                 GoSnaggit – internal MVP prototype. Details view is driven from your local “searches” table via the API.
             </footer>
-        </div>
-    </div>
-
-    <script>
+</div>
+</div>
+<script>
         function getParams() {
             const params = new URLSearchParams(window.location.search);
             return {
@@ -531,7 +507,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', loadDetails);
-    </script>
+</script>
+</main>
 </body>
-
 </html>

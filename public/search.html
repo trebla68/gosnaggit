@@ -1,12 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <title>GoSnaggit – Create a Search</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <style>
+<meta charset="utf-8"/>
+<title>GoSnaggit – Create a Search</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<style>
     :root {
       --bg: #0b1020;
       --card-bg: #151a2b;
@@ -354,118 +353,87 @@
       color: var(--text-muted);
     }
   </style>
-</head>
-
-<body>
-  <div class="shell">
-    <div class="inner">
-      <!-- Left: text + guidance -->
-      <div>
-        <header>
-          <div class="logo-row">
-            <div class="logo-left">
-              <div class="logo-mark">G</div>
-              <div class="logo-text">
-                <span>GoSnaggit</span>
-                <span>Create a new hunt</span>
-              </div>
-            </div>
-            <nav class="nav-links">
-              <a href="/index.html">Home</a>
-              <a href="/searches.html">Saved searches</a>
-            </nav>
-          </div>
-          <h1>Tell GoSnaggit what you’re hunting for.</h1>
-          <p class="subtitle">
+<link href="/app.css" rel="stylesheet"/><script defer="True" src="/app.js"></script></head>
+<body><header class="app-header" id="gs-header"></header><main class="gs-page"><section class="page-hero"><h1>Tell GoSnaggit what you’re hunting for.</h1><p class="subtitle">
             The more detail you add here, the smarter your future search engine can be about
             where and how to look.
-          </p>
-        </header>
+          </p></section>
+<div class="shell">
+<div class="inner">
+<!-- Left: text + guidance -->
+<div>
 
-        <div class="hint-pills">
-          <div class="hint-pill">“Vintage car radio, Blaupunkt, working or repairable”</div>
-          <div class="hint-pill">“1960 Porsche 356 project, roller, East Coast only”</div>
-          <div class="hint-pill">“Antique oak writing desk, mission style, under $500”</div>
-        </div>
-
-        <div class="callout">
+<div class="hint-pills">
+<div class="hint-pill">“Vintage car radio, Blaupunkt, working or repairable”</div>
+<div class="hint-pill">“1960 Porsche 356 project, roller, East Coast only”</div>
+<div class="hint-pill">“Antique oak writing desk, mission style, under $500”</div>
+</div>
+<div class="callout">
           Background searching and alerts are still a <span>concept stage</span> feature.
           This page is your MVP for capturing the kinds of searches GoSnaggit will automate.
         </div>
-      </div>
-
-      <!-- Right: form -->
-      <div class="form-card">
-        <form id="search-form">
-          <label for="search_item">Search item</label>
-          <p class="field-hint">Describe what you’re looking for as if you were typing into your favorite marketplace.
+</div>
+<!-- Right: form -->
+<div class="form-card">
+<form id="search-form">
+<label for="search_item">Search item</label>
+<p class="field-hint">Describe what you’re looking for as if you were typing into your favorite marketplace.
           </p>
-          <textarea id="search_item" name="search_item" required
-            placeholder="e.g., 1960 Porsche 356 project, vintage car radio, antique oak writing desk"></textarea>
-
-          <div class="field-row">
-            <div>
-              <label for="location">Location (optional)</label>
-              <p class="field-hint">City, region, or “online only”.</p>
-              <input id="location" name="location" type="text" placeholder="e.g., New York, Los Angeles, Mid-Atlantic">
-            </div>
-            <div>
-              <label for="category">Category (optional)</label>
-              <p class="field-hint">Just for your own organization.</p>
-              <input id="category" name="category" type="text" placeholder="e.g., Electronics, Furniture, Classic cars">
-            </div>
-          </div>
-
-          <label for="max_price">Max price limit (optional)</label>
-          <p class="field-hint">Set a rough cap so you can quickly see which finds are in range.</p>
-          <input id="max_price" name="max_price" type="number" min="0" step="0.01" placeholder="e.g., 500">
-
-          <!-- Advanced options -->
-          <details class="advanced">
-            <summary>Advanced options</summary>
-            <div class="field">
-              <label>Marketplaces</label>
-
-              <div class="checkbox-row">
-                <label><input type="checkbox" id="mk_ebay" checked> eBay</label>
-
-                <label id="mk_etsy_wrap">
-                  <input type="checkbox" id="mk_etsy">
-                  <span id="mk_etsy_label">Etsy</span>
-                  <span class="badge badge-soon" id="mk_etsy_badge" style="display:none;">Coming soon</span>
-                </label>
-
-                <label><input type="checkbox" id="mk_facebook"> Facebook</label>
-                <label><input type="checkbox" id="mk_craigslist"> Craigslist</label>
-              </div>
-
-              <div class="help" id="mk_help" style="display:none;"></div>
-            </div>
-          </details>
-
-          <div class="actions">
-            <button type="submit" class="btn btn-primary">
-              <span>Start search prototype</span>
-            </button>
-            <button type="button" class="btn btn-secondary-link" id="view-searches-btn">
+<textarea id="search_item" name="search_item" placeholder="e.g., 1960 Porsche 356 project, vintage car radio, antique oak writing desk" required=""></textarea>
+<div class="field-row">
+<div>
+<label for="location">Location (optional)</label>
+<p class="field-hint">City, region, or “online only”.</p>
+<input id="location" name="location" placeholder="e.g., New York, Los Angeles, Mid-Atlantic" type="text"/>
+</div>
+<div>
+<label for="category">Category (optional)</label>
+<p class="field-hint">Just for your own organization.</p>
+<input id="category" name="category" placeholder="e.g., Electronics, Furniture, Classic cars" type="text"/>
+</div>
+</div>
+<label for="max_price">Max price limit (optional)</label>
+<p class="field-hint">Set a rough cap so you can quickly see which finds are in range.</p>
+<input id="max_price" min="0" name="max_price" placeholder="e.g., 500" step="0.01" type="number"/>
+<!-- Advanced options -->
+<details class="advanced">
+<summary>Advanced options</summary>
+<div class="field">
+<label>Marketplaces</label>
+<div class="checkbox-row">
+<label><input checked="" id="mk_ebay" type="checkbox"/> eBay</label>
+<label id="mk_etsy_wrap">
+<input id="mk_etsy" type="checkbox"/>
+<span id="mk_etsy_label">Etsy</span>
+<span class="badge badge-soon" id="mk_etsy_badge">Coming soon</span>
+</label>
+<label><input id="mk_facebook" type="checkbox"/> Facebook</label>
+<label><input id="mk_craigslist" type="checkbox"/> Craigslist</label>
+</div>
+<div class="help" id="mk_help"></div>
+</div>
+</details>
+<div class="actions">
+<button class="btn btn-primary" type="submit">
+<span>Start search prototype</span>
+</button>
+<button class="btn btn-secondary-link" id="view-searches-btn" type="button">
               View saved searches
             </button>
-            <div class="status-text">
+<div class="status-text">
               Saved searches appear in your MVP table view.
             </div>
-          </div>
-
-          <div id="message" class="message"></div>
-          <p class="small-note">
+</div>
+<div class="message" id="message"></div>
+<p class="small-note">
             Note: In this MVP, searches are stored and listed. The “engine” that runs them in the background
             is the next layer you’ll be designing.
           </p>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <script>
+</form>
+</div>
+</div>
+</div>
+<script>
     const form = document.getElementById('search-form');
     const messageEl = document.getElementById('message');
     const viewSearchesBtn = document.getElementById('view-searches-btn');
@@ -585,7 +553,6 @@
     });
 
 
-  </script>
+</script></main>
 </body>
-
 </html>

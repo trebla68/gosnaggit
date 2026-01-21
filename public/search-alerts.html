@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
 
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>GoSnaggit – Alerts</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
+<meta charset="utf-8"/>
+<title>GoSnaggit – Alerts</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<style>
 
         :root {
             --bg: #0b1020;
@@ -374,90 +374,73 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
     </style>
-</head>
+<link href="/app.css" rel="stylesheet"/><script defer="True" src="/app.js"></script></head>
+<body><header class="app-header" id="gs-header"></header>
+<main class="gs-page">
+<div class="page-actions">
+<a class="btn btn-secondary" href="searches.html">← Saved Searches</a>
+<a class="btn btn-primary" href="search-detail.html" id="backToDetail">Search Detail</a>
+<button class="btn btn-secondary" id="refreshBtn" type="button">Refresh</button>
+<button class="btn btn-primary" id="sendNowBtn" type="button">Send now</button>
+</div>
 
-<body>
-    <div class="wrap">
-        <header>
-            <div class="logo-left">
-                <div class="brand"><span class="brand-badge" aria-hidden="true"></span>GoSnaggit</div>
-                <div class="subhead" id="subtitle">Alerts</div>
-            </div>
-
-            <div class="top-actions">
-                <a class="btn" href="searches.html">← Saved Searches</a>
-                <a class="btn primary" id="backToDetail" href="search-detail.html">Search Detail</a>
-                <button class="btn" id="refreshBtn" type="button">Refresh</button>
-                <button class="btn" id="sendNowBtn" type="button">Send now</button>
-
-
-            </div>
-        </header>
-
-        <div id="flash" class="flash"></div>
-
-        <div class="card">
-            <div class="card-h">
-                <div class="titleline">
-                    <h2 class="h-title">Alerts for Search <span class="mono" id="searchId">—</span></h2>
-                    <div class="h-meta">
-                        <span id="summaryLine">Counts: —</span>
-                        <span class="mini" id="rangeLine">Showing —</span>
-                    </div>
-                </div>
-                <!-- ✅ Summary bar (must live INSIDE the card so it doesn't float/un-clickable) -->
-                <div class="alerts-summary" id="alerts-summary">
-                    <div class="alerts-summary-row">
-                        <div class="pill pending"><span class="dot"></span> Pending: <strong id="sum-pending">—</strong>
-                        </div>
-                        <div class="pill sent"><span class="dot"></span> Sent: <strong id="sum-sent">—</strong></div>
-                        <div class="pill dismissed"><span class="dot"></span> Dismissed: <strong
-                                id="sum-dismissed">—</strong></div>
-                        <div class="pill error"><span class="dot"></span> Error: <strong id="sum-error">—</strong></div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="chips" id="chips">
-                <!-- chips injected -->
-            </div>
-
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 70px;">ID</th>
-                            <th style="width: 110px;">Status</th>
-                            <th>Title</th>
-                            <th style="width: 110px;">Price</th>
-                            <th style="width: 120px;">Listing</th>
-                            <th style="width: 170px;">Created</th>
-                            <th style="width: 180px;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody">
-                        <!-- rows injected -->
-                    </tbody>
-                </table>
-
-                <div id="empty" class="empty" style="display:none;">No alerts found.</div>
-            </div>
-
-            <div class="pager">
-                <div class="left">
-                    <button class="btn" id="prevBtn" type="button">← Prev</button>
-                    <button class="btn" id="nextBtn" type="button">Next →</button>
-                </div>
-                <div class="right">
-                    <span class="label" id="pageLabel">Page —</span>
-                    <span class="label">Per page: <span class="mono" id="limitLabel">5</span></span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
+<div class="wrap">
+<div class="flash" id="flash"></div>
+<div class="card">
+<div class="card-h">
+<div class="titleline">
+<h2 class="h-title">Alerts for Search <span class="mono" id="searchId">—</span></h2>
+<div class="h-meta">
+<span id="summaryLine">Counts: —</span>
+<span class="mini" id="rangeLine">Showing —</span>
+</div>
+</div>
+<!-- ✅ Summary bar (must live INSIDE the card so it doesn't float/un-clickable) -->
+<div class="alerts-summary" id="alerts-summary">
+<div class="alerts-summary-row">
+<div class="pill pending"><span class="dot"></span> Pending: <strong id="sum-pending">—</strong>
+</div>
+<div class="pill sent"><span class="dot"></span> Sent: <strong id="sum-sent">—</strong></div>
+<div class="pill dismissed"><span class="dot"></span> Dismissed: <strong id="sum-dismissed">—</strong></div>
+<div class="pill error"><span class="dot"></span> Error: <strong id="sum-error">—</strong></div>
+</div>
+</div>
+</div>
+<div class="chips" id="chips">
+<!-- chips injected -->
+</div>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Title</th>
+<th>Price</th>
+<th>Listing</th>
+<th>Created</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="tbody">
+<!-- rows injected -->
+</tbody>
+</table>
+<div class="empty" id="empty">No alerts found.</div>
+</div>
+<div class="pager">
+<div class="left">
+<button class="btn" id="prevBtn" type="button">← Prev</button>
+<button class="btn" id="nextBtn" type="button">Next →</button>
+</div>
+<div class="right">
+<span class="label" id="pageLabel">Page —</span>
+<span class="label">Per page: <span class="mono" id="limitLabel">5</span></span>
+</div>
+</div>
+</div>
+</div>
+<script>
         // -----------------------------------------
         // GoSnaggit Alerts UI Controller (TABLE + CHIPS)
         // Works with your existing HTML structure.
@@ -774,9 +757,7 @@
         refreshAll();
         loadAlertsSummary();
 
-    </script>
-
-
+</script>
+</main>
 </body>
-
 </html>

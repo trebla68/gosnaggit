@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
 
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>GoSnaggit – Deleted Searches</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
+<meta charset="utf-8"/>
+<title>GoSnaggit – Deleted Searches</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<style>
     :root {
       --bg: #0b1020;
       --card-bg: #151a2b;
@@ -245,63 +245,44 @@
       color: #ffc5cb;
     }
   </style>
-</head>
+<link href="/app.css" rel="stylesheet"/><script defer="True" src="/app.js"></script></head>
+<body><header class="app-header" id="gs-header"></header>
+<main class="gs-page">
+<section class="page-hero">
+<h1>Deleted searches</h1>
+<p class="subtitle">Restore a search to bring it back to your active hunts.</p>
+</section>
 
-<body>
-  <div class="shell">
-    <div class="inner">
-      <header>
-        <div>
-          <div class="logo-left">
-            <div class="logo-mark">G</div>
-            <div class="logo-text">
-              <span>GoSnaggit</span>
-              <span>Deleted searches</span>
-            </div>
-          </div>
-          <h1>Deleted searches (recycle bin).</h1>
-          <p class="subtitle">
-            These searches have been marked as <strong>deleted</strong> in your MVP.
-            You can restore them to active if you change your mind.
-          </p>
-        </div>
-
-        <nav class="nav-links">
-          <a href="/index.html">Home</a>
-          <a href="/searches.html">Saved searches</a>
-        </nav>
-      </header>
-
-      <div class="table-card">
-        <div class="table-header">
-          <div class="table-title">Deleted searches</div>
-        </div>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Item</th>
-                <th>Location / Category</th>
-                <th>Max price</th>
-                <th>Deleted status</th>
-                <th>Created</th>
-                <th>Restore</th>
-              </tr>
-            </thead>
-            <tbody id="deleted-body">
-              <!-- Filled by JS -->
-            </tbody>
-          </table>
-        </div>
-
-        <div id="message"></div>
-      </div>
-    </div>
-  </div>
-
-  <script>
+<div class="shell">
+<div class="inner">
+<div class="table-card">
+<div class="table-header">
+<div class="table-title">Deleted searches</div>
+</div>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Item</th>
+<th>Location / Category</th>
+<th>Max price</th>
+<th>Deleted status</th>
+<th>Created</th>
+<th>Restore</th>
+</tr>
+</thead>
+<tbody id="deleted-body">
+<!-- Filled by JS -->
+</tbody>
+</table>
+</div>
+<div id="message"></div>
+</div>
+</div>
+</div>
+</main>
+<script>
     const deletedBody = document.getElementById('deleted-body');
     const messageEl = document.getElementById('message');
 
@@ -399,5 +380,4 @@
     });
   </script>
 </body>
-
 </html>

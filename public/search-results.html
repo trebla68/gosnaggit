@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
 
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>GoSnaggit – Search Results</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
+<meta charset="utf-8"/>
+<title>GoSnaggit – Search Results</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<style>
     :root {
       --bg: #0b1020;
       --card-bg: #151a2b;
@@ -468,99 +468,74 @@
       line-height: 1.4;
     }
   </style>
-</head>
-
-<body>
-  <div class="shell">
-    <div class="inner">
-      <!-- Left: search context/info -->
-      <div>
-        <header>
-          <div class="logo-row">
-            <div class="logo-left">
-              <div class="logo-mark">G</div>
-              <div class="logo-text">
-                <span>GoSnaggit</span>
-                <span>Results for this hunt</span>
-              </div>
-            </div>
-            <nav class="nav-links">
-              <a href="/index.html">Home</a>
-              <a href="/searches.html">Saved searches</a>
-            </nav>
-          </div>
-          <h1 id="search-title">Search results</h1>
-          <p class="subtitle" id="search-subtitle">
+<link href="/app.css" rel="stylesheet"/><script defer="True" src="/app.js"></script></head>
+<body><header class="app-header" id="gs-header"></header><main class="gs-page"><section class="page-hero"><h1 id="search-title">Search results</h1><p class="subtitle" id="search-subtitle">
             Viewing mock marketplace results for this saved search.
-          </p>
-        </header>
+          </p></section>
+<div class="shell">
+<div class="inner">
+<!-- Left: search context/info -->
+<div>
 
-        <div class="info-card">
-          <div class="info-row">
-            <span class="info-label">Item</span>
-            <span class="info-value" id="info-item">—</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Location</span>
-            <span class="info-value" id="info-location">—</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Category</span>
-            <span class="info-value" id="info-category">—</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Max price</span>
-            <span class="info-value" id="info-max-price">—</span>
-          </div>
-
-          <div class="info-pills">
-            <span class="info-pill" id="info-status-pill">Status: —</span>
-            <span class="info-pill" id="info-count-pill">Results: —</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right: results panel -->
-      <div class="results-card">
-        <div class="results-header">
-          <div>
-            <div class="results-title">Results preview</div>
-            <div class="results-meta" id="results-meta">
+<div class="info-card">
+<div class="info-row">
+<span class="info-label">Item</span>
+<span class="info-value" id="info-item">—</span>
+</div>
+<div class="info-row">
+<span class="info-label">Location</span>
+<span class="info-value" id="info-location">—</span>
+</div>
+<div class="info-row">
+<span class="info-label">Category</span>
+<span class="info-value" id="info-category">—</span>
+</div>
+<div class="info-row">
+<span class="info-label">Max price</span>
+<span class="info-value" id="info-max-price">—</span>
+</div>
+<div class="info-pills">
+<span class="info-pill" id="info-status-pill">Status: —</span>
+<span class="info-pill" id="info-count-pill">Results: —</span>
+</div>
+</div>
+</div>
+<!-- Right: results panel -->
+<div class="results-card">
+<div class="results-header">
+<div>
+<div class="results-title">Results preview</div>
+<div class="results-meta" id="results-meta">
               Loading…
             </div>
-          </div>
-          <div class="results-controls">
-            <button type="button" class="refresh-btn" id="refresh-button">Refresh</button>
-          </div>
-        </div>
-
-        <div class="grid-wrapper">
-          <div id="results-grid" class="results-grid">
-            <!-- cards go here -->
-          </div>
-          <div id="empty-state" class="empty-state" style="display:none;">
-            <strong>No results yet.</strong><br>
+</div>
+<div class="results-controls">
+<button class="refresh-btn" id="refresh-button" type="button">Refresh</button>
+</div>
+</div>
+<div class="grid-wrapper">
+<div class="results-grid" id="results-grid">
+<!-- cards go here -->
+</div>
+<div class="empty-state" id="empty-state">
+<strong>No results yet.</strong><br/>
             This hunt is set up — results will appear here as sources are checked.
             Try <a href="#" id="empty-refresh">Refresh</a> or go back to
             <a href="/searches.html">Saved searches</a>.
           </div>
-
-        </div>
-
-        <div class="pagination">
-          <div id="page-summary">Page 1 of 1</div>
-          <div class="pagination-controls">
-            <button type="button" class="page-btn" id="prev-page">Previous</button>
-            <button type="button" class="page-btn" id="next-page">Next</button>
-          </div>
-        </div>
-
-        <div id="message"></div>
-      </div>
-    </div>
-  </div>
-
-  <script>
+</div>
+<div class="pagination">
+<div id="page-summary">Page 1 of 1</div>
+<div class="pagination-controls">
+<button class="page-btn" id="prev-page" type="button">Previous</button>
+<button class="page-btn" id="next-page" type="button">Next</button>
+</div>
+</div>
+<div id="message"></div>
+</div>
+</div>
+</div>
+<script>
     function getParams() {
       const params = new URLSearchParams(window.location.search);
 
@@ -930,7 +905,6 @@
       window.history.replaceState({}, '', newUrl);
     }
 
-  </script>
+</script></main>
 </body>
-
 </html>

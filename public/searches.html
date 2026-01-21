@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
 
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>GoSnaggit – Saved Searches</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
+<meta charset="utf-8"/>
+<title>GoSnaggit – Saved Searches</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<style>
     :root {
       --bg: #0b1020;
       --card-bg: #151a2b;
@@ -580,106 +580,85 @@
       background: rgba(51, 209, 122, 0.95);
     }
   </style>
-</head>
+<link href="/app.css" rel="stylesheet"/><script defer="True" src="/app.js"></script></head>
+<body><header class="app-header" id="gs-header"></header>
+<main class="gs-page">
+<div class="shell">
+<div class="inner">
 
-<body>
-  <div class="shell">
-    <div class="inner">
-      <header>
-        <div class="logo-left">
-          <div class="logo-mark">G</div>
-          <div class="logo-text">
-            <span>GoSnaggit</span>
-            <span>Your saved hunts dashboard</span>
-          </div>
-        </div>
-        <nav class="nav-links">
-          <a href="/index.html">Home</a>
-          <a href="/search.html">New search</a>
-        </nav>
-      </header>
-
-      <div class="title-block">
-        <h1>Saved searches overview</h1>
-        <p>Your current hunts at a glance. This MVP view shows sample data for all active, paused, and completed
+<div class="title-block">
+<h1>Saved searches overview</h1>
+<p>Your current hunts at a glance. This MVP view shows sample data for all active, paused, and completed
           searches.</p>
-
-        <div class="summary-row">
-          <div class="summary-card">
-            <div class="summary-label">Total saved searches</div>
-            <div class="summary-value" id="summary-total">0</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-label">Currently active</div>
-            <div class="summary-value" id="summary-active">0</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-label">Completed / cancelled</div>
-            <div class="summary-value" id="summary-completed">0</div>
-          </div>
-          <div class="summary-note">
+<div class="summary-row">
+<div class="summary-card">
+<div class="summary-label">Total saved searches</div>
+<div class="summary-value" id="summary-total">0</div>
+</div>
+<div class="summary-card">
+<div class="summary-label">Currently active</div>
+<div class="summary-value" id="summary-active">0</div>
+</div>
+<div class="summary-card">
+<div class="summary-label">Completed / cancelled</div>
+<div class="summary-value" id="summary-completed">0</div>
+</div>
+<div class="summary-note">
             This panel can later evolve into a <span class="summary-highlight">search health overview</span> with
             trends, alerts, and anomaly detection.
           </div>
-        </div>
-      </div>
-
-      <div class="table-card">
-        <div class="table-header-row">
-          <div>
-            <h2>Saved searches (MVP data table)</h2>
-            <small><span id="table-count">0</span> searches</small>
-          </div>
-
-          <button class="btn btn-primary" id="new-search-btn">
-            <span class="icon">＋</span>
-            <span>Add a new search</span>
-          </button>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Item</th>
-              <th>Location / Category</th>
-              <th>Max price</th>
-              <th>Tier</th>
-              <th>Status</th>
-              <th>Last result</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="searches-tbody"></tbody>
-        </table>
-
-        <div class="pagination" id="pagination">
-          <div class="range-text" id="range-text"></div>
-          <div class="pagination-buttons">
-            <label for="page-size" class="page-size-label">Rows per page:</label>
-            <select id="page-size">
-              <option value="5" selected>5</option>
-              <option value="10">10</option>
-              <option value="20">20</option>
-            </select>
-            <button id="prev-page">Previous</button>
-            <span id="page-info">Page 1 of 1</span>
-            <button id="next-page">Next</button>
-          </div>
-        </div>
-
-        <div id="flash-message" class="flash"></div>
-
-        <footer>
+</div>
+</div>
+<div class="table-card">
+<div class="table-header-row">
+<div>
+<h2>Saved searches (MVP data table)</h2>
+<small><span id="table-count">0</span> searches</small>
+</div>
+<button class="btn btn-primary" id="new-search-btn">
+<span class="icon">＋</span>
+<span>Add a new search</span>
+</button>
+</div>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Item</th>
+<th>Location / Category</th>
+<th>Max price</th>
+<th>Tier</th>
+<th>Status</th>
+<th>Last result</th>
+<th>Created</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="searches-tbody"></tbody>
+</table>
+<div class="pagination" id="pagination">
+<div class="range-text" id="range-text"></div>
+<div class="pagination-buttons">
+<label class="page-size-label" for="page-size">Rows per page:</label>
+<select id="page-size">
+<option selected="" value="5">5</option>
+<option value="10">10</option>
+<option value="20">20</option>
+</select>
+<button id="prev-page">Previous</button>
+<span id="page-info">Page 1 of 1</span>
+<button id="next-page">Next</button>
+</div>
+</div>
+<div class="flash" id="flash-message"></div>
+<footer>
           GoSnaggit – internal MVP prototype. Table, counts, and pagination are powered by your local database; search
           engine and background alerts still in development.
         </footer>
-      </div>
-    </div>
-  </div>
-
-  <script>
+</div>
+</div>
+</div>
+<script>
     let pageSize = 5;
     let allSearches = [];
     let currentPage = 1;
@@ -1393,6 +1372,6 @@
 
     document.addEventListener('DOMContentLoaded', init);
   </script>
+</main>
 </body>
-
 </html>
