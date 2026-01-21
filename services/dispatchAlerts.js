@@ -159,6 +159,9 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit, 
         await client.query('COMMIT');
         inTxn = false;
 
+
+
+
         // --------------------
         // OUTSIDE transaction: fetch details, send ONE email, mark sent/error
         // --------------------
