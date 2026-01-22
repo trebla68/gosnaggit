@@ -474,6 +474,12 @@ app.patch('/searches/:id', async (req, res) => {
     const { id } = req.params;
     const { search_item, location, category, max_price, status } = req.body || {};
 
+    const marketplaces =
+      (req.body && Object.prototype.hasOwnProperty.call(req.body, 'marketplaces'))
+        ? normalizeMarketplaces(req.body.marketplaces)
+        : null;
+
+
     const maxPriceNum = parseMoneyToNumber(max_price);
 
 
@@ -495,11 +501,14 @@ app.patch('/searches/:id', async (req, res) => {
           location    = $2,
           category    = $3,
           max_price   = $4,
-          status      = COALESCE($5, status)
-      WHERE id = $6
+          status       = COALESCE($5, status),
+          marketplaces = COALESCE($6, marketplaces)
+          WHERE id = $7
+
       RETURNING *
       `,
-      [search_item, location || null, category || null, maxPriceNum, status || null, id]
+      [search_item, location || null, category || null, maxPriceNum, status || null, marketplaces, id]
+
     );
 
     if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
@@ -516,6 +525,12 @@ app.patch('/api/searches/:id', async (req, res) => {
     const { id } = req.params;
     const { search_item, location, category, max_price, status } = req.body || {};
 
+    const marketplaces =
+      (req.body && Object.prototype.hasOwnProperty.call(req.body, 'marketplaces'))
+        ? normalizeMarketplaces(req.body.marketplaces)
+        : null;
+
+
     const maxPriceNum = parseMoneyToNumber(max_price);
 
 
@@ -537,11 +552,13 @@ app.patch('/api/searches/:id', async (req, res) => {
           location    = $2,
           category    = $3,
           max_price   = $4,
-          status      = COALESCE($5, status)
-      WHERE id = $6
-      RETURNING *
+          status       = COALESCE($5, status),
+          marketplaces = COALESCE($6, marketplaces)
+          WHERE id = $7
+          RETURNING *
       `,
-      [search_item, location || null, category || null, maxPriceNum, status || null, id]
+      [search_item, location || null, category || null, maxPriceNum, status || null, marketplaces, id]
+
     );
 
     if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
-<meta charset="utf-8"/>
-<title>GoSnaggit – Edit Search</title>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<style>
+  <meta charset="utf-8" />
+  <title>GoSnaggit – Edit Search</title>
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <style>
     :root {
       --bg: #0b1020;
       --card-bg: #151a2b;
@@ -268,187 +269,307 @@
       color: var(--text-muted);
       opacity: 0.9;
     }
+
+    .checkbox-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .checkbox-row label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      opacity: 0.85;
+    }
+
+    .badge-soon {
+      opacity: 0.75;
+    }
+
+    .help {
+      margin-top: 8px;
+      font-size: 13px;
+      opacity: 0.85;
+    }
   </style>
-<link href="/app.css" rel="stylesheet"/><script defer="True" src="/app.js"></script></head>
-<body><header class="app-header" id="gs-header"></header>
-<main class="gs-page">
-<div class="shell">
-<div class="inner">
+  <link href="/app.css" rel="stylesheet" />
+  <script defer="True" src="/app.js"></script>
+</head>
 
-<div>
-<h1 id="page-title">Edit search</h1>
-<p class="subtitle" id="page-subtitle">
-          Adjust the item, price ceiling, location, or status for this saved hunt.
-        </p>
-</div>
-<div class="card">
-<form id="edit-form">
-<div class="field-group">
-<label for="search_item">Search item</label>
-<input id="search_item" name="search_item" placeholder="e.g. Vintage car radio – Blaupunkt" required="" type="text"/>
-<div class="hint">This is the anchor description for this hunt.</div>
-</div>
-<div class="field-inline">
-<div class="field-group">
-<label for="location">Location</label>
-<input id="location" name="location" placeholder="e.g. Los Angeles, CA" type="text"/>
-</div>
-<div class="field-group">
-<label for="category">Category</label>
-<input id="category" name="category" placeholder="e.g. Vintage Audio" type="text"/>
-</div>
-</div>
-<div class="field-inline">
-<div class="field-group">
-<label for="max_price">Max price</label>
-<input id="max_price" min="0" name="max_price" placeholder="e.g. 350.00" step="0.01" type="number"/>
-<div class="hint">Optional price ceiling. You can tweak this as you refine the search.</div>
-</div>
-<div class="field-group">
-<label for="status">Status</label>
-<select id="status" name="status">
-<option value="active">Active</option>
-<option value="paused">Paused</option>
-<option value="completed">Completed</option>
-<option value="cancelled">Cancelled</option>
-<option value="deleted">Deleted</option>
-</select>
-</div>
-</div>
-<div class="buttons-row">
-<button class="btn btn-primary" type="submit">Save changes</button>
-<a class="btn btn-secondary" href="#" id="view-details-link">View details</a>
-<a class="btn btn-ghost" href="/searches.html">← Back to saved searches</a>
-</div>
-<div class="message" id="message"></div>
-</form>
-</div>
-<footer>
-        GoSnaggit – internal MVP prototype. This edit form sends a PATCH request to your <code>/api/searches/:id</code>
-        API.
-      </footer>
-</div>
-</div>
-<script>
-    function getParams() {
-      const params = new URLSearchParams(window.location.search);
-      return {
-        id: params.get('id')
-      };
-    }
+<body>
+  <header class="app-header" id="gs-header"></header>
+  <main class="gs-page">
+    <div class="shell">
+      <div class="inner">
 
-    const { id: searchId } = getParams();
+        <div>
+          <h1 id="page-title">Edit search</h1>
+          <p class="subtitle" id="page-subtitle">
+            Adjust the item, price ceiling, location, or status for this saved hunt.
+          </p>
+        </div>
+        <div class="card">
+          <form id="edit-form">
+            <div class="field-group">
+              <label for="search_item">Search item</label>
+              <input id="search_item" name="search_item" placeholder="e.g. Vintage car radio – Blaupunkt" required=""
+                type="text" />
+              <div class="hint">This is the anchor description for this hunt.</div>
+            </div>
+            <div class="field-inline">
+              <div class="field-group">
+                <label for="location">Location</label>
+                <input id="location" name="location" placeholder="e.g. Los Angeles, CA" type="text" />
+              </div>
+              <div class="field-group">
+                <label for="category">Category</label>
+                <input id="category" name="category" placeholder="e.g. Vintage Audio" type="text" />
+              </div>
+            </div>
+            <div class="field-inline">
+              <div class="field-group">
+                <label for="max_price">Max price</label>
+                <input id="max_price" min="0" name="max_price" placeholder="e.g. 350.00" step="0.01" type="number" />
+                <div class="hint">Optional price ceiling. You can tweak this as you refine the search.</div>
+              </div>
+              <div class="field-group">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="deleted">Deleted</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>Marketplaces</label>
+              <div class="checkbox-row">
+                <label><input checked id="mk_ebay" type="checkbox"> eBay</label>
 
-    const form = document.getElementById('edit-form');
-    const messageEl = document.getElementById('message');
-    const viewDetailsLink = document.getElementById('view-details-link');
+                <label id="mk_etsy_wrap">
+                  <input id="mk_etsy" type="checkbox">
+                  <span id="mk_etsy_label">Etsy</span>
+                  <span class="badge badge-soon" id="mk_etsy_badge">Coming soon</span>
+                </label>
 
-    const searchItemInput = document.getElementById('search_item');
-    const locationInput = document.getElementById('location');
-    const categoryInput = document.getElementById('category');
-    const maxPriceInput = document.getElementById('max_price');
-    const statusSelect = document.getElementById('status');
+                <label><input id="mk_facebook" type="checkbox"> Facebook</label>
+                <label><input id="mk_craigslist" type="checkbox"> Craigslist</label>
+              </div>
+              <div class="help" id="mk_help"></div>
+            </div>
 
-    function setMessage(text, type) {
-      messageEl.textContent = text || '';
-      messageEl.className = 'message';
-      if (type) {
-        messageEl.classList.add(type);
-      }
-    }
-
-    async function loadSearch() {
-      if (!searchId) {
-        setMessage('Missing search id in URL (e.g., edit-search.html?id=1).', 'error');
-        form.querySelector('button[type="submit"]').disabled = true;
-        return;
+            <div class="buttons-row">
+              <button class="btn btn-primary" type="submit">Save changes</button>
+              <a class="btn btn-secondary" href="#" id="view-details-link">View details</a>
+              <a class="btn btn-ghost" href="/searches.html">← Back to saved searches</a>
+            </div>
+            <div class="message" id="message"></div>
+          </form>
+        </div>
+        <footer>
+          GoSnaggit – internal MVP prototype. This edit form sends a PATCH request to your
+          <code>/api/searches/:id</code>
+          API.
+        </footer>
+      </div>
+    </div>
+    <script>
+      function getParams() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+          id: params.get('id')
+        };
       }
 
-      viewDetailsLink.href = '/search-detail.html?id=' + encodeURIComponent(searchId);
+      const { id: searchId } = getParams();
 
-      setMessage('Loading search details…');
+      const form = document.getElementById('edit-form');
+      const messageEl = document.getElementById('message');
+      const viewDetailsLink = document.getElementById('view-details-link');
 
-      try {
-        const res = await fetch('/api/searches/' + searchId);
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || 'Failed to load search');
+      const searchItemInput = document.getElementById('search_item');
+      const locationInput = document.getElementById('location');
+      const categoryInput = document.getElementById('category');
+      const maxPriceInput = document.getElementById('max_price');
+      const statusSelect = document.getElementById('status');
+      // Marketplace checkboxes
+      const mkEbay = document.getElementById('mk_ebay');
+      const mkEtsy = document.getElementById('mk_etsy');
+      const mkFacebook = document.getElementById('mk_facebook');
+      const mkCraigslist = document.getElementById('mk_craigslist');
+
+      const mkHelp = document.getElementById('mk_help');
+      const mkEtsyBadge = document.getElementById('mk_etsy_badge');
+      const mkEtsyLabel = document.getElementById('mk_etsy_label');
+      const mkEtsyWrap = document.getElementById('mk_etsy_wrap');
+
+      function setMarketplaceCheckboxes(marketplaces) {
+        const def = { ebay: true, etsy: false, facebook: false, craigslist: false };
+        const mp = (marketplaces && typeof marketplaces === 'object') ? { ...def, ...marketplaces } : def;
+
+        mkEbay.checked = !!mp.ebay;
+        mkEtsy.checked = !!mp.etsy;
+        mkFacebook.checked = !!mp.facebook;
+        mkCraigslist.checked = !!mp.craigslist;
+      }
+
+      function readMarketplaceCheckboxes() {
+        return {
+          ebay: mkEbay?.checked ?? true,
+          etsy: mkEtsy?.checked ?? false,
+          facebook: mkFacebook?.checked ?? false,
+          craigslist: mkCraigslist?.checked ?? false
+        };
+      }
+
+      async function applyMarketplaceAvailability() {
+        try {
+          const r = await fetch('/api/config', { cache: 'no-store' });
+          const cfg = await r.json();
+          const etsyAvailable = !!(cfg && cfg.marketplaces && cfg.marketplaces.etsy && cfg.marketplaces.etsy.available);
+
+          if (!etsyAvailable) {
+            mkEtsy.checked = false;
+            mkEtsy.disabled = true;
+            if (mkEtsyBadge) mkEtsyBadge.style.display = 'inline-block';
+            if (mkHelp) {
+              mkHelp.style.display = 'block';
+              mkHelp.textContent = 'Etsy is coming soon. This build searches eBay only.';
+            }
+            if (mkEtsyWrap) mkEtsyWrap.title = 'Coming soon — not enabled in this build';
+          } else {
+            mkEtsy.disabled = false;
+            if (mkEtsyBadge) mkEtsyBadge.style.display = 'none';
+            if (mkHelp) mkHelp.style.display = 'none';
+            if (mkEtsyWrap) mkEtsyWrap.title = '';
+          }
+        } catch (e) {
+          console.warn('Failed to load /api/config:', e);
+        }
+      }
+
+
+      function setMessage(text, type) {
+        messageEl.textContent = text || '';
+        messageEl.className = 'message';
+        if (type) {
+          messageEl.classList.add(type);
+        }
+      }
+
+      async function loadSearch() {
+        if (!searchId) {
+          setMessage('Missing search id in URL (e.g., edit-search.html?id=1).', 'error');
+          form.querySelector('button[type="submit"]').disabled = true;
+          return;
         }
 
-        const data = await res.json();
+        viewDetailsLink.href = '/search-detail.html?id=' + encodeURIComponent(searchId);
 
-        searchItemInput.value = data.search_item || '';
-        locationInput.value = data.location || '';
-        categoryInput.value = data.category || '';
-        maxPriceInput.value =
-          (data.max_price === null || data.max_price === undefined) ? '' : String(data.max_price);
+        setMessage('Loading search details…');
 
-        if (data.status) {
-          statusSelect.value = data.status;
+        try {
+          const res = await fetch('/api/searches/' + searchId);
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || 'Failed to load search');
+          }
+
+          const data = await res.json();
+
+          searchItemInput.value = data.search_item || '';
+          locationInput.value = data.location || '';
+          categoryInput.value = data.category || '';
+          maxPriceInput.value =
+            (data.max_price === null || data.max_price === undefined) ? '' : String(data.max_price);
+          setMarketplaceCheckboxes(data.marketplaces);
+          await applyMarketplaceAvailability();
+
+
+          if (data.status) {
+            statusSelect.value = data.status;
+          }
+
+          document.getElementById('page-title').textContent = `Edit “${data.search_item || 'Saved search'}”`;
+          setMessage('Search loaded. Make your changes and click Save.', 'success');
+        } catch (err) {
+          console.error(err);
+          setMessage('Error loading search: ' + err.message, 'error');
+        }
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        if (!searchId) {
+          setMessage('Missing search id – cannot save.', 'error');
+          return;
         }
 
-        document.getElementById('page-title').textContent = `Edit “${data.search_item || 'Saved search'}”`;
-        setMessage('Search loaded. Make your changes and click Save.', 'success');
-      } catch (err) {
-        console.error(err);
-        setMessage('Error loading search: ' + err.message, 'error');
-      }
-    }
+        const search_item = searchItemInput.value.trim();
+        const location = locationInput.value.trim() || null;
+        const category = categoryInput.value.trim() || null;
+        const max_price_raw = maxPriceInput.value;
+        const status = statusSelect.value;
 
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-
-      if (!searchId) {
-        setMessage('Missing search id – cannot save.', 'error');
-        return;
-      }
-
-      const search_item = searchItemInput.value.trim();
-      const location = locationInput.value.trim() || null;
-      const category = categoryInput.value.trim() || null;
-      const max_price_raw = maxPriceInput.value;
-      const status = statusSelect.value;
-
-      if (!search_item) {
-        setMessage('Search item is required.', 'error');
-        searchItemInput.focus();
-        return;
-      }
-
-      const max_price = max_price_raw === '' ? null : Number(max_price_raw);
-
-      setMessage('Saving changes…');
-
-      try {
-        const res = await fetch('/api/searches/' + searchId, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            search_item,
-            location,
-            category,
-            max_price,
-            status
-          })
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || 'Failed to update search');
+        if (!search_item) {
+          setMessage('Search item is required.', 'error');
+          searchItemInput.focus();
+          return;
         }
 
-        const data = await res.json();
-        setMessage('Changes saved. You can return to Saved searches or view details.', 'success');
-      } catch (err) {
-        console.error(err);
-        setMessage('Error saving changes: ' + err.message, 'error');
-      }
-    });
+        const max_price = max_price_raw === '' ? null : Number(max_price_raw);
 
-    document.addEventListener('DOMContentLoaded', loadSearch);
-</script>
-</main>
+        setMessage('Saving changes…');
+
+        try {
+          const res = await fetch('/api/searches/' + searchId, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              search_item,
+              location,
+              category,
+              max_price,
+              status,
+              marketplaces: readMarketplaceCheckboxes()
+            })
+
+          });
+
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || 'Failed to update search');
+          }
+
+          const data = await res.json();
+          setMessage('Changes saved. You can return to Saved searches or view details.', 'success');
+        } catch (err) {
+          console.error(err);
+          setMessage('Error saving changes: ' + err.message, 'error');
+        }
+      });
+
+      document.addEventListener('DOMContentLoaded', loadSearch);
+    </script>
+  </main>
 </body>
+
 </html>
