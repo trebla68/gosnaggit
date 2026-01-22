@@ -1,29 +1,19 @@
 // services/marketplaces/etsy.js
+//
+// Etsy Open API v3 (public-ish listing search)
+// Notes:
+// - Etsy requires x-api-key header containing: "<keystring>:<shared_secret>" for all v3 requests.
+// - Some endpoints also require OAuth (Authorization: Bearer ...). For marketplace-wide *read* endpoints,
+//   Etsy's docs indicate api_key auth is sufficient, but this may change.
+// - If Etsy rejects marketplace-wide keyword search for your access level, we fail-soft and return [].
+//
+// Docs (essentials):
+// - Request Standards (headers): https://developers.etsy.com/documentation/essentials/requests
+// - URL Syntax (limit/offset): https://developers.etsy.com/documentation/essentials/urlsyntax
 
-const ETSY_BASE_URL = 'https://api.etsy.com/v3/application';
-
-function getEtsyApiKeyHeader() {
-    const key = process.env.ETSY_KEYSTRING;
-    const secret = process.env.ETSY_SHARED_SECRET;
-
-    if (!key || !secret) {
-        throw new Error('Missing ETSY_KEYSTRING or ETSY_SHARED_SECRET in .env');
-    }
-
-    // Etsy v3 expects "keystring:shared_secret" in x-api-key
-    return `${key}:${secret}`;
-}
-
-function withTimeout(ms = 15000) {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), ms);
-    return { controller, done: () => clearTimeout(t) };
-}
-
-function normalizeMoney(m) {
-    // Etsy responses vary by endpoint/version; we handle a few common shapes.
-    // Return { price: number|null, currency: string|null }
-    if (!m) return { price: null, currency: null };
+function normalizeEtsyItem(item) {
+  const title = item.title || item.listing_title || item.name || '(Etsy listing)';
+  const url = item.url || item.listing_url || item.listing_url_full || item.url_full || null;
 
     // { amount: 1234, divisor: 100, currency_code: "USD" }
     if (typeof m.amount === 'number') {
