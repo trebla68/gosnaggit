@@ -27,6 +27,35 @@
             box-sizing: border-box;
         }
 
+        /* --- Accessibility: consistent keyboard focus --- */
+        :focus {
+            outline: none;
+        }
+
+        :focus-visible {
+            outline: 2px solid rgba(255, 179, 71, 0.85);
+            outline-offset: 2px;
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            border-radius: 10px;
+        }
+
+        /* --- Micro-interactions: subtle transitions --- */
+        a,
+        button,
+        .chip {
+            transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms ease;
+        }
+
+        button:active:not(:disabled),
+        .chip:active {
+            transform: translateY(1px);
+        }
+
         body {
             margin: 0;
             font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
@@ -39,9 +68,11 @@
         }
 
         .wrap {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 22px 18px 40px;
+            /* The global UI system (app.css) already constrains width + adds padding via .gs-page.
+               Keep this wrapper only for vertical spacing, without changing layout. */
+            max-width: none;
+            margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
             gap: 14px;
@@ -98,6 +129,26 @@
             overflow: hidden;
         }
 
+        .card-tools {
+            padding: 12px 16px 10px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (max-width: 640px) {
+            .card-tools {
+                padding: 12px 14px 10px;
+            }
+        }
+
+        .btn-sm {
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
         .card-h {
             padding: 14px 16px;
             border-bottom: 1px solid var(--border-subtle);
@@ -110,12 +161,12 @@
 
         
         .alerts-summary {
-            margin: 14px 0 0 0;
+            margin: 0;
         }
 
         .alerts-summary-row {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
@@ -169,7 +220,8 @@
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
-            padding: 12px 16px 0;
+            padding: 0;
+            margin: 0;
         }
 
         .chip {
@@ -188,12 +240,16 @@
         }
 
         .chip:hover {
-            border-color: rgba(255, 179, 71, 0.5);
+            border-color: rgba(255, 179, 71, 0.62);
+            background: rgba(255, 255, 255, 0.045);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
         }
 
         .chip.active {
-            border-color: rgba(255, 179, 71, 0.7);
-            background: rgba(255, 179, 71, 0.12);
+            border-color: rgba(255, 179, 71, 0.82);
+            background: rgba(255, 179, 71, 0.14);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
         }
 
         .chip .count {
@@ -348,9 +404,38 @@
         .mono {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
+
+        /* Compact buttons used inside tables */
+        .btn.btn-sm {
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
     
   
-  </style>
+  
+        /* Stats vs Filters differentiation */
+        .alerts-summary-row .pill {
+            background: rgba(255, 255, 255, 0.018);
+            border-color: rgba(38, 43, 63, 0.95);
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 750;
+            letter-spacing: 0.1px;
+        }
+
+        .alerts-summary-row .pill strong {
+            color: var(--text-main);
+            font-weight: 900;
+        }
+
+        .alerts-summary-row .pill .dot {
+            width: 7px;
+            height: 7px;
+            opacity: 0.70;
+        }
+
+</style>
 <link href="/app.css" rel="stylesheet"/><script defer="True" src="/ui.js"></script></head>
 <body><header class="app-header" id="gs-header"></header>
 <main class="gs-page">
@@ -372,7 +457,8 @@
 <span class="mini" id="rangeLine">Showing —</span>
 </div>
 </div>
-<!-- ✅ Summary bar (must live INSIDE the card so it doesn't float/un-clickable) -->
+</div>
+<div class="card-tools">
 <div class="alerts-summary" id="alerts-summary">
 <div class="alerts-summary-row">
 <div class="pill pending"><span class="dot"></span> Pending: <strong id="sum-pending">—</strong>
@@ -382,9 +468,9 @@
 <div class="pill error"><span class="dot"></span> Error: <strong id="sum-error">—</strong></div>
 </div>
 </div>
-</div>
 <div class="chips" id="chips">
 <!-- chips injected -->
+</div>
 </div>
 <div class="table-wrap">
 <table>
@@ -427,19 +513,21 @@
         const searchId = qs.get("search_id") || qs.get("id");
         if (!searchId) alert("Missing search_id in URL. Example: search-alerts.html?search_id=2");
 
-        async function loadAlertsSummary() {
-            try {
-                const res = await fetch(`/api/searches/${encodeURIComponent(searchId)}/alerts/summary`);
-                const data = await res.json().catch(() => null);
-                if (!res.ok || !data || data.ok !== true) return;
+        function updateSummaryBar(counts) {
+            const p = counts?.pending ?? 0;
+            const s = counts?.sent ?? 0;
+            const d = counts?.dismissed ?? 0;
+            const e = counts?.error ?? 0;
 
-                document.getElementById('sum-pending').textContent = data.counts?.pending ?? 0;
-                document.getElementById('sum-sent').textContent = data.counts?.sent ?? 0;
-                document.getElementById('sum-dismissed').textContent = data.counts?.dismissed ?? 0;
-                document.getElementById('sum-error').textContent = data.counts?.error ?? 0;
-            } catch (_) {
-                // fail-soft
-            }
+            const set = (id, v) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = String(v);
+            };
+
+            set('sum-pending', p);
+            set('sum-sent', s);
+            set('sum-dismissed', d);
+            set('sum-error', e);
         }
 
 
@@ -467,10 +555,11 @@
         }
 
         function setSubtitle() {
-            const el = $("#subtitle");
-            if (el) el.textContent = `Alerts (Search ${searchId})`;
             const sid = $("#searchId");
             if (sid) sid.textContent = searchId;
+
+            const back = $("#backToDetail");
+            if (back) back.setAttribute("href", `search-detail.html?search_id=${encodeURIComponent(searchId)}`);
         }
 
         function buildAlertsUrl() {
@@ -618,11 +707,11 @@
             <span class="sub">(${marketplace}) <span class="mono">${ext}</span></span>
           </td>
           <td class="mono">${currency} ${price}</td>
-          <td><a class="btn" style="padding:6px 10px; border-radius:10px;" href="${url}" target="_blank" rel="noopener">Open</a></td>
+          <td><a class="btn btn-secondary btn-sm" href="${url}" target="_blank" rel="noopener">Open</a></td>
           <td class="mono">${created}</td>
           <td>
             <div class="actions">
-              <button class="action-btn" data-action="toggle" data-next="${esc(nextStatus)}">${toggleLabel}</button>
+              <button class="btn btn-secondary btn-sm" data-action="toggle" data-next="${esc(nextStatus)}">${toggleLabel}</button>
             </div>
           </td>
         </tr>
@@ -643,12 +732,23 @@
 
                 renderChips(counts);
                 renderSummaryLine(counts);
+                updateSummaryBar(counts);
 
                 const rows = await loadAlerts();
                 renderTable(rows);
+
+                const prev = $("#prevBtn");
+                const next = $("#nextBtn");
+                if (prev) prev.disabled = offset === 0;
+                if (next) next.disabled = !Array.isArray(rows) || rows.length < limit;
             } catch (e) {
                 showFlash("bad", e.message || String(e));
                 renderTable([]); // show empty + avoid stale table
+
+                const prev = $("#prevBtn");
+                const next = $("#nextBtn");
+                if (prev) prev.disabled = offset === 0;
+                if (next) next.disabled = true;
             }
         }
 
@@ -732,7 +832,7 @@
         setSubtitle();
         renderPagerLabel();
         refreshAll();
-        loadAlertsSummary();
+        // Summary bar is updated as part of refreshAll()
 
 </script>
 </main>
