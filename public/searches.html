@@ -1,20 +1,19 @@
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
-<meta charset="utf-8"/>
-<title>GoSnaggit – Saved Searches</title>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<style>
+  <meta charset="utf-8" />
+  <title>GoSnaggit – Saved Searches</title>
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <style>
     :root {
       --bg: #0b1020;
       --card-bg: #151a2b;
       --accent: #ffb347;
       --brand: var(--accent);
-      --brand: var(--accent);
       --accent-strong: #ff9f1c;
       --text-main: #f7f7ff;
-      --text: var(--text-main);
       --text: var(--text-main);
       --text-muted: #a2a7c4;
       --border-subtle: #262b3f;
@@ -309,7 +308,8 @@
     .flash.fade-in {
       animation: flashFadeIn 0.6s ease-out;
     }
-table {
+
+    table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.8rem;
@@ -531,343 +531,344 @@ table {
     .tier-power .tier-dot {
       background: rgba(51, 209, 122, 0.95);
     }
-  
-  
   </style>
-<link href="/app.css" rel="stylesheet"/><script defer="True" src="/ui.js"></script></head>
-<body><header class="app-header" id="gs-header"></header>
-<main class="gs-page">
-<div class="shell">
-<div class="inner">
+  <link href="/app.css" rel="stylesheet" />
+  <script defer="True" src="/ui.js"></script>
+</head>
 
-<div class="title-block">
-<h1>Saved searches overview</h1>
-<p>Your current hunts at a glance. This MVP view shows sample data for all active, paused, and completed
-          searches.</p>
-<div class="summary-row">
-<div class="summary-card">
-<div class="summary-label">Total saved searches</div>
-<div class="summary-value" id="summary-total">0</div>
-</div>
-<div class="summary-card">
-<div class="summary-label">Currently active</div>
-<div class="summary-value" id="summary-active">0</div>
-</div>
-<div class="summary-card">
-<div class="summary-label">Completed / cancelled</div>
-<div class="summary-value" id="summary-completed">0</div>
-</div>
-<div class="summary-note">
-            This panel can later evolve into a <span class="summary-highlight">search health overview</span> with
-            trends, alerts, and anomaly detection.
+<body>
+  <header class="app-header" id="gs-header"></header>
+  <main class="gs-page">
+    <div class="shell">
+      <div class="inner">
+
+        <div class="title-block">
+          <h1>Saved searches overview</h1>
+          <p>Your current hunts at a glance. This MVP view shows sample data for all active, paused, and completed
+            searches.</p>
+          <div class="summary-row">
+            <div class="summary-card">
+              <div class="summary-label">Total saved searches</div>
+              <div class="summary-value" id="summary-total">0</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Currently active</div>
+              <div class="summary-value" id="summary-active">0</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Completed / cancelled</div>
+              <div class="summary-value" id="summary-completed">0</div>
+            </div>
+            <div class="summary-note">
+              This panel can later evolve into a <span class="summary-highlight">search health overview</span> with
+              trends, alerts, and anomaly detection.
+            </div>
           </div>
-</div>
-</div>
-<div class="table-card">
-<div class="table-header-row">
-<div>
-<h2>Saved searches (MVP data table)</h2>
-<small><span id="table-count">0</span> searches</small>
-</div>
-<button class="btn btn-primary" id="new-search-btn">
-<span class="icon">＋</span>
-<span>Add a new search</span>
-</button>
-</div>
-<table>
-<thead>
-<tr>
-<th>ID</th>
-<th>Item</th>
-<th>Location / Category</th>
-<th>Max price</th>
-<th>Tier</th>
-<th>Status</th>
-<th>Last result</th>
-<th>Created</th>
-<th>Actions</th>
-</tr>
-</thead>
-<tbody id="searches-tbody"></tbody>
-</table>
-<div class="pagination" id="pagination">
-<div class="range-text" id="range-text"></div>
-<div class="pagination-buttons">
-<label class="page-size-label" for="page-size">Rows per page:</label>
-<select id="page-size">
-<option selected="" value="5">5</option>
-<option value="10">10</option>
-<option value="20">20</option>
-</select>
-<button id="prev-page">Previous</button>
-<span id="page-info">Page 1 of 1</span>
-<button id="next-page">Next</button>
-</div>
-</div>
-<div class="flash" id="flash-message"></div>
-<footer>
-          GoSnaggit – internal MVP prototype. Table, counts, and pagination are powered by your local database; search
-          engine and background alerts still in development.
-        </footer>
-</div>
-</div>
-</div>
-<script>
-    let pageSize = 5;
-    let allSearches = [];
-    let currentPage = 1;
-    let totalPages = 1;
+        </div>
+        <div class="table-card">
+          <div class="table-header-row">
+            <div>
+              <h2>Saved searches (MVP data table)</h2>
+              <small><span id="table-count">0</span> searches</small>
+            </div>
+            <button class="btn btn-primary" id="new-search-btn">
+              <span class="icon">＋</span>
+              <span>Add a new search</span>
+            </button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Item</th>
+                <th>Location / Category</th>
+                <th>Max price</th>
+                <th>Tier</th>
+                <th>Status</th>
+                <th>Last result</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="searches-tbody"></tbody>
+          </table>
+          <div class="pagination" id="pagination">
+            <div class="range-text" id="range-text"></div>
+            <div class="pagination-buttons">
+              <label class="page-size-label" for="page-size">Rows per page:</label>
+              <select id="page-size">
+                <option selected="" value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+              </select>
+              <button id="prev-page">Previous</button>
+              <span id="page-info">Page 1 of 1</span>
+              <button id="next-page">Next</button>
+            </div>
+          </div>
+          <div class="flash" id="flash-message"></div>
+          <footer>
+            GoSnaggit – internal MVP prototype. Table, counts, and pagination are powered by your local database; search
+            engine and background alerts still in development.
+          </footer>
+        </div>
+      </div>
+    </div>
+    <script>
+      let pageSize = 5;
+      let allSearches = [];
+      let currentPage = 1;
+      let totalPages = 1;
 
-    const duplicateInFlight = new Set();
-    const deleteInFlight = new Set();
-    const tierInFlight = new Set();
-    let pulseSearchId = null;
+      const duplicateInFlight = new Set();
+      const deleteInFlight = new Set();
+      const tierInFlight = new Set();
+      let pulseSearchId = null;
 
-    // --- Alerts summary cache (for "Alerts (N)" badge) ---
-    // Cache promises so we only hit the API once per searchId per page load.
-    const alertsSummaryCache = new Map();
+      // --- Alerts summary cache (for "Alerts (N)" badge) ---
+      // Cache promises so we only hit the API once per searchId per page load.
+      const alertsSummaryCache = new Map();
 
-    async function getAlertsSummary(searchId) {
-      const id = String(searchId);
-      if (alertsSummaryCache.has(id)) return alertsSummaryCache.get(id);
+      async function getAlertsSummary(searchId) {
+        const id = String(searchId);
+        if (alertsSummaryCache.has(id)) return alertsSummaryCache.get(id);
 
-      const p = fetch(`/api/searches/${encodeURIComponent(id)}/alerts/summary`)
-        .then((r) => r.json().catch(() => ({})))
-        .catch(() => ({}));
+        const p = fetch(`/api/searches/${encodeURIComponent(id)}/alerts/summary`)
+          .then((r) => r.json().catch(() => ({})))
+          .catch(() => ({}));
 
-      alertsSummaryCache.set(id, p);
-      return p;
-    }
+        alertsSummaryCache.set(id, p);
+        return p;
+      }
 
 
-    const MIN_SPINNER_MS = 900;
+      const MIN_SPINNER_MS = 900;
+      const tbody = document.getElementById('searches-tbody');
+      const summaryTotal = document.getElementById('summary-total');
+      const summaryActive = document.getElementById('summary-active');
+      const summaryCompleted = document.getElementById('summary-completed');
+      const tableCount = document.getElementById('table-count');
+      const rangeTextEl = document.getElementById('range-text');
+      const pageInfoEl = document.getElementById('page-info');
+      const prevBtn = document.getElementById('prev-page');
+      const nextBtn = document.getElementById('next-page');
+      const newSearchBtn = document.getElementById('new-search-btn');
+      const pageSizeSelect = document.getElementById('page-size');
+      const flashEl = document.getElementById('flash-message');
 
-    const tbody = document.getElementById('searches-tbody');
-    const summaryTotal = document.getElementById('summary-total');
-    const summaryActive = document.getElementById('summary-active');
-    const summaryCompleted = document.getElementById('summary-completed');
-    const tableCount = document.getElementById('table-count');
-    const rangeTextEl = document.getElementById('range-text');
-    const pageInfoEl = document.getElementById('page-info');
-    const prevBtn = document.getElementById('prev-page');
-    const nextBtn = document.getElementById('next-page');
-    const newSearchBtn = document.getElementById('new-search-btn');
-    const pageSizeSelect = document.getElementById('page-size');
-    const flashEl = document.getElementById('flash-message');
+      function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+      }
 
-    function sleep(ms) {
-      return new Promise(r => setTimeout(r, ms));
-    }
+      function nextPaint() {
+        return new Promise(resolve => requestAnimationFrame(resolve));
+      }
 
-    function nextPaint() {
-      return new Promise(resolve => requestAnimationFrame(resolve));
-    }
+      function setFlash(text, type) {
+        flashEl.textContent = text || '';
+        flashEl.className = 'flash';
+        if (type) flashEl.classList.add(type);
 
-    function setFlash(text, type) {
-      flashEl.textContent = text || '';
-      flashEl.className = 'flash';
-      if (type) flashEl.classList.add(type);
-
-      if (text) {
-        flashEl.classList.remove('fade-in');
-        flashEl.style.opacity = '0';
-        void flashEl.offsetWidth;
-        flashEl.style.opacity = '';
-        flashEl.classList.add('fade-in');
-
-        setTimeout(() => {
-          flashEl.textContent = '';
-          flashEl.className = 'flash';
+        if (text) {
+          flashEl.classList.remove('fade-in');
+          flashEl.style.opacity = '0';
+          void flashEl.offsetWidth;
           flashEl.style.opacity = '';
-        }, 4000);
-      }
-    }
+          flashEl.classList.add('fade-in');
 
-    function setRowBusy(actionsTd, busy) {
-      actionsTd.style.pointerEvents = busy ? 'none' : '';
-      actionsTd.style.opacity = busy ? '0.5' : '';
-    }
-
-    function beginAction(linkEl, actionsTd, workingText) {
-      const originalText = linkEl.textContent;
-      const originalTitle = linkEl.title;
-
-      setRowBusy(actionsTd, true);
-
-      const tr = actionsTd.closest('tr');
-      tr?.classList.add('busy');
-
-      linkEl.innerHTML = `<span class="action-working">${workingText}</span> <span class="mini-spinner" aria-hidden="true"></span>`;
-      linkEl.title = workingText;
-
-      const minWait = sleep(MIN_SPINNER_MS);
-
-      const stop = () => {
-        if (linkEl && linkEl.isConnected) {
-          linkEl.textContent = originalText;
-          linkEl.title = originalTitle;
+          setTimeout(() => {
+            flashEl.textContent = '';
+            flashEl.className = 'flash';
+            flashEl.style.opacity = '';
+          }, 4000);
         }
-        tr?.classList.remove('busy');
-        setRowBusy(actionsTd, false);
-      };
-
-      return { minWait, stop };
-    }
-
-    // --- Tier helpers (NEW) ---
-    function normalizeTier(t) {
-      const v = String(t || 'free').toLowerCase();
-      if (v === 'power') return 'power';
-      if (v === 'pro') return 'pro';
-      return 'free';
-    }
-
-    function tierLabel(tier) {
-      const t = normalizeTier(tier);
-      if (t === 'power') return 'Power';
-      if (t === 'pro') return 'Pro';
-      return 'Free';
-    }
-
-    function tierBadgeHTML(tier) {
-      const t = normalizeTier(tier);
-      return `<span class="tier-badge tier-${t}"><span class="tier-dot" aria-hidden="true"></span>${tierLabel(t)}</span>`;
-    }
-
-    /* ---------- NEW helpers: "seen" tracking for NEW badge ---------- */
-
-    function getSeenKey(searchId) {
-      return `gosnaggit_seen_search_${searchId}`;
-    }
-
-    function getLastSeen(searchId) {
-      const v = localStorage.getItem(getSeenKey(searchId));
-      if (!v) return null;
-      const t = new Date(v).getTime();
-      return Number.isFinite(t) ? t : null;
-    }
-
-    function setLastSeen(searchId, isoString) {
-      if (!isoString) return;
-      localStorage.setItem(getSeenKey(searchId), isoString);
-    }
-
-    /* --------------------------------------------------------------- */
-
-    async function setSearchTier(searchId, tier) {
-      const res = await fetch(`/api/searches/${searchId}/tier`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier })
-      });
-
-      const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
-
-      if (!res.ok || data?.ok === false) {
-        throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
       }
-      return data;
-    }
+
+      function setRowBusy(actionsTd, busy) {
+        actionsTd.style.pointerEvents = busy ? 'none' : '';
+        actionsTd.style.opacity = busy ? '0.5' : '';
+      }
+
+      function beginAction(linkEl, actionsTd, workingText) {
+        const originalText = linkEl.textContent;
+        const originalTitle = linkEl.title;
+
+        setRowBusy(actionsTd, true);
+
+        const tr = actionsTd.closest('tr');
+        tr?.classList.add('busy');
+
+        linkEl.innerHTML = `<span class="action-working">${workingText}</span> <span class="mini-spinner" aria-hidden="true"></span>`;
+        linkEl.title = workingText;
+
+        const minWait = sleep(MIN_SPINNER_MS);
+
+        const stop = () => {
+          if (linkEl && linkEl.isConnected) {
+            linkEl.textContent = originalText;
+            linkEl.title = originalTitle;
+          }
+          tr?.classList.remove('busy');
+          setRowBusy(actionsTd, false);
+        };
+
+        return { minWait, stop };
+      }
+
+      // --- Tier helpers (NEW) ---
+      function normalizeTier(t) {
+        const v = String(t || 'free').toLowerCase();
+        if (v === 'power') return 'power';
+        if (v === 'pro') return 'pro';
+        return 'free';
+      }
+
+      function tierLabel(tier) {
+        const t = normalizeTier(tier);
+        if (t === 'power') return 'Power';
+        if (t === 'pro') return 'Pro';
+        return 'Free';
+      }
+
+      function tierBadgeHTML(tier) {
+        const t = normalizeTier(tier);
+        return `<span class="tier-badge tier-${t}"><span class="tier-dot" aria-hidden="true"></span>${tierLabel(t)}</span>`;
+      }
+
+      /* ---------- NEW helpers: "seen" tracking for NEW badge ---------- */
+
+      function getSeenKey(searchId) {
+        return `gosnaggit_seen_search_${searchId}`;
+      }
+
+      function getLastSeen(searchId) {
+        const v = localStorage.getItem(getSeenKey(searchId));
+        if (!v) return null;
+        const t = new Date(v).getTime();
+        return Number.isFinite(t) ? t : null;
+      }
+
+      function setLastSeen(searchId, isoString) {
+        if (!isoString) return;
+        localStorage.setItem(getSeenKey(searchId), isoString);
+      }
+
+      /* --------------------------------------------------------------- */
+
+      async function setSearchTier(searchId, tier) {
+        const res = await fetch(`/api/searches/${searchId}/tier`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tier })
+        });
+
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+        if (!res.ok || data?.ok === false) {
+          throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+        }
+        return data;
+      }
 
 
-    newSearchBtn.addEventListener('click', () => {
-      window.location.href = '/search.html';
-    });
-
-    pageSizeSelect.addEventListener('change', () => {
-      const newSize = parseInt(pageSizeSelect.value, 10);
-      pageSize = Number.isNaN(newSize) ? 5 : newSize;
-      currentPage = 1;
-      updatePagination();
-    });
-
-    function formatStatusPill(status) {
-      const span = document.createElement('span');
-      span.classList.add('status-pill');
-
-      if (status === 'active') span.classList.add('status-active');
-      else if (status === 'paused') span.classList.add('status-paused');
-      else if (status === 'cancelled' || status === 'completed' || status === 'deleted') span.classList.add('status-cancelled');
-
-      span.textContent = status || 'unknown';
-      return span;
-    }
-
-    function updateSummary(data) {
-      const total = data.length;
-      let active = 0;
-      let completedCancelled = 0;
-
-      data.forEach(s => {
-        if (s.status === 'active') active++;
-        else if (s.status === 'cancelled' || s.status === 'completed' || s.status === 'deleted') completedCancelled++;
+      newSearchBtn.addEventListener('click', () => {
+        window.location.href = '/search.html';
       });
 
-      summaryTotal.textContent = total;
-      summaryActive.textContent = active;
-      summaryCompleted.textContent = completedCancelled;
-      tableCount.textContent = total;
-    }
+      pageSizeSelect.addEventListener('change', () => {
+        const newSize = parseInt(pageSizeSelect.value, 10);
+        pageSize = Number.isNaN(newSize) ? 5 : newSize;
+        currentPage = 1;
+        updatePagination();
+      });
 
-    function renderTablePage(page) {
-      tbody.innerHTML = '';
+      function formatStatusPill(status) {
+        const span = document.createElement('span');
+        span.classList.add('status-pill');
 
-      if (allSearches.length === 0) {
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 9;
-        td.className = 'empty-state';
-        td.innerHTML = `
+        if (status === 'active') span.classList.add('status-active');
+        else if (status === 'paused') span.classList.add('status-paused');
+        else if (status === 'cancelled' || status === 'completed' || status === 'deleted') span.classList.add('status-cancelled');
+
+        span.textContent = status || 'unknown';
+        return span;
+      }
+
+      function updateSummary(data) {
+        const total = data.length;
+        let active = 0;
+        let completedCancelled = 0;
+
+        data.forEach(s => {
+          if (s.status === 'active') active++;
+          else if (s.status === 'cancelled' || s.status === 'completed' || s.status === 'deleted') completedCancelled++;
+        });
+
+        summaryTotal.textContent = total;
+        summaryActive.textContent = active;
+        summaryCompleted.textContent = completedCancelled;
+        tableCount.textContent = total;
+      }
+
+      function renderTablePage(page) {
+        tbody.innerHTML = '';
+
+        if (allSearches.length === 0) {
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 9;
+          td.className = 'empty-state';
+          td.innerHTML = `
           <strong>No saved searches yet.</strong><br>
           Create your first hunt from <a href="/search.html">New search</a>.
         `;
-        tr.appendChild(td);
-        tbody.appendChild(tr);
+          tr.appendChild(td);
+          tbody.appendChild(tr);
 
-        rangeTextEl.textContent = 'Showing 0 of 0';
-        pageInfoEl.textContent = 'Page 1 of 1';
-        prevBtn.disabled = true;
-        nextBtn.disabled = true;
-        return;
-      }
-
-      const startIndex = (page - 1) * pageSize;
-      const endIndex = Math.min(startIndex + pageSize, allSearches.length);
-      const pageItems = allSearches.slice(startIndex, endIndex);
-
-      pageItems.forEach(search => {
-        const tr = document.createElement('tr');
-
-        if (pulseSearchId === search.id) {
-          tr.classList.add('row-fade-in');
-          tr.classList.add('row-pulse');
-          pulseSearchId = null;
+          rangeTextEl.textContent = 'Showing 0 of 0';
+          pageInfoEl.textContent = 'Page 1 of 1';
+          prevBtn.disabled = true;
+          nextBtn.disabled = true;
+          return;
         }
 
-        const idTd = document.createElement('td');
-        idTd.textContent = search.id;
-        tr.appendChild(idTd);
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, allSearches.length);
+        const pageItems = allSearches.slice(startIndex, endIndex);
 
-        const itemTd = document.createElement('td');
-        itemTd.textContent = search.search_item;
-        tr.appendChild(itemTd);
+        pageItems.forEach(search => {
+          const tr = document.createElement('tr');
 
-        const locTd = document.createElement('td');
-        const loc = search.location || '—';
-        const cat = search.category || '—';
-        locTd.innerHTML = `${loc}<span class="cell-sub">${cat}</span>`;
-        tr.appendChild(locTd);
+          if (pulseSearchId === search.id) {
+            tr.classList.add('row-fade-in');
+            tr.classList.add('row-pulse');
+            pulseSearchId = null;
+          }
 
-        const priceTd = document.createElement('td');
-        priceTd.textContent = search.max_price ? `$${Number(search.max_price).toFixed(2)}` : '—';
-        tr.appendChild(priceTd);
+          const idTd = document.createElement('td');
+          idTd.textContent = search.id;
+          tr.appendChild(idTd);
 
-        // --- Tier column (NEW) ---
-        const tierTd = document.createElement('td');
-        const currentTier = normalizeTier(search.plan_tier || 'free');
-        tierTd.innerHTML = `
+          const itemTd = document.createElement('td');
+          itemTd.textContent = search.search_item;
+          tr.appendChild(itemTd);
+
+          const locTd = document.createElement('td');
+          const loc = search.location || '—';
+          const cat = search.category || '—';
+          locTd.innerHTML = `${loc}<span class="cell-sub">${cat}</span>`;
+          tr.appendChild(locTd);
+
+          const priceTd = document.createElement('td');
+          priceTd.textContent = search.max_price ? `$${Number(search.max_price).toFixed(2)}` : '—';
+          tr.appendChild(priceTd);
+
+          // --- Tier column (NEW) ---
+          const tierTd = document.createElement('td');
+          const currentTier = normalizeTier(search.plan_tier || 'free');
+          tierTd.innerHTML = `
           <select class="tier-select" data-search-id="${search.id}">
             <option value="free" ${currentTier === 'free' ? 'selected' : ''}>Free</option>
             <option value="pro" ${currentTier === 'pro' ? 'selected' : ''}>Pro</option>
@@ -875,457 +876,458 @@ table {
           </select>
           ${tierBadgeHTML(currentTier)}
         `;
-        tr.appendChild(tierTd);
+          tr.appendChild(tierTd);
 
-        const statusTd = document.createElement('td');
-        statusTd.appendChild(formatStatusPill(search.status || 'unknown'));
-        tr.appendChild(statusTd);
+          const statusTd = document.createElement('td');
+          statusTd.appendChild(formatStatusPill(search.status || 'unknown'));
+          tr.appendChild(statusTd);
 
-        // --- Last result column ---
-        const lastTd = document.createElement('td');
+          // --- Last result column ---
+          const lastTd = document.createElement('td');
 
-        const lastText = formatDateTime(search.last_found_at);
-        const lastLine = lastText ? `Last result: ${lastText}` : 'No results yet';
-        const seenTs = getLastSeen(search.id);
-        const foundTs = search.last_found_at ? new Date(search.last_found_at).getTime() : null;
+          const lastText = formatDateTime(search.last_found_at);
+          const lastLine = lastText ? `Last result: ${lastText}` : 'No results yet';
+          const seenTs = getLastSeen(search.id);
+          const foundTs = search.last_found_at ? new Date(search.last_found_at).getTime() : null;
 
-        const isNewForYou = foundTs && (!seenTs || foundTs > seenTs);
-        const newBadge = isNewForYou
-          ? `<span class="badge-new" title="New since you last checked">NEW</span>`
-          : '';
-
-
-        lastTd.innerHTML =
-          '<div class="cell-meta">' +
-          '<div class="cell-main">' + escapeHtml(lastLine) + ' ' + newBadge + '</div>' +
-          '</div>';
-
-        tr.appendChild(lastTd);
+          const isNewForYou = foundTs && (!seenTs || foundTs > seenTs);
+          const newBadge = isNewForYou
+            ? `<span class="badge-new" title="New since you last checked">NEW</span>`
+            : '';
 
 
-        const createdTd = document.createElement('td');
-        const createdDate = search.created_at ? new Date(search.created_at) : null;
-        createdTd.textContent = createdDate ? createdDate.toLocaleString() : '—';
-        tr.appendChild(createdTd);
+          lastTd.innerHTML =
+            '<div class="cell-meta">' +
+            '<div class="cell-main">' + escapeHtml(lastLine) + ' ' + newBadge + '</div>' +
+            '</div>';
 
-        const actionsTd = document.createElement('td');
-        actionsTd.classList.add('actions-cell');
-
-        const detailsLink = document.createElement('a');
-        detailsLink.textContent = 'Details';
-        detailsLink.href = `/search-detail.html?id=${search.id}`;
-        detailsLink.title = 'View search details';
-
-        const resultsLink = document.createElement('a');
-        resultsLink.textContent = 'Results';
-        resultsLink.href = `/search-results.html?search_id=${search.id}`;
-        resultsLink.title = 'View results found for this search';
-        resultsLink.addEventListener('click', () => {
-          setLastSeen(search.id, search.last_found_at);
-        });
-
-        const alertsLink = document.createElement('a');
-        alertsLink.textContent = 'Alerts';
-        alertsLink.href = `/search-alerts.html?search_id=${search.id}`;
-        alertsLink.title = 'View alerts for this search (pending/sent/dismissed/error)';
-
-        // Show a demo-friendly pending count: Alerts (N)
-        // Non-blocking: render immediately, then update when summary arrives.
-        getAlertsSummary(search.id).then((summary) => {
-          if (!alertsLink.isConnected) return;
-          const pending = summary?.counts?.pending;
-          if (Number.isFinite(pending) && pending > 0) {
-            alertsLink.textContent = `Alerts (${pending})`;
-            const c = summary.counts;
-            alertsLink.title = `Alerts: ${c.pending} pending, ${c.sent} sent, ${c.dismissed} dismissed, ${c.error} error`;
-          }
-        });
+          tr.appendChild(lastTd);
 
 
-        const editLink = document.createElement('a');
-        editLink.textContent = 'Edit';
-        editLink.href = `/edit-search.html?id=${search.id}`;
-        editLink.title = 'Edit this search';
+          const createdTd = document.createElement('td');
+          const createdDate = search.created_at ? new Date(search.created_at) : null;
+          createdTd.textContent = createdDate ? createdDate.toLocaleString() : '—';
+          tr.appendChild(createdTd);
 
-        const refreshLink = document.createElement('a');
-        refreshLink.textContent = 'Refresh';
-        refreshLink.href = '#';
-        refreshLink.title = 'Refresh this search now';
-        refreshLink.classList.add('js-refresh');
-        refreshLink.dataset.id = search.id;
+          const actionsTd = document.createElement('td');
+          actionsTd.classList.add('actions-cell');
 
-        // --- NEW: Refresh + Send (demo flow) ---
-        const refreshSendLink = document.createElement('a');
-        refreshSendLink.textContent = 'Refresh + Send';
-        refreshSendLink.href = '#';
-        refreshSendLink.title = 'Refresh this search and send alerts now (demo)';
-        refreshSendLink.classList.add('js-refresh-send');
-        refreshSendLink.dataset.id = search.id;
+          const detailsLink = document.createElement('a');
+          detailsLink.textContent = 'Details';
+          detailsLink.href = `/search-detail.html?id=${search.id}`;
+          detailsLink.title = 'View search details';
 
-        const duplicateLink = document.createElement('a');
-        duplicateLink.textContent = 'Duplicate';
-        duplicateLink.title = 'Duplicate';
-        duplicateLink.href = '#';
+          const resultsLink = document.createElement('a');
+          resultsLink.textContent = 'Results';
+          resultsLink.href = `/search-results.html?search_id=${search.id}`;
+          resultsLink.title = 'View results found for this search';
+          resultsLink.addEventListener('click', () => {
+            setLastSeen(search.id, search.last_found_at);
+          });
 
-        duplicateLink.addEventListener('click', async (e) => {
-          e.preventDefault();
+          const alertsLink = document.createElement('a');
+          alertsLink.textContent = 'Alerts';
+          alertsLink.href = `/search-alerts.html?search_id=${search.id}`;
+          alertsLink.title = 'View alerts for this search (pending/sent/dismissed/error)';
 
-          if (duplicateInFlight.has(search.id)) return;
-          duplicateInFlight.add(search.id);
-
-          const { minWait, stop } = beginAction(duplicateLink, actionsTd, 'Duplicating…');
-          setFlash('Duplicating search…');
-          await nextPaint();
-
-          try {
-            const res = await fetch(`/api/searches/${search.id}/duplicate`, { method: 'POST' });
-
-            if (!res.ok) {
-              const body = await res.json().catch(() => ({}));
-              throw new Error(body.error || 'Failed to duplicate search');
+          // Show a demo-friendly pending count: Alerts (N)
+          // Non-blocking: render immediately, then update when summary arrives.
+          getAlertsSummary(search.id).then((summary) => {
+            if (!alertsLink.isConnected) return;
+            const pending = summary?.counts?.pending;
+            if (Number.isFinite(pending) && pending > 0) {
+              alertsLink.textContent = `Alerts (${pending})`;
+              const c = summary.counts;
+              alertsLink.title = `Alerts: ${c.pending} pending, ${c.sent} sent, ${c.dismissed} dismissed, ${c.error} error`;
             }
+          });
 
-            const created = await res.json().catch(() => null);
-            if (created && created.id) pulseSearchId = created.id;
 
-            await minWait;
-            await reloadSearches();
-            setFlash('Search duplicated.', 'success');
-          } catch (err) {
-            console.error(err);
-            setFlash('Error duplicating search: ' + err.message, 'error');
-          } finally {
-            stop();
-            duplicateInFlight.delete(search.id);
-          }
-        });
+          const editLink = document.createElement('a');
+          editLink.textContent = 'Edit';
+          editLink.href = `/edit-search.html?id=${search.id}`;
+          editLink.title = 'Edit this search';
 
-        const deleteLink = document.createElement('a');
-        deleteLink.textContent = 'Delete';
-        deleteLink.title = 'Delete';
-        deleteLink.href = '#';
+          const refreshLink = document.createElement('a');
+          refreshLink.textContent = 'Refresh';
+          refreshLink.href = '#';
+          refreshLink.title = 'Refresh this search now';
+          refreshLink.classList.add('js-refresh');
+          refreshLink.dataset.id = search.id;
 
-        deleteLink.addEventListener('click', async (e) => {
-          e.preventDefault();
+          // --- NEW: Refresh + Send (demo flow) ---
+          const refreshSendLink = document.createElement('a');
+          refreshSendLink.textContent = 'Refresh + Send';
+          refreshSendLink.href = '#';
+          refreshSendLink.title = 'Refresh this search and send alerts now (demo)';
+          refreshSendLink.classList.add('js-refresh-send');
+          refreshSendLink.dataset.id = search.id;
 
-          if (deleteInFlight.has(search.id)) return;
+          const duplicateLink = document.createElement('a');
+          duplicateLink.textContent = 'Duplicate';
+          duplicateLink.title = 'Duplicate';
+          duplicateLink.href = '#';
 
-          const confirmed = window.confirm('Move this search to Deleted? It will no longer appear in this list.');
-          if (!confirmed) return;
+          duplicateLink.addEventListener('click', async (e) => {
+            e.preventDefault();
 
-          deleteInFlight.add(search.id);
+            if (duplicateInFlight.has(search.id)) return;
+            duplicateInFlight.add(search.id);
 
-          const { minWait, stop } = beginAction(deleteLink, actionsTd, 'Deleting…');
-          setFlash('Deleting search…');
-          await nextPaint();
+            const { minWait, stop } = beginAction(duplicateLink, actionsTd, 'Duplicating…');
+            setFlash('Duplicating search…');
+            await nextPaint();
 
-          try {
-            const res = await fetch(`/api/searches/${search.id}`, { method: 'DELETE' });
+            try {
+              const res = await fetch(`/api/searches/${search.id}/duplicate`, { method: 'POST' });
 
-            if (!res.ok) {
-              const body = await res.json().catch(() => ({}));
-              throw new Error(body.error || 'Failed to delete search');
+              if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error || 'Failed to duplicate search');
+              }
+
+              const created = await res.json().catch(() => null);
+              if (created && created.id) pulseSearchId = created.id;
+
+              await minWait;
+              await reloadSearches();
+              setFlash('Search duplicated.', 'success');
+            } catch (err) {
+              console.error(err);
+              setFlash('Error duplicating search: ' + err.message, 'error');
+            } finally {
+              stop();
+              duplicateInFlight.delete(search.id);
             }
+          });
 
-            await minWait;
-            await reloadSearches();
-            setFlash('Search moved to Deleted.', 'success');
-          } catch (err) {
-            console.error(err);
-            setFlash('Error deleting search: ' + err.message, 'error');
-          } finally {
-            stop();
-            deleteInFlight.delete(search.id);
-          }
+          const deleteLink = document.createElement('a');
+          deleteLink.textContent = 'Delete';
+          deleteLink.title = 'Delete';
+          deleteLink.href = '#';
+
+          deleteLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            if (deleteInFlight.has(search.id)) return;
+
+            const confirmed = window.confirm('Move this search to Deleted? It will no longer appear in this list.');
+            if (!confirmed) return;
+
+            deleteInFlight.add(search.id);
+
+            const { minWait, stop } = beginAction(deleteLink, actionsTd, 'Deleting…');
+            setFlash('Deleting search…');
+            await nextPaint();
+
+            try {
+              const res = await fetch(`/api/searches/${search.id}`, { method: 'DELETE' });
+
+              if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error || 'Failed to delete search');
+              }
+
+              await minWait;
+              await reloadSearches();
+              setFlash('Search moved to Deleted.', 'success');
+            } catch (err) {
+              console.error(err);
+              setFlash('Error deleting search: ' + err.message, 'error');
+            } finally {
+              stop();
+              deleteInFlight.delete(search.id);
+            }
+          });
+
+          actionsTd.appendChild(detailsLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(resultsLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(alertsLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(editLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(refreshLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(refreshSendLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(duplicateLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(deleteLink);
+
+
+          tr.appendChild(actionsTd);
+          tbody.appendChild(tr);
         });
 
-        actionsTd.appendChild(detailsLink);
-        actionsTd.appendChild(document.createTextNode(' '));
-        actionsTd.appendChild(resultsLink);
-        actionsTd.appendChild(document.createTextNode(' '));
-        actionsTd.appendChild(alertsLink);
-        actionsTd.appendChild(document.createTextNode(' '));
-        actionsTd.appendChild(editLink);
-        actionsTd.appendChild(document.createTextNode(' '));
-        actionsTd.appendChild(refreshLink);
-        actionsTd.appendChild(document.createTextNode(' '));
-        actionsTd.appendChild(refreshSendLink);
-        actionsTd.appendChild(document.createTextNode(' '));
-        actionsTd.appendChild(duplicateLink);
-        actionsTd.appendChild(document.createTextNode(' '));
-        actionsTd.appendChild(deleteLink);
+        rangeTextEl.textContent = `Showing ${startIndex + 1}–${endIndex} of ${allSearches.length}`;
+        pageInfoEl.textContent = `Page ${currentPage} of ${totalPages}`;
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+      }
 
+      function updatePagination() {
+        totalPages = Math.max(1, Math.ceil(allSearches.length / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+        renderTablePage(currentPage);
+      }
 
-        tr.appendChild(actionsTd);
-        tbody.appendChild(tr);
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTablePage(currentPage);
+        }
       });
 
-      rangeTextEl.textContent = `Showing ${startIndex + 1}–${endIndex} of ${allSearches.length}`;
-      pageInfoEl.textContent = `Page ${currentPage} of ${totalPages}`;
-      prevBtn.disabled = currentPage === 1;
-      nextBtn.disabled = currentPage === totalPages;
-    }
-
-    function updatePagination() {
-      totalPages = Math.max(1, Math.ceil(allSearches.length / pageSize));
-      if (currentPage > totalPages) currentPage = totalPages;
-      renderTablePage(currentPage);
-    }
-
-    prevBtn.addEventListener('click', () => {
-      if (currentPage > 1) {
-        currentPage--;
-        renderTablePage(currentPage);
-      }
-    });
-
-    nextBtn.addEventListener('click', () => {
-      if (currentPage < totalPages) {
-        currentPage++;
-        renderTablePage(currentPage);
-      }
-    });
-
-    // --- Tier dropdown handler (NEW) ---
-    document.addEventListener('change', async (e) => {
-      const sel = e.target.closest('.tier-select');
-      if (!sel) return;
-
-      const searchId = sel.getAttribute('data-search-id');
-      const tier = normalizeTier(sel.value);
-
-      if (!searchId) return;
-      if (tierInFlight.has(searchId)) return;
-      tierInFlight.add(searchId);
-
-      const prevValue = sel.value;
-      sel.disabled = true;
-      setFlash(`Updating tier → ${tierLabel(tier)}…`);
-
-      try {
-        await setSearchTier(searchId, tier);
-        await reloadSearches();
-        setFlash(`Tier updated → ${tierLabel(tier)}.`, 'success');
-      } catch (err) {
-        console.error(err);
-        sel.value = prevValue;
-        setFlash('Error updating tier: ' + (err.message || String(err)), 'error');
-      } finally {
-        sel.disabled = false;
-        tierInFlight.delete(searchId);
-      }
-    });
-
-    document.addEventListener('click', async (e) => {
-      const btn = e.target.closest('.js-refresh');
-      if (!btn) return;
-
-      e.preventDefault();
-
-      const id = btn.dataset.id;
-      if (!id) return;
-
-      const oldText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Refreshing…';
-
-      try {
-        const resp = await fetch(`/searches/${id}/refresh`, { method: 'POST' });
-        const data = await resp.json().catch(() => ({}));
-
-        if (!resp.ok || data.ok !== true) {
-          alert('Refresh failed');
-          console.error(data);
-          return;
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderTablePage(currentPage);
         }
+      });
 
-        alert(`Refresh complete. Inserted: ${data.inserted ?? 0}`);
-        location.reload();
-      } catch (err) {
-        console.error(err);
-        alert('Refresh failed');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = oldText;
-      }
-    });
+      // --- Tier dropdown handler (NEW) ---
+      document.addEventListener('change', async (e) => {
+        const sel = e.target.closest('.tier-select');
+        if (!sel) return;
 
-    document.addEventListener('click', async (e) => {
-      const btn = e.target.closest('.js-refresh-send');
-      if (!btn) return;
+        const searchId = sel.getAttribute('data-search-id');
+        const tier = normalizeTier(sel.value);
 
-      e.preventDefault();
+        if (!searchId) return;
+        if (tierInFlight.has(searchId)) return;
+        tierInFlight.add(searchId);
 
-      const id = btn.dataset.id;
-      if (!id) return;
+        const prevValue = sel.value;
+        sel.disabled = true;
+        setFlash(`Updating tier → ${tierLabel(tier)}…`);
 
-      const oldText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Refresh + Send…';
-
-      try {
-        // 1) Refresh (dev route)
-        const r1 = await fetch(`/dev/searches/${id}/refresh`);
-        const d1 = await r1.json().catch(() => ({}));
-        if (!r1.ok || d1.ok !== true) {
-          alert('Refresh failed');
-          console.error(d1);
-          return;
+        try {
+          await setSearchTier(searchId, tier);
+          await reloadSearches();
+          setFlash(`Tier updated → ${tierLabel(tier)}.`, 'success');
+        } catch (err) {
+          console.error(err);
+          sel.value = prevValue;
+          setFlash('Error updating tier: ' + (err.message || String(err)), 'error');
+        } finally {
+          sel.disabled = false;
+          tierInFlight.delete(searchId);
         }
+      });
 
-        // Wait up to ~10s for pending alerts to appear (worker timing varies)
-        let pending = 0;
-        for (let i = 0; i < 10; i++) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          const s = await fetch(`/api/searches/${id}/alerts/summary`);
-          const sd = await s.json().catch(() => ({}));
-          pending = sd?.counts?.pending ?? 0;
-          if (Number.isFinite(pending) && pending > 0) break;
-        }
+      document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.js-refresh');
+        if (!btn) return;
 
-        if (!Number.isFinite(pending) || pending <= 0) {
-          alert('Demo complete — no pending alerts to send (no new listings).');
+        e.preventDefault();
+
+        const id = btn.dataset.id;
+        if (!id) return;
+
+        const oldText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Refreshing…';
+
+        try {
+          const resp = await fetch(`/searches/${id}/refresh`, { method: 'POST' });
+          const data = await resp.json().catch(() => ({}));
+
+          if (!resp.ok || data.ok !== true) {
+            alert('Refresh failed');
+            console.error(data);
+            return;
+          }
+
+          alert(`Refresh complete. Inserted: ${data.inserted ?? 0}`);
           location.reload();
-          return;
+        } catch (err) {
+          console.error(err);
+          alert('Refresh failed');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = oldText;
         }
-
-
-        // 2) Dispatch now (ignore cooldown)
-        const r2 = await fetch(`/dev/searches/${id}/dispatch-alerts-now?limit=25`);
-        const d2 = await r2.json().catch(() => ({}));
-        if (!r2.ok || d2.ok !== true) {
-          alert('Dispatch failed');
-          console.error(d2);
-          return;
-        }
-
-        const sent = d2.sent ?? 0;
-        alert(sent > 0 ? `Sent ${sent} alert(s).` : 'No pending alerts to send.');
-
-        location.reload();
-      } catch (err) {
-        console.error(err);
-        alert('Refresh + Send failed');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = oldText;
-      }
-    });
-
-
-    function formatDateTime(dt) {
-      if (!dt) return null;
-      const d = new Date(dt);
-      if (Number.isNaN(d.getTime())) return null;
-      return d.toLocaleString([], {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
       });
-    }
 
-    function isRecent(dt, hours = 24) {
-      if (!dt) return false;
-      const t = new Date(dt).getTime();
-      if (!Number.isFinite(t)) return false;
-      return (Date.now() - t) <= hours * 60 * 60 * 1000;
-    }
+      document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.js-refresh-send');
+        if (!btn) return;
 
-    function escapeHtml(s) {
-      return String(s ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-    }
+        e.preventDefault();
+
+        const id = btn.dataset.id;
+        if (!id) return;
+
+        const oldText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Refresh + Send…';
+
+        try {
+          // 1) Refresh (dev route)
+          const r1 = await fetch(`/dev/searches/${id}/refresh`);
+          const d1 = await r1.json().catch(() => ({}));
+          if (!r1.ok || d1.ok !== true) {
+            alert('Refresh failed');
+            console.error(d1);
+            return;
+          }
+
+          // Wait up to ~10s for pending alerts to appear (worker timing varies)
+          let pending = 0;
+          for (let i = 0; i < 10; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            const s = await fetch(`/api/searches/${id}/alerts/summary`);
+            const sd = await s.json().catch(() => ({}));
+            pending = sd?.counts?.pending ?? 0;
+            if (Number.isFinite(pending) && pending > 0) break;
+          }
+
+          if (!Number.isFinite(pending) || pending <= 0) {
+            alert('Demo complete — no pending alerts to send (no new listings).');
+            location.reload();
+            return;
+          }
 
 
-    async function reloadSearches() {
-      try {
-        const res = await fetch('/api/searches');
-        if (!res.ok) throw new Error('Failed to fetch searches');
+          // 2) Dispatch now (ignore cooldown)
+          const r2 = await fetch(`/dev/searches/${id}/dispatch-alerts-now?limit=25`);
+          const d2 = await r2.json().catch(() => ({}));
+          if (!r2.ok || d2.ok !== true) {
+            alert('Dispatch failed');
+            console.error(d2);
+            return;
+          }
 
-        allSearches = await res.json();
-        updateSummary(allSearches);
-        updatePagination();
-      } catch (err) {
-        console.error(err);
-        tbody.innerHTML = '';
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 8;
-        td.textContent = 'Could not load searches right now. Please refresh.';
+          const sent = d2.sent ?? 0;
+          alert(sent > 0 ? `Sent ${sent} alert(s).` : 'No pending alerts to send.');
 
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-
-        rangeTextEl.textContent = '';
-        pageInfoEl.textContent = '';
-        prevBtn.disabled = true;
-        nextBtn.disabled = true;
-        setFlash('Error loading searches: ' + err.message, 'error');
-      }
-    }
-
-    async function init() {
-      const initialSize = parseInt(pageSizeSelect.value, 10);
-      pageSize = Number.isNaN(initialSize) ? 5 : initialSize;
-      currentPage = 1;
-      await reloadSearches();
-    }
-    document.addEventListener('click', async (e) => {
-      const btn = e.target.closest('.js-refresh-send');
-      if (!btn) return;
-
-      e.preventDefault();
-
-      const id = btn.dataset.id;
-      if (!id) return;
-
-      const oldText = btn.textContent;
-      btn.classList.add('is-busy');
-      btn.textContent = 'Refresh + Send…';
-
-      try {
-        // 1) Refresh (enqueue job)
-        const r1 = await fetch(`/dev/searches/${id}/refresh`);
-        const d1 = await r1.json().catch(() => ({}));
-        if (!r1.ok || d1.ok !== true) {
-          alert(`Refresh failed: ${d1.error || 'Unknown error'}`);
-          console.error(d1);
-          return;
+          location.reload();
+        } catch (err) {
+          console.error(err);
+          alert('Refresh + Send failed');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = oldText;
         }
+      });
 
-        // 2) Give worker a moment to process the job
-        await new Promise((resolve) => setTimeout(resolve, 2500));
 
-        // 3) Dispatch now (ignore cooldown)
-        const r2 = await fetch(`/dev/searches/${id}/dispatch-alerts-now?limit=25`);
-        const d2 = await r2.json().catch(() => ({}));
-        if (!r2.ok || d2.ok !== true) {
-          alert(`Dispatch failed: ${d2.error || 'Unknown error'}`);
-          console.error(d2);
-          return;
-        }
-
-        const sent = d2.sent ?? 0;
-        alert(sent > 0 ? `Sent ${sent} alert(s).` : 'Demo complete — no pending alerts to send (no new listings).');
-
-        location.reload();
-      } catch (err) {
-        console.error(err);
-        alert('Refresh + Send failed');
-      } finally {
-        btn.classList.remove('is-busy');
-        btn.textContent = oldText;
+      function formatDateTime(dt) {
+        if (!dt) return null;
+        const d = new Date(dt);
+        if (Number.isNaN(d.getTime())) return null;
+        return d.toLocaleString([], {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        });
       }
-    });
 
-    document.addEventListener('DOMContentLoaded', init);
-  </script>
-</main>
+      function isRecent(dt, hours = 24) {
+        if (!dt) return false;
+        const t = new Date(dt).getTime();
+        if (!Number.isFinite(t)) return false;
+        return (Date.now() - t) <= hours * 60 * 60 * 1000;
+      }
+
+      function escapeHtml(s) {
+        return String(s ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+
+      async function reloadSearches() {
+        try {
+          const res = await fetch('/api/searches');
+          if (!res.ok) throw new Error('Failed to fetch searches');
+
+          allSearches = await res.json();
+          updateSummary(allSearches);
+          updatePagination();
+        } catch (err) {
+          console.error(err);
+          tbody.innerHTML = '';
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 8;
+          td.textContent = 'Could not load searches right now. Please refresh.';
+
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+
+          rangeTextEl.textContent = '';
+          pageInfoEl.textContent = '';
+          prevBtn.disabled = true;
+          nextBtn.disabled = true;
+          setFlash('Error loading searches: ' + err.message, 'error');
+        }
+      }
+
+      async function init() {
+        const initialSize = parseInt(pageSizeSelect.value, 10);
+        pageSize = Number.isNaN(initialSize) ? 5 : initialSize;
+        currentPage = 1;
+        await reloadSearches();
+      }
+      document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.js-refresh-send');
+        if (!btn) return;
+
+        e.preventDefault();
+
+        const id = btn.dataset.id;
+        if (!id) return;
+
+        const oldText = btn.textContent;
+        btn.classList.add('is-busy');
+        btn.textContent = 'Refresh + Send…';
+
+        try {
+          // 1) Refresh (enqueue job)
+          const r1 = await fetch(`/dev/searches/${id}/refresh`);
+          const d1 = await r1.json().catch(() => ({}));
+          if (!r1.ok || d1.ok !== true) {
+            alert(`Refresh failed: ${d1.error || 'Unknown error'}`);
+            console.error(d1);
+            return;
+          }
+
+          // 2) Give worker a moment to process the job
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+
+          // 3) Dispatch now (ignore cooldown)
+          const r2 = await fetch(`/dev/searches/${id}/dispatch-alerts-now?limit=25`);
+          const d2 = await r2.json().catch(() => ({}));
+          if (!r2.ok || d2.ok !== true) {
+            alert(`Dispatch failed: ${d2.error || 'Unknown error'}`);
+            console.error(d2);
+            return;
+          }
+
+          const sent = d2.sent ?? 0;
+          alert(sent > 0 ? `Sent ${sent} alert(s).` : 'Demo complete — no pending alerts to send (no new listings).');
+
+          location.reload();
+        } catch (err) {
+          console.error(err);
+          alert('Refresh + Send failed');
+        } finally {
+          btn.classList.remove('is-busy');
+          btn.textContent = oldText;
+        }
+      });
+
+      document.addEventListener('DOMContentLoaded', init);
+    </script>
+  </main>
 </body>
+
 </html>
