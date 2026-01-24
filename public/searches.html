@@ -26,6 +26,23 @@
       box-sizing: border-box;
     }
 
+    /* --- Accessibility: consistent keyboard focus --- */
+    :focus {
+      outline: none;
+    }
+
+    :focus-visible {
+      outline: 2px solid rgba(255, 179, 71, 0.85);
+      outline-offset: 2px;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible {
+      border-radius: 10px;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -37,6 +54,35 @@
       justify-content: center;
       padding: 24px;
     }
+
+    /* --- Accessibility: consistent keyboard focus --- */
+    :focus {
+      outline: none;
+    }
+
+    :focus-visible {
+      outline: 2px solid rgba(255, 179, 71, 0.85);
+      outline-offset: 2px;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible {
+      border-radius: 10px;
+    }
+
+    /* --- Micro-interactions: subtle transitions --- */
+    a,
+    button,
+    select {
+      transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms ease;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
 
     .shell {
       width: 100%;
