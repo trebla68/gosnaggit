@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
-<meta charset="utf-8"/>
-<title>GoSnaggit – Alerts</title>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<style>
+    <meta charset="utf-8" />
+    <title>GoSnaggit – Alerts</title>
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <style>
         :root {
             --bg: #0b1020;
             --card-bg: #151a2b;
@@ -121,7 +122,8 @@
             align-items: center;
             flex-wrap: wrap;
         }
-.card {
+
+        .card {
             background: rgba(21, 26, 43, 0.92);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-xl);
@@ -159,7 +161,7 @@
             flex-wrap: wrap;
         }
 
-        
+
         .alerts-summary {
             margin: 0;
         }
@@ -411,9 +413,9 @@
             border-radius: 10px;
             font-size: 12px;
         }
-    
-  
-  
+
+
+
         /* Stats vs Filters differentiation */
         .alerts-summary-row .pill {
             background: rgba(255, 255, 255, 0.018);
@@ -434,271 +436,285 @@
             height: 7px;
             opacity: 0.70;
         }
+    </style>
+    <link href="/app.css" rel="stylesheet" />
+    <script defer="True" src="/ui.js"></script>
+</head>
 
-</style>
-<link href="/app.css" rel="stylesheet"/><script defer="True" src="/ui.js"></script></head>
-<body><header class="app-header" id="gs-header"></header>
-<main class="gs-page">
-<div class="page-actions">
-<a class="btn btn-secondary" href="searches.html">← Saved Searches</a>
-<a class="btn btn-primary" href="search-detail.html" id="backToDetail">Search Detail</a>
-<button class="btn btn-secondary" id="refreshBtn" type="button">Refresh</button>
-<button class="btn btn-primary" id="sendNowBtn" type="button">Send now</button>
-</div>
+<body>
+    <header class="app-header" id="gs-header"></header>
+    <main class="gs-page">
+        <section class="page-hero">
+            <h1>Search alerts</h1>
+            <p class="subtitle">Review and manage alerts for Search <span class="mono" id="searchIdHero">—</span>.</p>
+        </section>
+        <div class="page-actions">
+            <a class="btn btn-secondary" href="searches.html">← Saved Searches</a>
+            <a class="btn btn-primary" href="search-detail.html" id="backToDetail">Search Detail</a>
+            <button class="btn btn-secondary" id="refreshBtn" type="button">Refresh</button>
+            <button class="btn btn-primary" id="sendNowBtn" type="button">Send now</button>
+        </div>
 
-<div class="wrap">
-<div class="flash" id="flash"></div>
-<div class="card">
-<div class="card-h">
-<div class="titleline">
-<h2 class="h-title">Alerts for Search <span class="mono" id="searchId">—</span></h2>
-<div class="h-meta">
-<span id="summaryLine">Counts: —</span>
-<span class="mini" id="rangeLine">Showing —</span>
-</div>
-</div>
-</div>
-<div class="card-tools">
-<div class="alerts-summary" id="alerts-summary">
-<div class="alerts-summary-row">
-<div class="pill pending"><span class="dot"></span> Pending: <strong id="sum-pending">—</strong>
-</div>
-<div class="pill sent"><span class="dot"></span> Sent: <strong id="sum-sent">—</strong></div>
-<div class="pill dismissed"><span class="dot"></span> Dismissed: <strong id="sum-dismissed">—</strong></div>
-<div class="pill error"><span class="dot"></span> Error: <strong id="sum-error">—</strong></div>
-</div>
-</div>
-<div class="chips" id="chips">
-<!-- chips injected -->
-</div>
-</div>
-<div class="table-wrap">
-<table>
-<thead>
-<tr>
-<th>ID</th>
-<th>Status</th>
-<th>Title</th>
-<th>Price</th>
-<th>Listing</th>
-<th>Created</th>
-<th>Actions</th>
-</tr>
-</thead>
-<tbody id="tbody">
-<!-- rows injected -->
-</tbody>
-</table>
-<div class="empty" id="empty">No alerts found.</div>
-</div>
-<div class="pager">
-<div class="left">
-<button class="btn" id="prevBtn" type="button">← Prev</button>
-<button class="btn" id="nextBtn" type="button">Next →</button>
-</div>
-<div class="right">
-<span class="label" id="pageLabel">Page —</span>
-<span class="label">Per page: <span class="mono" id="limitLabel">5</span></span>
-</div>
-</div>
-</div>
-</div>
-<script>
-        // -----------------------------------------
-        // GoSnaggit Alerts UI Controller (TABLE + CHIPS)
-        // Works with your existing HTML structure.
-        // -----------------------------------------
+        <div class="wrap">
+            <div class="flash" id="flash"></div>
+            <div class="card">
+                <div class="card-h">
+                    <div class="titleline">
+                        <h2 class="h-title">Alerts for Search <span class="mono" id="searchId">—</span></h2>
+                        <div class="h-meta">
+                            <span id="summaryLine">Counts: —</span>
+                            <span class="mini" id="rangeLine">Showing —</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-tools">
+                    <div class="alerts-summary" id="alerts-summary">
+                        <div class="alerts-summary-row">
+                            <div class="pill pending"><span class="dot"></span> Pending: <strong
+                                    id="sum-pending">—</strong>
+                            </div>
+                            <div class="pill sent"><span class="dot"></span> Sent: <strong id="sum-sent">—</strong>
+                            </div>
+                            <div class="pill dismissed"><span class="dot"></span> Dismissed: <strong
+                                    id="sum-dismissed">—</strong></div>
+                            <div class="pill error"><span class="dot"></span> Error: <strong id="sum-error">—</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chips" id="chips">
+                        <!-- chips injected -->
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Status</th>
+                                <th>Title</th>
+                                <th>Price</th>
+                                <th>Listing</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody">
+                            <!-- rows injected -->
+                        </tbody>
+                    </table>
+                    <div class="empty" id="empty">No alerts found.</div>
+                </div>
+                <div class="pager">
+                    <div class="left">
+                        <button class="btn" id="prevBtn" type="button">← Prev</button>
+                        <button class="btn" id="nextBtn" type="button">Next →</button>
+                    </div>
+                    <div class="right">
+                        <span class="label" id="pageLabel">Page —</span>
+                        <span class="label">Per page: <span class="mono" id="limitLabel">5</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            // -----------------------------------------
+            // GoSnaggit Alerts UI Controller (TABLE + CHIPS)
+            // Works with your existing HTML structure.
+            // -----------------------------------------
 
-        const qs = new URLSearchParams(window.location.search);
-        const searchId = qs.get("search_id") || qs.get("id");
-        if (!searchId) alert("Missing search_id in URL. Example: search-alerts.html?search_id=2");
+            const qs = new URLSearchParams(window.location.search);
+            const searchId = qs.get("search_id") || qs.get("id");
+            if (!searchId) alert("Missing search_id in URL. Example: search-alerts.html?search_id=2");
 
-        function updateSummaryBar(counts) {
-            const p = counts?.pending ?? 0;
-            const s = counts?.sent ?? 0;
-            const d = counts?.dismissed ?? 0;
-            const e = counts?.error ?? 0;
+            function updateSummaryBar(counts) {
+                const p = counts?.pending ?? 0;
+                const s = counts?.sent ?? 0;
+                const d = counts?.dismissed ?? 0;
+                const e = counts?.error ?? 0;
 
-            const set = (id, v) => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = String(v);
-            };
+                const set = (id, v) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = String(v);
+                };
 
-            set('sum-pending', p);
-            set('sum-sent', s);
-            set('sum-dismissed', d);
-            set('sum-error', e);
-        }
-
-
-        // UI state
-        let currentStatus = "pending"; // pending | sent | dismissed | error | all
-        let limit = 5;                 // match your UI label default
-        let offset = 0;                // pagination offset
-
-        // Helpers
-        function $(sel) { return document.querySelector(sel); }
-        function esc(s) {
-            return String(s ?? "")
-                .replaceAll("&", "&amp;")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll('"', "&quot;");
-        }
-
-        function showFlash(kind, msg) {
-            const el = $("#flash");
-            if (!el) return;
-            el.className = "flash" + (kind ? ` ${kind}` : "");
-            el.textContent = msg || "";
-            el.style.display = msg ? "block" : "none";
-        }
-
-        function setSubtitle() {
-            const sid = $("#searchId");
-            if (sid) sid.textContent = searchId;
-
-            const back = $("#backToDetail");
-            if (back) back.setAttribute("href", `search-detail.html?search_id=${encodeURIComponent(searchId)}`);
-        }
-
-        function buildAlertsUrl() {
-            const base = `/api/searches/${searchId}/alerts?limit=${limit}&offset=${offset}`;
-            if (currentStatus && currentStatus !== "all") return `${base}&status=${encodeURIComponent(currentStatus)}`;
-            return base;
-        }
-
-        async function fetchJSON(url, options) {
-            const res = await fetch(url, options);
-            const text = await res.text();
-            let data;
-            try { data = JSON.parse(text); } catch { data = { raw: text }; }
-            if (!res.ok) {
-                const msg = data?.error || data?.message || `HTTP ${res.status}`;
-                throw new Error(msg);
+                set('sum-pending', p);
+                set('sum-sent', s);
+                set('sum-dismissed', d);
+                set('sum-error', e);
             }
-            return data;
-        }
 
-        // ----------------------------
-        // API calls
-        // ----------------------------
-        async function loadSummary() {
-            return fetchJSON(`/api/searches/${searchId}/alerts/summary`);
-        }
 
-        async function loadAlerts() {
-            const url = buildAlertsUrl();
-            return fetchJSON(url);
-        }
+            // UI state
+            let currentStatus = "pending"; // pending | sent | dismissed | error | all
+            let limit = 5;                 // match your UI label default
+            let offset = 0;                // pagination offset
 
-        async function patchAlertStatus(alertId, status) {
-            return fetchJSON(`/api/alerts/${alertId}/status`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status })
-            });
-        }
+            // Helpers
+            function $(sel) { return document.querySelector(sel); }
+            function esc(s) {
+                return String(s ?? "")
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll('"', "&quot;");
+            }
 
-        async function dispatchAlertsDev(sendLimit = 25) {
-            return fetchJSON(`/dev/searches/${searchId}/dispatch-alerts?limit=${sendLimit}`);
-        }
+            function showFlash(kind, msg) {
+                const el = $("#flash");
+                if (!el) return;
+                el.className = "flash" + (kind ? ` ${kind}` : "");
+                el.textContent = msg || "";
+                el.style.display = msg ? "block" : "none";
+            }
 
-        // ----------------------------
-        // Render chips + table
-        // ----------------------------
-        function renderChips(counts) {
-            const chips = $("#chips");
-            if (!chips) return;
+            function setSubtitle() {
+                const sid = $("#searchId");
+                if (sid) sid.textContent = searchId;
 
-            const pending = counts?.pending ?? 0;
-            const sent = counts?.sent ?? 0;
-            const dismissed = counts?.dismissed ?? 0;
-            const error = counts?.error ?? 0;
-            const total = counts?.total ?? (pending + sent + dismissed + error);
 
-            const items = [
-                { key: "pending", label: "Pending", count: pending },
-                { key: "sent", label: "Sent", count: sent },
-                { key: "dismissed", label: "Dismissed", count: dismissed },
-                { key: "error", label: "Error", count: error },
-                { key: "all", label: "All", count: total },
-            ];
+                const sidHero = $("#searchIdHero");
+                if (sidHero) sidHero.textContent = searchId;
+                const back = $("#backToDetail");
+                if (back) back.setAttribute("href", `search-detail.html?search_id=${encodeURIComponent(searchId)}`);
+            }
 
-            chips.innerHTML = items.map(it => `
+            function buildAlertsUrl() {
+                const base = `/api/searches/${searchId}/alerts?limit=${limit}&offset=${offset}`;
+                if (currentStatus && currentStatus !== "all") return `${base}&status=${encodeURIComponent(currentStatus)}`;
+                return base;
+            }
+
+            async function fetchJSON(url, options) {
+                const res = await fetch(url, options);
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch { data = { raw: text }; }
+                if (!res.ok) {
+                    const msg = data?.error || data?.message || `HTTP ${res.status}`;
+                    throw new Error(msg);
+                }
+                return data;
+            }
+
+            // ----------------------------
+            // API calls
+            // ----------------------------
+            async function loadSummary() {
+                return fetchJSON(`/api/searches/${searchId}/alerts/summary`);
+            }
+
+            async function loadAlerts() {
+                const url = buildAlertsUrl();
+                return fetchJSON(url);
+            }
+
+            async function patchAlertStatus(alertId, status) {
+                return fetchJSON(`/api/alerts/${alertId}/status`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status })
+                });
+            }
+
+            async function dispatchAlertsDev(sendLimit = 25) {
+                return fetchJSON(`/dev/searches/${searchId}/dispatch-alerts?limit=${sendLimit}`);
+            }
+
+            // ----------------------------
+            // Render chips + table
+            // ----------------------------
+            function renderChips(counts) {
+                const chips = $("#chips");
+                if (!chips) return;
+
+                const pending = counts?.pending ?? 0;
+                const sent = counts?.sent ?? 0;
+                const dismissed = counts?.dismissed ?? 0;
+                const error = counts?.error ?? 0;
+                const total = counts?.total ?? (pending + sent + dismissed + error);
+
+                const items = [
+                    { key: "pending", label: "Pending", count: pending },
+                    { key: "sent", label: "Sent", count: sent },
+                    { key: "dismissed", label: "Dismissed", count: dismissed },
+                    { key: "error", label: "Error", count: error },
+                    { key: "all", label: "All", count: total },
+                ];
+
+                chips.innerHTML = items.map(it => `
       <div class="chip ${it.key === currentStatus ? "active" : ""}" data-chip="${it.key}">
         ${esc(it.label)} <span class="count">(${it.count})</span>
       </div>
     `).join("");
-        }
-
-        function renderSummaryLine(counts) {
-            const el = $("#summaryLine");
-            if (!el) return;
-
-            const p = counts?.pending ?? 0;
-            const s = counts?.sent ?? 0;
-            const d = counts?.dismissed ?? 0;
-            const e = counts?.error ?? 0;
-            const t = counts?.total ?? (p + s + d + e);
-
-            el.textContent = `Counts: pending ${p} • sent ${s} • dismissed ${d} • error ${e} • total ${t}`;
-        }
-
-        function renderPagerLabel() {
-            const pageLabel = $("#pageLabel");
-            const limitLabel = $("#limitLabel");
-            if (limitLabel) limitLabel.textContent = String(limit);
-
-            const page = Math.floor(offset / limit) + 1;
-            if (pageLabel) pageLabel.textContent = `Page ${page}`;
-        }
-
-        function pillClass(status) {
-            const s = String(status || "").toLowerCase();
-            if (s === "pending") return "pending";
-            if (s === "sent") return "sent";
-            if (s === "dismissed") return "dismissed";
-            if (s === "error") return "error";
-            return "";
-        }
-
-        function renderTable(rows) {
-            const tbody = $("#tbody");
-            const empty = $("#empty");
-            if (!tbody) return;
-
-            if (!Array.isArray(rows) || rows.length === 0) {
-                tbody.innerHTML = "";
-                if (empty) empty.style.display = "block";
-                if ($("#rangeLine")) $("#rangeLine").textContent = "Showing 0";
-                return;
             }
 
-            if (empty) empty.style.display = "none";
-            if ($("#rangeLine")) $("#rangeLine").textContent = `Showing ${rows.length} (offset ${offset}, limit ${limit})`;
+            function renderSummaryLine(counts) {
+                const el = $("#summaryLine");
+                if (!el) return;
 
-            tbody.innerHTML = rows.map(a => {
-                const id = esc(a.alert_id);
-                const status = String(a.status || "").toLowerCase();
-                const statusPill = `
+                const p = counts?.pending ?? 0;
+                const s = counts?.sent ?? 0;
+                const d = counts?.dismissed ?? 0;
+                const e = counts?.error ?? 0;
+                const t = counts?.total ?? (p + s + d + e);
+
+                el.textContent = `Counts: pending ${p} • sent ${s} • dismissed ${d} • error ${e} • total ${t}`;
+            }
+
+            function renderPagerLabel() {
+                const pageLabel = $("#pageLabel");
+                const limitLabel = $("#limitLabel");
+                if (limitLabel) limitLabel.textContent = String(limit);
+
+                const page = Math.floor(offset / limit) + 1;
+                if (pageLabel) pageLabel.textContent = `Page ${page}`;
+            }
+
+            function pillClass(status) {
+                const s = String(status || "").toLowerCase();
+                if (s === "pending") return "pending";
+                if (s === "sent") return "sent";
+                if (s === "dismissed") return "dismissed";
+                if (s === "error") return "error";
+                return "";
+            }
+
+            function renderTable(rows) {
+                const tbody = $("#tbody");
+                const empty = $("#empty");
+                if (!tbody) return;
+
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    tbody.innerHTML = "";
+                    if (empty) empty.style.display = "block";
+                    if ($("#rangeLine")) $("#rangeLine").textContent = "Showing 0";
+                    return;
+                }
+
+                if (empty) empty.style.display = "none";
+                if ($("#rangeLine")) $("#rangeLine").textContent = `Showing ${rows.length} (offset ${offset}, limit ${limit})`;
+
+                tbody.innerHTML = rows.map(a => {
+                    const id = esc(a.alert_id);
+                    const status = String(a.status || "").toLowerCase();
+                    const statusPill = `
         <span class="pill ${pillClass(status)}">
           <span class="dot" aria-hidden="true"></span>${esc(status)}
         </span>
       `;
 
-                const title = esc(a.title);
-                const marketplace = esc(a.marketplace);
-                const ext = esc(a.external_id);
-                const price = esc(a.price);
-                const currency = esc(a.currency);
-                const url = esc(a.listing_url);
-                const created = esc(a.alert_created_at);
+                    const title = esc(a.title);
+                    const marketplace = esc(a.marketplace);
+                    const ext = esc(a.external_id);
+                    const price = esc(a.price);
+                    const currency = esc(a.currency);
+                    const url = esc(a.listing_url);
+                    const created = esc(a.alert_created_at);
 
-                const toggleLabel = (status === "dismissed") ? "Reopen" : "Dismiss";
-                const nextStatus = (status === "dismissed") ? "pending" : "dismissed";
+                    const toggleLabel = (status === "dismissed") ? "Reopen" : "Dismiss";
+                    const nextStatus = (status === "dismissed") ? "pending" : "dismissed";
 
-                return `
+                    return `
         <tr data-alert-id="${id}">
           <td class="mono">${id}</td>
           <td>${statusPill}</td>
@@ -716,125 +732,126 @@
           </td>
         </tr>
       `;
-            }).join("");
-        }
-
-        // ----------------------------
-        // Main refresh
-        // ----------------------------
-        async function refreshAll() {
-            showFlash("", "");
-            renderPagerLabel();
-
-            try {
-                const summary = await loadSummary();
-                const counts = summary?.counts || {};
-
-                renderChips(counts);
-                renderSummaryLine(counts);
-                updateSummaryBar(counts);
-
-                const rows = await loadAlerts();
-                renderTable(rows);
-
-                const prev = $("#prevBtn");
-                const next = $("#nextBtn");
-                if (prev) prev.disabled = offset === 0;
-                if (next) next.disabled = !Array.isArray(rows) || rows.length < limit;
-            } catch (e) {
-                showFlash("bad", e.message || String(e));
-                renderTable([]); // show empty + avoid stale table
-
-                const prev = $("#prevBtn");
-                const next = $("#nextBtn");
-                if (prev) prev.disabled = offset === 0;
-                if (next) next.disabled = true;
-            }
-        }
-
-        // ----------------------------
-        // Events
-        // ----------------------------
-        document.addEventListener("click", async (e) => {
-            // chips
-            const chip = e.target.closest("[data-chip]");
-            if (chip) {
-                currentStatus = chip.getAttribute("data-chip");
-                offset = 0;
-                await refreshAll();
-                return;
+                }).join("");
             }
 
-            // table actions
-            const btn = e.target.closest("button[data-action]");
-            if (btn) {
-                const tr = e.target.closest("tr[data-alert-id]");
-                const alertId = tr?.getAttribute("data-alert-id");
-                if (!alertId) return;
+            // ----------------------------
+            // Main refresh
+            // ----------------------------
+            async function refreshAll() {
+                showFlash("", "");
+                renderPagerLabel();
 
-                if (btn.dataset.action === "toggle") {
-                    const next = btn.getAttribute("data-next");
+                try {
+                    const summary = await loadSummary();
+                    const counts = summary?.counts || {};
+
+                    renderChips(counts);
+                    renderSummaryLine(counts);
+                    updateSummaryBar(counts);
+
+                    const rows = await loadAlerts();
+                    renderTable(rows);
+
+                    const prev = $("#prevBtn");
+                    const next = $("#nextBtn");
+                    if (prev) prev.disabled = offset === 0;
+                    if (next) next.disabled = !Array.isArray(rows) || rows.length < limit;
+                } catch (e) {
+                    showFlash("bad", e.message || String(e));
+                    renderTable([]); // show empty + avoid stale table
+
+                    const prev = $("#prevBtn");
+                    const next = $("#nextBtn");
+                    if (prev) prev.disabled = offset === 0;
+                    if (next) next.disabled = true;
+                }
+            }
+
+            // ----------------------------
+            // Events
+            // ----------------------------
+            document.addEventListener("click", async (e) => {
+                // chips
+                const chip = e.target.closest("[data-chip]");
+                if (chip) {
+                    currentStatus = chip.getAttribute("data-chip");
+                    offset = 0;
+                    await refreshAll();
+                    return;
+                }
+
+                // table actions
+                const btn = e.target.closest("button[data-action]");
+                if (btn) {
+                    const tr = e.target.closest("tr[data-alert-id]");
+                    const alertId = tr?.getAttribute("data-alert-id");
+                    if (!alertId) return;
+
+                    if (btn.dataset.action === "toggle") {
+                        const next = btn.getAttribute("data-next");
+                        try {
+                            btn.disabled = true;
+                            await patchAlertStatus(alertId, next);
+                            showFlash("ok", `Updated alert ${alertId} → ${next}`);
+                            await refreshAll();
+                        } catch (err) {
+                            showFlash("bad", err.message || String(err));
+                        } finally {
+                            btn.disabled = false;
+                        }
+                    }
+                    return;
+                }
+
+                // refresh button
+                const refreshBtn = e.target.closest("#refreshBtn");
+                if (refreshBtn) {
+                    offset = 0;
+                    await refreshAll();
+                    return;
+                }
+
+                // send now button (dev)
+                const sendNowBtn = e.target.closest("#sendNowBtn");
+                if (sendNowBtn) {
                     try {
-                        btn.disabled = true;
-                        await patchAlertStatus(alertId, next);
-                        showFlash("ok", `Updated alert ${alertId} → ${next}`);
+                        sendNowBtn.disabled = true;
+                        const result = await dispatchAlertsDev(25);
+                        showFlash("ok", `Dispatch complete. sent=${result.sent} emailed=${result.emailed} error=${result.error}`);
                         await refreshAll();
                     } catch (err) {
                         showFlash("bad", err.message || String(err));
                     } finally {
-                        btn.disabled = false;
+                        sendNowBtn.disabled = false;
                     }
+                    return;
                 }
-                return;
-            }
 
-            // refresh button
-            const refreshBtn = e.target.closest("#refreshBtn");
-            if (refreshBtn) {
-                offset = 0;
-                await refreshAll();
-                return;
-            }
-
-            // send now button (dev)
-            const sendNowBtn = e.target.closest("#sendNowBtn");
-            if (sendNowBtn) {
-                try {
-                    sendNowBtn.disabled = true;
-                    const result = await dispatchAlertsDev(25);
-                    showFlash("ok", `Dispatch complete. sent=${result.sent} emailed=${result.emailed} error=${result.error}`);
+                // pager
+                const prevBtn = e.target.closest("#prevBtn");
+                if (prevBtn) {
+                    offset = Math.max(0, offset - limit);
                     await refreshAll();
-                } catch (err) {
-                    showFlash("bad", err.message || String(err));
-                } finally {
-                    sendNowBtn.disabled = false;
+                    return;
                 }
-                return;
-            }
 
-            // pager
-            const prevBtn = e.target.closest("#prevBtn");
-            if (prevBtn) {
-                offset = Math.max(0, offset - limit);
-                await refreshAll();
-                return;
-            }
+                const nextBtn = e.target.closest("#nextBtn");
+                if (nextBtn) {
+                    offset = offset + limit;
+                    await refreshAll();
+                    return;
+                }
+            });
 
-            const nextBtn = e.target.closest("#nextBtn");
-            if (nextBtn) {
-                offset = offset + limit;
-                await refreshAll();
-                return;
-            }
-        });
+            // Init
+            setSubtitle();
+            renderPagerLabel();
+            refreshAll();
+            // Summary bar is updated as part of refreshAll()
 
-        // Init
-        setSubtitle();
-        renderPagerLabel();
-        refreshAll();
-        // Summary bar is updated as part of refreshAll()
-
-</script>
-</main>
+        </script>
+    </main>
 </body>
+
 </html>
