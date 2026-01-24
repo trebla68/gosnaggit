@@ -423,15 +423,40 @@
       color: #fecaca;
     }
 
-    .actions-cell a {
-      margin-right: 6px;
-      font-size: 0.75rem;
-      text-decoration: none;
-      color: var(--accent);
+        /* --- Micro UI accents --- */
+    .badge-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      vertical-align: middle;
+      color: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 179, 71, 0.18);
+      border: 1px solid rgba(255, 179, 71, 0.55);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.15) inset;
     }
 
-    .actions-cell a:hover {
-      text-decoration: underline;
+    /* Actions: use the global button system, just smaller */
+    .actions-cell {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .actions-cell a {
+      margin-right: 0;
+      text-decoration: none;
+    }
+    .btn.btn-mini,
+    a.btn.btn-mini {
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      line-height: 1;
+      border-radius: 999px;
     }
 
     .pagination {
@@ -960,13 +985,17 @@
 
           const detailsLink = document.createElement('a');
           detailsLink.textContent = 'Details';
-          detailsLink.href = `/search-detail.html?id=${search.id}`;
+          detailsLink.href = `/search-detail.html?search_id=${search.id}`;
           detailsLink.title = 'View search details';
+
+          detailsLink.className = 'btn btn-secondary btn-mini';
 
           const resultsLink = document.createElement('a');
           resultsLink.textContent = 'Results';
           resultsLink.href = `/search-results.html?search_id=${search.id}`;
           resultsLink.title = 'View results found for this search';
+
+          resultsLink.className = 'btn btn-secondary btn-mini';
           resultsLink.addEventListener('click', () => {
             setLastSeen(search.id, search.last_found_at);
           });
@@ -975,6 +1004,8 @@
           alertsLink.textContent = 'Alerts';
           alertsLink.href = `/search-alerts.html?search_id=${search.id}`;
           alertsLink.title = 'View alerts for this search (pending/sent/dismissed/error)';
+
+          alertsLink.className = 'btn btn-secondary btn-mini';
 
           // Show a demo-friendly pending count: Alerts (N)
           // Non-blocking: render immediately, then update when summary arrives.
@@ -994,12 +1025,16 @@
           editLink.href = `/edit-search.html?id=${search.id}`;
           editLink.title = 'Edit this search';
 
+          editLink.className = 'btn btn-secondary btn-mini';
+
           const refreshLink = document.createElement('a');
           refreshLink.textContent = 'Refresh';
           refreshLink.href = '#';
           refreshLink.title = 'Refresh this search now';
           refreshLink.classList.add('js-refresh');
           refreshLink.dataset.id = search.id;
+
+          refreshLink.classList.add('btn', 'btn-secondary', 'btn-mini');
 
           // --- NEW: Refresh + Send (demo flow) ---
           const refreshSendLink = document.createElement('a');
@@ -1009,10 +1044,14 @@
           refreshSendLink.classList.add('js-refresh-send');
           refreshSendLink.dataset.id = search.id;
 
+          refreshSendLink.classList.add('btn', 'btn-secondary', 'btn-mini');
+
           const duplicateLink = document.createElement('a');
           duplicateLink.textContent = 'Duplicate';
           duplicateLink.title = 'Duplicate';
           duplicateLink.href = '#';
+
+          duplicateLink.className = 'btn btn-secondary btn-mini';
 
           duplicateLink.addEventListener('click', async (e) => {
             e.preventDefault();
@@ -1051,6 +1090,8 @@
           deleteLink.textContent = 'Delete';
           deleteLink.title = 'Delete';
           deleteLink.href = '#';
+
+          deleteLink.className = 'btn btn-danger btn-mini';
 
           deleteLink.addEventListener('click', async (e) => {
             e.preventDefault();
