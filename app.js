@@ -1086,8 +1086,8 @@ async function getSearchAlerts(req, res) {
     const limitNum = clampInt(req.query.limit, { min: 1, max: 200, fallback: 50 });
     const offsetNum = clampInt(req.query.offset, { min: 0, max: 1_000_000, fallback: 0 });
 
-    const statusRaw = req.query.status;
-    const statusParam = statusRaw === undefined || statusRaw === '' ? null : String(statusRaw);
+    const statusRaw = (req.query.status ?? '').toString().trim().toLowerCase();
+    const statusParam = (!statusRaw || statusRaw === 'all') ? null : statusRaw;
 
     const sql = `
       SELECT
