@@ -165,6 +165,37 @@ body.gs-app .shell{
 }
 .btn-danger:hover, .btn.danger:hover, .btn.destructive:hover{ filter: brightness(1.02); }
 
+/* "NEW" badge (used in Saved searches list) */
+.badge-new{
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  vertical-align: baseline;
+
+  color: rgba(255,255,255,0.96);
+  background: color-mix(in srgb, var(--gs-brand) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gs-brand) 62%, transparent);
+
+  box-shadow: 0 0 14px color-mix(in srgb, var(--gs-brand) 30%, transparent);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+  animation: gs-badge-pop 900ms ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .badge-new{ animation: none; }
+}
+
+@keyframes gs-badge-pop{
+  0%   { transform: translateY(-1px) scale(0.92); filter: saturate(0.7); opacity: 0.2; }
+  45%  { transform: translateY(0) scale(1.06);   filter: saturate(1.1); opacity: 1; }
+  100% { transform: translateY(0) scale(1.00);   filter: saturate(1);   opacity: 1; }
+}
+
 .page-hero{
   max-width: var(--gs-container);
   margin: 14px auto 0;
