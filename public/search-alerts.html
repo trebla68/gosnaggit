@@ -397,35 +397,7 @@
             font-weight: 800;
         }
 
-    
-    .loading {
-      display: none;
-      margin-top: 12px;
-      padding: 14px 14px;
-      border: 1px dashed rgba(255,255,255,0.18);
-      border-radius: 14px;
-      color: rgba(255,255,255,0.86);
-      background: rgba(255,255,255,0.03);
-    }
-    .loading .row {
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    .spinner {
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      border: 2px solid rgba(255,255,255,0.28);
-      border-top-color: rgba(255,255,255,0.0);
-      animation: spin 1.2s linear infinite;
-      flex: 0 0 auto;
-    }
-
-    .empty {
+        .empty {
             padding: 14px 16px;
             color: var(--text-muted);
             font-size: 13px;
@@ -530,14 +502,6 @@
                             <!-- rows injected -->
                         </tbody>
                     </table>
-                    
-                    <div class="loading" id="loading" aria-live="polite" aria-busy="true">
-                        <div class="row">
-                            <span class="spinner" aria-hidden="true"></span>
-                            <span id="loadingText">Loading alerts…</span>
-                        </div>
-                    </div>
-
                     <div class="empty" id="empty">No alerts found.</div>
                 </div>
                 <div class="pager">
@@ -595,21 +559,7 @@
                     .replaceAll('"', "&quot;");
             }
 
-            
-            function setLoading(isOn, text) {
-                const box = $("#loading");
-                const empty = $("#empty");
-                const tt = $("#loadingText");
-                if (tt && text) tt.textContent = text;
-
-                if (box) box.style.display = isOn ? "block" : "none";
-                if (isOn) {
-                    // Prevent empty-state flashing while data is still in flight
-                    if (empty) empty.style.display = "none";
-                }
-            }
-
-function showFlash(kind, msg) {
+            function showFlash(kind, msg) {
                 const el = $("#flash");
                 if (!el) return;
                 el.className = "flash" + (kind ? ` ${kind}` : "");
@@ -761,7 +711,7 @@ function showFlash(kind, msg) {
                     const url = esc(a.listing_url);
                     const created = esc(a.alert_created_at);
 
-                    const toggleLabel = (status === "dismissed") ? "Reopen" : "Dismiss";
+                    const toggleLabel = (status === "dismissed") ? "Undo dismiss" : "Dismiss";
                     const nextStatus = (status === "dismissed") ? "pending" : "dismissed";
 
                     return `
@@ -792,15 +742,6 @@ function showFlash(kind, msg) {
                 showFlash("", "");
                 renderPagerLabel();
 
-                // Loading state (prevents "No alerts found" flash)
-                setLoading(true, "Loading alerts…");
-                // Disable pager while loading
-                const _prevBtn = $("#prevBtn");
-                const _nextBtn = $("#nextBtn");
-                if (_prevBtn) _prevBtn.disabled = true;
-                if (_nextBtn) _nextBtn.disabled = true;
-
-
                 try {
                     const summary = await loadSummary();
                     const counts = summary?.counts || {};
@@ -825,10 +766,6 @@ function showFlash(kind, msg) {
                     if (prev) prev.disabled = offset === 0;
                     if (next) next.disabled = true;
                 }
-                finally {
-                    setLoading(false);
-                }
-
             }
 
             // ----------------------------
@@ -910,15 +847,6 @@ function showFlash(kind, msg) {
             // Init
             setSubtitle();
             renderPagerLabel();
-
-                // Loading state (prevents "No alerts found" flash)
-                setLoading(true, "Loading alerts…");
-                // Disable pager while loading
-                const _prevBtn = $("#prevBtn");
-                const _nextBtn = $("#nextBtn");
-                if (_prevBtn) _prevBtn.disabled = true;
-                if (_nextBtn) _nextBtn.disabled = true;
-
             refreshAll();
             // Summary bar is updated as part of refreshAll()
 

@@ -685,8 +685,7 @@
     </div>
     <script>
       let pageSize = 5;
-            let isLoadingSearches = false;
-let allSearches = [];
+      let allSearches = [];
       let currentPage = 1;
       let totalPages = 1;
 
@@ -882,30 +881,8 @@ let allSearches = [];
         tableCount.textContent = total;
       }
 
-      
-      function renderLoadingRow(msg = 'Loading searches…') {
+      function renderTablePage(page) {
         tbody.innerHTML = '';
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 9;
-        td.className = 'empty-state';
-        td.innerHTML = `<strong>${escapeHtml(msg)}</strong><span class="mini-spinner" aria-hidden="true"></span><br><span style="opacity:.78">Just a moment…</span>`;
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-
-        rangeTextEl.textContent = '';
-        pageInfoEl.textContent = '';
-        prevBtn.disabled = true;
-        nextBtn.disabled = true;
-      }
-
-function renderTablePage(page) {
-        tbody.innerHTML = '';
-
-        if (isLoadingSearches) {
-          renderLoadingRow('Loading searches…');
-          return;
-        }
 
         if (allSearches.length === 0) {
           const tr = document.createElement('tr');
@@ -1005,7 +982,8 @@ function renderTablePage(page) {
           actionsTd.classList.add('actions-cell');
 
           const detailsLink = document.createElement('a');
-          detailsLink.textContent = 'Details';
+          detailsLink.textContent = 'Open';
+          detailsLink.title = 'View search details and settings';
           detailsLink.href = `/search-detail.html?search_id=${search.id}`;
           detailsLink.title = 'View search details';
 
@@ -1013,6 +991,7 @@ function renderTablePage(page) {
 
           const resultsLink = document.createElement('a');
           resultsLink.textContent = 'Results';
+          resultsLink.title = 'View latest results for this search';
           resultsLink.href = `/search-results.html?search_id=${search.id}`;
           resultsLink.title = 'View results found for this search';
 
@@ -1023,6 +1002,7 @@ function renderTablePage(page) {
 
           const alertsLink = document.createElement('a');
           alertsLink.textContent = 'Alerts';
+          alertsLink.title = 'View alerts (pending, sent, dismissed)';
           alertsLink.href = `/search-alerts.html?search_id=${search.id}`;
           alertsLink.title = 'View alerts for this search (pending/sent/dismissed/error)';
 
@@ -1049,7 +1029,8 @@ function renderTablePage(page) {
           editLink.className = 'btn btn-secondary btn-mini';
 
           const refreshLink = document.createElement('a');
-          refreshLink.textContent = 'Refresh';
+          refreshLink.textContent = 'Refresh results';
+          refreshLink.title = 'Fetch the latest listings for this search';
           refreshLink.href = '#';
           refreshLink.title = 'Refresh this search now';
           refreshLink.classList.add('js-refresh');
@@ -1057,9 +1038,10 @@ function renderTablePage(page) {
 
           refreshLink.classList.add('btn', 'btn-secondary', 'btn-mini');
 
-          // --- NEW: Refresh + Send (demo flow) ---
+          // --- NEW: Refresh & Send Alerts (demo flow) ---
           const refreshSendLink = document.createElement('a');
-          refreshSendLink.textContent = 'Refresh + Send';
+          refreshSendLink.textContent = 'Refresh & Send Alerts';
+          refreshSendLink.title = 'Refresh results and email any new alerts (demo)';
           refreshSendLink.href = '#';
           refreshSendLink.title = 'Refresh this search and send alerts now (demo)';
           refreshSendLink.classList.add('js-refresh-send');
@@ -1068,7 +1050,8 @@ function renderTablePage(page) {
           refreshSendLink.classList.add('btn', 'btn-secondary', 'btn-mini');
 
           const duplicateLink = document.createElement('a');
-          duplicateLink.textContent = 'Duplicate';
+          duplicateLink.textContent = 'Duplicate…';
+          duplicateLink.title = 'Make a copy of this search';
           duplicateLink.title = 'Duplicate';
           duplicateLink.href = '#';
 
@@ -1100,8 +1083,6 @@ function renderTablePage(page) {
               setFlash('Search duplicated.', 'success');
             } catch (err) {
               console.error(err);
-          isLoadingSearches = false;
-
               setFlash('Error duplicating search: ' + err.message, 'error');
             } finally {
               stop();
@@ -1110,7 +1091,8 @@ function renderTablePage(page) {
           });
 
           const deleteLink = document.createElement('a');
-          deleteLink.textContent = 'Delete';
+          deleteLink.textContent = 'Delete…';
+          deleteLink.title = 'Delete this search (can be restored from Deleted searches)';
           deleteLink.title = 'Delete';
           deleteLink.href = '#';
 
@@ -1272,7 +1254,7 @@ function renderTablePage(page) {
 
         const oldText = btn.textContent;
         btn.disabled = true;
-        btn.textContent = 'Refresh + Send…';
+        btn.textContent = 'Refresh & Send Alerts…';
 
         try {
           // 1) Refresh (dev route)
@@ -1316,7 +1298,7 @@ function renderTablePage(page) {
           location.reload();
         } catch (err) {
           console.error(err);
-          alert('Refresh + Send failed');
+          alert('Refresh & Send Alerts failed');
         } finally {
           btn.disabled = false;
           btn.textContent = oldText;
@@ -1355,17 +1337,11 @@ function renderTablePage(page) {
 
 
       async function reloadSearches() {
-        isLoadingSearches = true;
-        setFlash('Loading searches…');
-        renderLoadingRow('Loading searches…');
-
         try {
           const res = await fetch('/api/searches');
           if (!res.ok) throw new Error('Failed to fetch searches');
 
           allSearches = await res.json();
-          isLoadingSearches = false;
-          setFlash('');
           updateSummary(allSearches);
           updatePagination();
         } catch (err) {
@@ -1404,7 +1380,7 @@ function renderTablePage(page) {
 
         const oldText = btn.textContent;
         btn.classList.add('is-busy');
-        btn.textContent = 'Refresh + Send…';
+        btn.textContent = 'Refresh & Send Alerts…';
 
         try {
           // 1) Refresh (enqueue job)
@@ -1434,7 +1410,7 @@ function renderTablePage(page) {
           location.reload();
         } catch (err) {
           console.error(err);
-          alert('Refresh + Send failed');
+          alert('Refresh & Send Alerts failed');
         } finally {
           btn.classList.remove('is-busy');
           btn.textContent = oldText;
