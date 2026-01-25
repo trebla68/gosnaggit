@@ -685,7 +685,8 @@
     </div>
     <script>
       let pageSize = 5;
-      let allSearches = [];
+            let isLoadingSearches = false;
+let allSearches = [];
       let currentPage = 1;
       let totalPages = 1;
 
@@ -881,8 +882,30 @@
         tableCount.textContent = total;
       }
 
-      function renderTablePage(page) {
+      
+      function renderLoadingRow(msg = 'Loading searches…') {
         tbody.innerHTML = '';
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 9;
+        td.className = 'empty-state';
+        td.innerHTML = `<strong>${escapeHtml(msg)}</strong><span class="mini-spinner" aria-hidden="true"></span><br><span style="opacity:.78">Just a moment…</span>`;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+
+        rangeTextEl.textContent = '';
+        pageInfoEl.textContent = '';
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+      }
+
+function renderTablePage(page) {
+        tbody.innerHTML = '';
+
+        if (isLoadingSearches) {
+          renderLoadingRow('Loading searches…');
+          return;
+        }
 
         if (allSearches.length === 0) {
           const tr = document.createElement('tr');
@@ -1077,6 +1100,8 @@
               setFlash('Search duplicated.', 'success');
             } catch (err) {
               console.error(err);
+          isLoadingSearches = false;
+
               setFlash('Error duplicating search: ' + err.message, 'error');
             } finally {
               stop();
@@ -1330,11 +1355,17 @@
 
 
       async function reloadSearches() {
+        isLoadingSearches = true;
+        setFlash('Loading searches…');
+        renderLoadingRow('Loading searches…');
+
         try {
           const res = await fetch('/api/searches');
           if (!res.ok) throw new Error('Failed to fetch searches');
 
           allSearches = await res.json();
+          isLoadingSearches = false;
+          setFlash('');
           updateSummary(allSearches);
           updatePagination();
         } catch (err) {
