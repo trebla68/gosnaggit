@@ -402,6 +402,23 @@
       color: #ffc5cb;
     }
 
+    
+
+    .message-success {
+      color: #a7ffeb;
+    }
+
+    .message-warn {
+      color: #ffe4b5;
+    }
+.message-success {
+      color: #a7ffeb;
+    }
+
+    .message-info {
+      color: var(--text-muted);
+    }
+
     .result-top {
       display: grid;
       grid-template-columns: 86px 1fr;
@@ -530,13 +547,11 @@
               <!-- cards go here -->
             </div>
             <div class="empty-state" id="empty-state">
-              <div class="empty-state" id="empty-state">
                 <strong>No results yet.</strong><br />
                 This hunt is set up — results will appear here as sources are checked.<br />
                 Try broadening your search, removing filters, or checking back later as new listings appear.<br />
                 Try <a href="#" id="empty-refresh">Refresh</a> or go back to
                 <a href="/searches.html">Saved searches</a>.
-              </div>
             </div>
             <div class="pagination">
               <div id="page-summary">Page 1 of 1</div>
@@ -545,7 +560,7 @@
                 <button class="page-btn" id="next-page" type="button">Next</button>
               </div>
             </div>
-            <div id="message"></div>
+            <div id="message" class="message" role="status" aria-live="polite"></div>
           </div>
         </div>
       </div>
@@ -560,12 +575,13 @@
 
           return {
             search_id,
-            page: parseInt(params.get('page') || '1', 10)
+            page: parseInt(params.get('page') || '1', 10),
+            created: params.get('created') || params.get('saved') || null
           };
         }
 
 
-        const { search_id: searchId, page: initialPage } = getParams();
+        const { search_id: searchId, page: initialPage, created } = getParams();
 
 
         const searchTitleEl = document.getElementById('search-title');
@@ -616,10 +632,38 @@
           }
         }
 
+        
+
+        let __msgTimer = null;
+        function showMessage(kind, msg, autoHideMs = 4500) {
+          if (!messageEl) return;
+          if (__msgTimer) {
+            clearTimeout(__msgTimer);
+            __msgTimer = null;
+          }
+
+          messageEl.textContent = msg || '';
+          messageEl.className = 'message' + (kind ? ' message-' + kind : '');
+
+          if (msg && autoHideMs) {
+            __msgTimer = setTimeout(() => {
+              messageEl.textContent = '';
+              messageEl.className = 'message';
+            }, autoHideMs);
+          }
+        }
+
+        function clearUrlParam(key) {
+          const params = new URLSearchParams(window.location.search);
+          if (!params.has(key)) return;
+          params.delete(key);
+          const newUrl = window.location.pathname + '?' + params.toString();
+          window.history.replaceState({}, '', newUrl.endsWith('?') ? window.location.pathname : newUrl);
+        }
+
         function showEmpty(show) {
           emptyStateEl.style.display = show ? 'block' : 'none';
         }
-
 
         let currentPage = initialPage || 1;
         const limitPerPage = 6;
@@ -647,6 +691,12 @@
         } else {
           loadSearchContext();
           loadResults();
+
+          // Confirmation UX: show one-time banner when arriving from a create flow
+          if (created) {
+            showMessage('success', '✅ Search saved. GoSnaggit will now monitor this item for you.');
+            clearUrlParam('created');
+          }
         }
 
 
@@ -815,6 +865,7 @@
               // Update the simple page indicator
               pageSummaryEl.textContent = `Page ${currentPage}${gotFullPage ? '+' : ''}`;
               setLoading(false);
+              return results.length;
             })
             .catch(err => {
               setLoading(false);
@@ -827,6 +878,7 @@
 
               prevPageBtn.disabled = true;
               nextPageBtn.disabled = true;
+              return 0;
             });
         }
 
@@ -884,10 +936,14 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });
 
+        async function doRefresh() {
+          if (!searchId) return;
 
-        refreshBtn.addEventListener('click', async function () {
+          const oldText = refreshBtn.textContent;
           try {
+            showMessage('', '');
             refreshBtn.disabled = true;
+            refreshBtn.textContent = 'Refreshing…';
             resultsMetaEl.textContent = 'Refreshing…';
 
             const r = await fetch(`/api/searches/${searchId}/refresh`, { method: 'POST' });
@@ -896,19 +952,27 @@
             await loadSearchContext();
             currentPage = 1;
             updateUrl();
-            await loadResults();
+            const count = await loadResults();
+
+            if ((count || 0) > 0) {
+              showMessage('success', '🔄 Search updated just now.');
+            } else {
+              showMessage('warn', '🔄 Search updated — no new results this time.');
+            }
           } catch (e) {
-            messageEl.textContent = e.message;
-            messageEl.className = 'message-error';
+            showMessage('error', e.message || String(e), 6500);
           } finally {
             refreshBtn.disabled = false;
+            refreshBtn.textContent = oldText;
           }
-        });
+        }
+
+        refreshBtn.addEventListener('click', doRefresh);
 
         document.addEventListener('click', function (e) {
           if (e.target && e.target.id === 'empty-refresh') {
             e.preventDefault();
-            loadResults();
+            doRefresh();
           }
         });
 

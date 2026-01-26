@@ -246,6 +246,10 @@
     .message-error {
       color: #ffc5cb;
     }
+
+    .message-success {
+      color: #a7ffeb;
+    }
   </style>
 <link href="/app.css" rel="stylesheet"/><script defer="True" src="/ui.js"></script></head>
 <body><header class="app-header" id="gs-header"></header>
@@ -279,7 +283,7 @@
 </tbody>
 </table>
 </div>
-<div id="message"></div>
+<div id="message" class="message" role="status" aria-live="polite"></div>
 </div>
 </div>
 </div>
@@ -287,6 +291,23 @@
 <script>
     const deletedBody = document.getElementById('deleted-body');
     const messageEl = document.getElementById('message');
+
+    let __msgTimer = null;
+    function showMessage(kind, msg, autoHideMs = 4500) {
+      if (!messageEl) return;
+      if (__msgTimer) {
+        clearTimeout(__msgTimer);
+        __msgTimer = null;
+      }
+      messageEl.textContent = msg || '';
+      messageEl.className = 'message' + (kind ? ' ' + kind : '');
+      if (msg && autoHideMs) {
+        __msgTimer = setTimeout(() => {
+          messageEl.textContent = '';
+          messageEl.className = 'message';
+        }, autoHideMs);
+      }
+    }
 
     function formatDate(isoString) {
       if (!isoString) return '';
@@ -306,8 +327,7 @@
           deletedBody.innerHTML = '';
 
           if (!Array.isArray(data) || data.length === 0) {
-            messageEl.textContent = 'No deleted searches. When you delete searches, they will appear here.';
-            messageEl.classList.remove('message-error');
+            showMessage('', 'No deleted searches. When you delete searches, they will appear here.', 0);
             return;
           }
 
@@ -354,8 +374,10 @@
       const id = btn.getAttribute('data-id');
       if (!id) return;
 
-      const confirmed = window.confirm('Restore this search to active?');
+      const confirmed = window.confirm('Restore this search? It will reappear in Saved Searches and monitoring will resume.');
       if (!confirmed) return;
+
+      btn.disabled = true;
 
       fetch('/api/searches/' + id + '/status', {
         method: 'PATCH',
@@ -372,12 +394,13 @@
         })
         .then(() => {
           loadDeletedSearches(); // refresh list
-          messageEl.textContent = 'Search restored to active.';
-          messageEl.classList.remove('message-error');
+          showMessage('message-success', '✅ Search restored to active.', 4500);
         })
         .catch(err => {
-          messageEl.textContent = 'Error restoring search: ' + err.message;
-          messageEl.classList.add('message-error');
+          showMessage('message-error', 'Error restoring search: ' + err.message, 6500);
+        })
+        .finally(() => {
+          btn.disabled = false;
         });
     });
   </script>

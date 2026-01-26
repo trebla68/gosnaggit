@@ -423,7 +423,7 @@
       color: #fecaca;
     }
 
-        /* --- Micro UI accents --- */
+    /* --- Micro UI accents --- */
     .badge-new {
       display: inline-flex;
       align-items: center;
@@ -437,7 +437,7 @@
       color: rgba(255, 255, 255, 0.95);
       background: rgba(255, 179, 71, 0.18);
       border: 1px solid rgba(255, 179, 71, 0.55);
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.15) inset;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
     }
 
     /* Actions: use the global button system, just smaller */
@@ -447,10 +447,12 @@
       gap: 6px;
       align-items: center;
     }
+
     .actions-cell a {
       margin-right: 0;
       text-decoration: none;
     }
+
     .btn.btn-mini,
     a.btn.btn-mini {
       padding: 6px 10px;
@@ -602,6 +604,23 @@
     .tier-power .tier-dot {
       background: rgba(51, 209, 122, 0.95);
     }
+
+    .last-result-link {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      border-radius: 12px;
+      padding: 6px 8px;
+    }
+
+    .last-result-link:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .last-result-link:focus-visible {
+      outline: 2px solid rgba(255, 193, 92, 0.7);
+      outline-offset: 2px;
+    }
   </style>
   <link href="/app.css" rel="stylesheet" />
   <script defer="True" src="/ui.js"></script>
@@ -611,30 +630,31 @@
   <header class="app-header" id="gs-header"></header>
   <main class="gs-page">
     <section class="page-hero">
-  <h1>Saved searches</h1>
-  <p class="subtitle">Your current hunts at a glance. This MVP view shows sample data for all active, paused, and completed searches.</p>
-</section>
-<div class="shell">
+      <h1>Saved searches</h1>
+      <p class="subtitle">Your current hunts at a glance. This MVP view shows sample data for all active, paused, and
+        completed searches.</p>
+    </section>
+    <div class="shell">
       <div class="inner">
-<div class="summary-row">
-            <div class="summary-card">
-              <div class="summary-label">Total saved searches</div>
-              <div class="summary-value" id="summary-total">0</div>
-            </div>
-            <div class="summary-card">
-              <div class="summary-label">Currently active</div>
-              <div class="summary-value" id="summary-active">0</div>
-            </div>
-            <div class="summary-card">
-              <div class="summary-label">Completed / cancelled</div>
-              <div class="summary-value" id="summary-completed">0</div>
-            </div>
-            <div class="summary-note">
-              This panel can later evolve into a <span class="summary-highlight">search health overview</span> with
-              trends, alerts, and anomaly detection.
-            </div>
+        <div class="summary-row">
+          <div class="summary-card">
+            <div class="summary-label">Total saved searches</div>
+            <div class="summary-value" id="summary-total">0</div>
           </div>
-<div class="table-card">
+          <div class="summary-card">
+            <div class="summary-label">Currently active</div>
+            <div class="summary-value" id="summary-active">0</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Completed / cancelled</div>
+            <div class="summary-value" id="summary-completed">0</div>
+          </div>
+          <div class="summary-note">
+            This panel can later evolve into a <span class="summary-highlight">search health overview</span> with
+            trends, alerts, and anomaly detection.
+          </div>
+        </div>
+        <div class="table-card">
           <div class="table-header-row">
             <div>
               <h2>Saved searches (MVP data table)</h2>
@@ -951,26 +971,27 @@
           statusTd.appendChild(formatStatusPill(search.status || 'unknown'));
           tr.appendChild(statusTd);
 
-          // --- Last result column ---
+          // --- Last result column (clickable) ---
           const lastTd = document.createElement('td');
 
           const lastText = formatDateTime(search.last_found_at);
           const lastLine = lastText ? `Last result: ${lastText}` : 'No results yet';
-          const seenTs = getLastSeen(search.id);
-          const foundTs = search.last_found_at ? new Date(search.last_found_at).getTime() : null;
-
-          const isNewForYou = foundTs && (!seenTs || foundTs > seenTs);
-          const newBadge = isNewForYou
-            ? `<span class="badge-new" title="New since you last checked">NEW</span>`
+          const newBadge = isRecent(search.last_found_at, 24)
+            ? `<span class="badge-new" title="New in last 24 hours">NEW</span>`
             : '';
 
+          const resultsHref = `search-results.html?search_id=${encodeURIComponent(search.search_id || search.id)}`;
 
-          lastTd.innerHTML =
-            '<div class="cell-meta">' +
-            '<div class="cell-main">' + escapeHtml(lastLine) + ' ' + newBadge + '</div>' +
-            '</div>';
+          lastTd.innerHTML = `
+          <a class="last-result-link" href="${resultsHref}" title="Open results">
+          <div class="cell-meta">
+          <div class="cell-main">${escapeHtml(lastLine)} ${newBadge}</div>
+          </div>
+          </a>
+          `;
 
           tr.appendChild(lastTd);
+
 
 
           const createdTd = document.createElement('td');

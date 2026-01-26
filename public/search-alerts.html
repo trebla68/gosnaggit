@@ -456,7 +456,7 @@
         </div>
 
         <div class="wrap">
-            <div class="flash" id="flash"></div>
+            <div class="flash" id="flash" role="status" aria-live="polite"></div>
             <div class="card">
                 <div class="card-h">
                     <div class="titleline">
@@ -559,12 +559,29 @@
                     .replaceAll('"', "&quot;");
             }
 
-            function showFlash(kind, msg) {
+            
+            let __flashTimer = null;
+            function showFlash(kind, msg, autoHideMs) {
                 const el = $("#flash");
                 if (!el) return;
+
+                if (__flashTimer) {
+                    clearTimeout(__flashTimer);
+                    __flashTimer = null;
+                }
+
                 el.className = "flash" + (kind ? ` ${kind}` : "");
                 el.textContent = msg || "";
                 el.style.display = msg ? "block" : "none";
+
+                const shouldHide = !!msg && (autoHideMs != null ? autoHideMs : (kind === 'ok' ? 6000 : 0));
+                if (shouldHide) {
+                    __flashTimer = setTimeout(() => {
+                        el.textContent = "";
+                        el.className = "flash";
+                        el.style.display = "none";
+                    }, autoHideMs != null ? autoHideMs : 6000);
+                }
             }
 
             function setSubtitle() {
@@ -793,7 +810,11 @@
                         try {
                             btn.disabled = true;
                             await patchAlertStatus(alertId, next);
-                            showFlash("ok", `Updated alert ${alertId} → ${next}`);
+                            if (next === 'dismissed') {
+                            showFlash('ok', '🗑️ Alert dismissed. It will not be sent.', 5000);
+                          } else {
+                            showFlash('ok', '↩️ Dismiss undone. Alert is pending again.', 5000);
+                          }
                             await refreshAll();
                         } catch (err) {
                             showFlash("bad", err.message || String(err));
@@ -807,28 +828,54 @@
                 // refresh button
                 const refreshBtn = e.target.closest("#refreshBtn");
                 if (refreshBtn) {
-                    offset = 0;
-                    await refreshAll();
+                    const old = refreshBtn.textContent;
+                    try {
+                        offset = 0;
+                        refreshBtn.disabled = true;
+                        refreshBtn.textContent = 'Refreshing…';
+                        showFlash('', 'Refreshing…', 0);
+                        await refreshAll();
+                        showFlash('ok', '🔄 Updated just now.', 4500);
+                    } finally {
+                        refreshBtn.disabled = false;
+                        refreshBtn.textContent = old;
+                    }
                     return;
                 }
 
                 // send now button (dev)
                 const sendNowBtn = e.target.closest("#sendNowBtn");
                 if (sendNowBtn) {
+                    const old = sendNowBtn.textContent;
                     try {
                         sendNowBtn.disabled = true;
+                        sendNowBtn.textContent = 'Sending…';
+                        showFlash('', 'Sending alerts…', 0);
+
                         const result = await dispatchAlertsDev(25);
-                        showFlash("ok", `Dispatch complete. sent=${result.sent} emailed=${result.emailed} error=${result.error}`);
+
+                        const sent = Number(result?.sent || 0);
+                        const emailed = Number(result?.emailed || 0);
+                        const error = Number(result?.error || 0);
+
+                        if (sent === 0 && error === 0) {
+                            showFlash('ok', '📭 No pending alerts to send right now.', 5000);
+                        } else if (error > 0) {
+                            showFlash('bad', `⚠️ Dispatch finished with issues. sent=${sent} emailed=${emailed} error=${error}`);
+                        } else {
+                            showFlash('ok', `📤 Alerts sent successfully. sent=${sent} emailed=${emailed}`, 5500);
+                        }
+
+                        offset = 0;
                         await refreshAll();
                     } catch (err) {
-                        showFlash("bad", err.message || String(err));
+                        showFlash('bad', err.message || String(err));
                     } finally {
                         sendNowBtn.disabled = false;
+                        sendNowBtn.textContent = old;
                     }
                     return;
-                }
-
-                // pager
+                }// pager
                 const prevBtn = e.target.closest("#prevBtn");
                 if (prevBtn) {
                     offset = Math.max(0, offset - limit);
