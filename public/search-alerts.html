@@ -5,7 +5,10 @@
 <head>
     <meta charset="utf-8" />
     <title>GoSnaggit – Alerts</title>
-    <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+<meta content="width=device-width, initial-scale=1" name="viewport" />
     <style>
         :root {
             --bg: #0b1020;
@@ -559,7 +562,7 @@
                     .replaceAll('"', "&quot;");
             }
 
-            
+
             let __flashTimer = null;
             function showFlash(kind, msg, autoHideMs) {
                 const el = $("#flash");
@@ -811,10 +814,10 @@
                             btn.disabled = true;
                             await patchAlertStatus(alertId, next);
                             if (next === 'dismissed') {
-                            showFlash('ok', '🗑️ Alert dismissed. It will not be sent.', 5000);
-                          } else {
-                            showFlash('ok', '↩️ Dismiss undone. Alert is pending again.', 5000);
-                          }
+                                showFlash('ok', '🗑️ Alert dismissed. It will not be sent.', 5000);
+                            } else {
+                                showFlash('ok', '↩️ Dismiss undone. Alert is pending again.', 5000);
+                            }
                             await refreshAll();
                         } catch (err) {
                             showFlash("bad", err.message || String(err));

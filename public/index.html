@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 
 <html lang="en">
+
 <head>
-<meta charset="utf-8"/>
-<title>GoSnaggit – Find Hard-to-Find Items</title>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<style>
+  <meta charset="utf-8" />
+  <title>GoSnaggit – Find Hard-to-Find Items</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+<meta content="width=device-width, initial-scale=1" name="viewport" />
+  <style>
     :root {
       --bg: #0b1020;
       --card-bg: #151a2b;
@@ -174,7 +178,8 @@
       flex-wrap: wrap;
       gap: 0.8rem;
     }
-.meta-row {
+
+    .meta-row {
       margin-top: 1rem;
       display: flex;
       flex-wrap: wrap;
@@ -344,122 +349,130 @@
       color: var(--text-muted);
       opacity: 0.8;
     }
-  
-  
   </style>
-<link href="/app.css" rel="stylesheet"/><script defer="True" src="/ui.js"></script></head>
-<body><header class="app-header" id="gs-header"></header><main class="gs-page"><section class="page-hero"><h1><span class="accent-underline">On the hunt for hard-to-find items?</span></h1><p class="tagline">
-            Don’t let somebody else beat you to it. <strong>GoSnaggit</strong> searches
-            vintage classifieds and hidden marketplaces for you and sends alerts
-            when your item is found—so you can snag it first.
-          </p></section>
-<div class="shell">
-<div class="inner">
-<!-- LEFT SIDE -->
-<div>
+  <link href="/app.css" rel="stylesheet" />
+  <script defer="True" src="/ui.js"></script>
+</head>
 
-<div class="pill-row">
-<div class="pill"><span class="pill-dot"></span> Vintage audio &amp; hi-fi</div>
-<div class="pill"><span class="pill-dot"></span> Classic cars &amp; parts</div>
-<div class="pill"><span class="pill-dot"></span> Antique furniture</div>
-<div class="pill"><span class="pill-dot"></span> One-of-a-kind collectibles</div>
-</div>
-<div class="actions">
-<a class="btn btn-primary" href="/search.html">
-<span class="icon">🔍</span>
-<span>Search a Product</span>
-</a>
-<a class="btn btn-secondary" href="/searches.html">View My Searches</a>
-</div>
-<div class="meta-row">
-<span><span class="meta-dot"></span> Early MVP preview – data is sample only</span>
-<span><span class="meta-dot"></span> Background searching concept in progress</span>
-</div>
-</div>
-<!-- RIGHT SIDE -->
-<aside class="side-card">
-<div class="side-header">
-<span>Live hunt preview</span>
-<!-- CLICKABLE PILL -->
-<a class="side-tag side-tag-link" href="/searches.html">
-<span class="side-tag-dot"></span>
-<span id="active-count">—</span> <span id="active-label">active searches</span>
-</a>
-</div>
-<div class="side-title">You’re tracking:</div>
-<div class="side-subtitle">
-          A few examples of the kinds of items GoSnaggit is meant to help you find.
+<body>
+  <header class="app-header" id="gs-header"></header>
+  <main class="gs-page">
+    <section class="page-hero">
+      <h1><span class="accent-underline">On the hunt for hard-to-find items?</span></h1>
+      <p class="tagline">
+        Don’t let somebody else beat you to it. <strong>GoSnaggit</strong> searches
+        vintage classifieds and hidden marketplaces for you and sends alerts
+        when your item is found—so you can snag it first.
+      </p>
+    </section>
+    <div class="shell">
+      <div class="inner">
+        <!-- LEFT SIDE -->
+        <div>
+
+          <div class="pill-row">
+            <div class="pill"><span class="pill-dot"></span> Vintage audio &amp; hi-fi</div>
+            <div class="pill"><span class="pill-dot"></span> Classic cars &amp; parts</div>
+            <div class="pill"><span class="pill-dot"></span> Antique furniture</div>
+            <div class="pill"><span class="pill-dot"></span> One-of-a-kind collectibles</div>
+          </div>
+          <div class="actions">
+            <a class="btn btn-primary" href="/search.html">
+              <span class="icon">🔍</span>
+              <span>Search a Product</span>
+            </a>
+            <a class="btn btn-secondary" href="/searches.html">View My Searches</a>
+          </div>
+          <div class="meta-row">
+            <span><span class="meta-dot"></span> Early MVP preview – data is sample only</span>
+            <span><span class="meta-dot"></span> Background searching concept in progress</span>
+          </div>
         </div>
-<div class="results-grid">
-<div class="result-tile">
-<div class="result-title">Vintage car radio – Blaupunkt</div>
-<div class="result-meta"><span>Berlin</span><span class="result-price">$185</span></div>
-<div class="result-badge-row">
-<span class="result-badge">New listing</span>
-<span class="result-source">Mock • Local classifieds</span>
-</div>
-</div>
-<div class="result-tile">
-<div class="result-title">1960 Porsche 356 – project</div>
-<div class="result-meta"><span>Los Angeles</span><span class="result-price">$32,000</span></div>
-<div class="result-badge-row">
-<span class="result-badge">Price drop</span>
-<span class="result-source">Mock • Specialty forum</span>
-</div>
-</div>
-<div class="result-tile">
-<div class="result-title">Antique oak writing desk</div>
-<div class="result-meta"><span>New York</span><span class="result-price">$420</span></div>
-<div class="result-badge-row">
-<span class="result-badge">Matches max price</span>
-<span class="result-source">Mock • Marketplace</span>
-</div>
-</div>
-<div class="result-tile">
-<div class="result-title">Tube amp receiver (1960s)</div>
-<div class="result-meta"><span>Chicago</span><span class="result-price">$610</span></div>
-<div class="result-badge-row">
-<span class="result-badge">Rare find</span>
-<span class="result-source">Mock • Auction site</span>
-</div>
-</div>
-</div>
-<div class="side-footer">
-<div class="side-progress">
-<div class="side-progress-fill"></div>
-</div>
-<div class="side-count">Mock scan: 68% of sources checked</div>
-</div>
-</aside>
-<footer>
-        GoSnaggit – internal MVP prototype. UI concepts only; search engine and background alerts are under active
-        development.
-      </footer>
-</div>
-</div>
-<script>
-    async function updateHomeCounts() {
-      const countEl = document.getElementById('active-count');
-      const labelEl = document.getElementById('active-label');
+        <!-- RIGHT SIDE -->
+        <aside class="side-card">
+          <div class="side-header">
+            <span>Live hunt preview</span>
+            <!-- CLICKABLE PILL -->
+            <a class="side-tag side-tag-link" href="/searches.html">
+              <span class="side-tag-dot"></span>
+              <span id="active-count">—</span> <span id="active-label">active searches</span>
+            </a>
+          </div>
+          <div class="side-title">You’re tracking:</div>
+          <div class="side-subtitle">
+            A few examples of the kinds of items GoSnaggit is meant to help you find.
+          </div>
+          <div class="results-grid">
+            <div class="result-tile">
+              <div class="result-title">Vintage car radio – Blaupunkt</div>
+              <div class="result-meta"><span>Berlin</span><span class="result-price">$185</span></div>
+              <div class="result-badge-row">
+                <span class="result-badge">New listing</span>
+                <span class="result-source">Mock • Local classifieds</span>
+              </div>
+            </div>
+            <div class="result-tile">
+              <div class="result-title">1960 Porsche 356 – project</div>
+              <div class="result-meta"><span>Los Angeles</span><span class="result-price">$32,000</span></div>
+              <div class="result-badge-row">
+                <span class="result-badge">Price drop</span>
+                <span class="result-source">Mock • Specialty forum</span>
+              </div>
+            </div>
+            <div class="result-tile">
+              <div class="result-title">Antique oak writing desk</div>
+              <div class="result-meta"><span>New York</span><span class="result-price">$420</span></div>
+              <div class="result-badge-row">
+                <span class="result-badge">Matches max price</span>
+                <span class="result-source">Mock • Marketplace</span>
+              </div>
+            </div>
+            <div class="result-tile">
+              <div class="result-title">Tube amp receiver (1960s)</div>
+              <div class="result-meta"><span>Chicago</span><span class="result-price">$610</span></div>
+              <div class="result-badge-row">
+                <span class="result-badge">Rare find</span>
+                <span class="result-source">Mock • Auction site</span>
+              </div>
+            </div>
+          </div>
+          <div class="side-footer">
+            <div class="side-progress">
+              <div class="side-progress-fill"></div>
+            </div>
+            <div class="side-count">Mock scan: 68% of sources checked</div>
+          </div>
+        </aside>
+        <footer>
+          GoSnaggit – internal MVP prototype. UI concepts only; search engine and background alerts are under active
+          development.
+        </footer>
+      </div>
+    </div>
+    <script>
+      async function updateHomeCounts() {
+        const countEl = document.getElementById('active-count');
+        const labelEl = document.getElementById('active-label');
 
-      try {
-        const res = await fetch('/api/searches');
-        if (!res.ok) throw new Error('Failed to fetch searches');
-        const searches = await res.json();
+        try {
+          const res = await fetch('/api/searches');
+          if (!res.ok) throw new Error('Failed to fetch searches');
+          const searches = await res.json();
 
-        const activeCount = searches.filter(s => s.status === 'active').length;
+          const activeCount = searches.filter(s => s.status === 'active').length;
 
-        if (countEl) countEl.textContent = activeCount;
-        if (labelEl) labelEl.textContent = activeCount === 1 ? 'active search' : 'active searches';
-      } catch (err) {
-        console.error('Home count error:', err);
-        if (countEl) countEl.textContent = '—';
-        if (labelEl) labelEl.textContent = 'active searches';
+          if (countEl) countEl.textContent = activeCount;
+          if (labelEl) labelEl.textContent = activeCount === 1 ? 'active search' : 'active searches';
+        } catch (err) {
+          console.error('Home count error:', err);
+          if (countEl) countEl.textContent = '—';
+          if (labelEl) labelEl.textContent = 'active searches';
+        }
       }
-    }
 
-    document.addEventListener('DOMContentLoaded', updateHomeCounts);
-</script>
-</main>
+      document.addEventListener('DOMContentLoaded', updateHomeCounts);
+    </script>
+  </main>
 </body>
+
 </html>

@@ -5,7 +5,10 @@
 <head>
   <meta charset="utf-8" />
   <title>GoSnaggit – Search Results</title>
-  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+<meta content="width=device-width, initial-scale=1" name="viewport" />
   <style>
     :root {
       --bg: #0b1020;
@@ -402,7 +405,7 @@
       color: #ffc5cb;
     }
 
-    
+
 
     .message-success {
       color: #a7ffeb;
@@ -411,7 +414,8 @@
     .message-warn {
       color: #ffe4b5;
     }
-.message-success {
+
+    .message-success {
       color: #a7ffeb;
     }
 
@@ -547,11 +551,11 @@
               <!-- cards go here -->
             </div>
             <div class="empty-state" id="empty-state">
-                <strong>No results yet.</strong><br />
-                This hunt is set up — results will appear here as sources are checked.<br />
-                Try broadening your search, removing filters, or checking back later as new listings appear.<br />
-                Try <a href="#" id="empty-refresh">Refresh</a> or go back to
-                <a href="/searches.html">Saved searches</a>.
+              <strong>No results yet.</strong><br />
+              This hunt is set up — results will appear here as sources are checked.<br />
+              Try broadening your search, removing filters, or checking back later as new listings appear.<br />
+              Try <a href="#" id="empty-refresh">Refresh</a> or go back to
+              <a href="/searches.html">Saved searches</a>.
             </div>
             <div class="pagination">
               <div id="page-summary">Page 1 of 1</div>
@@ -632,7 +636,7 @@
           }
         }
 
-        
+
 
         let __msgTimer = null;
         function showMessage(kind, msg, autoHideMs = 4500) {
