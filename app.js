@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -23,6 +24,58 @@ const { normalizeTier, maxSearchesForTier } = require('./services/tiers');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// ---- Local alert settings (server-side) ----
+// Stored on disk so settings persist regardless of localhost vs 127.0.0.1 origin.
+const ALERT_SETTINGS_DIR = path.join(__dirname, 'data');
+const ALERT_SETTINGS_FILE = path.join(ALERT_SETTINGS_DIR, 'alert_settings.json');
+
+function ensureAlertSettingsStore() {
+  try { fs.mkdirSync(ALERT_SETTINGS_DIR, { recursive: true }); } catch (e) {}
+  try {
+    if (!fs.existsSync(ALERT_SETTINGS_FILE)) fs.writeFileSync(ALERT_SETTINGS_FILE, JSON.stringify({}), 'utf8');
+  } catch (e) {}
+}
+
+function readAlertSettingsStore() {
+  ensureAlertSettingsStore();
+  try {
+    const raw = fs.readFileSync(ALERT_SETTINGS_FILE, 'utf8');
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function writeAlertSettingsStore(store) {
+  ensureAlertSettingsStore();
+  try {
+    fs.writeFileSync(ALERT_SETTINGS_FILE, JSON.stringify(store, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('Failed to write alert settings store:', e);
+    return false;
+  }
+}
+
+function normalizeAlertSettings(input) {
+  const d = { enabled: true, mode: 'immediate', maxPerEmail: 25 };
+  const s = Object.assign({}, d, (input || {}));
+  s.enabled = !!s.enabled;
+  s.mode = (s.mode === 'daily') ? 'daily' : 'immediate';
+  const mpe = Number(s.maxPerEmail);
+  s.maxPerEmail = Number.isFinite(mpe) && mpe > 0 ? Math.min(200, Math.max(1, Math.floor(mpe))) : 25;
+  return s;
+}
+
+
+function getAlertSettingsForSearchId(searchId) {
+  const id = String(searchId || '').trim();
+  if (!id) return normalizeAlertSettings(null);
+  const store = readAlertSettingsStore();
+  return normalizeAlertSettings(store[id]);
+}
+
+
 
 process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason);
@@ -47,6 +100,27 @@ if (typeof fetch !== 'function') {
 // Middleware
 // --------------------
 app.use(express.json());
+
+// ---- Alert settings API ----
+app.get('/api/searches/:id/alert-settings', (req, res) => {
+  const id = String(req.params.id || '').trim();
+  if (!id) return res.status(400).json({ ok: false, error: 'missing id' });
+  const store = readAlertSettingsStore();
+  const existing = store[id];
+  const settings = normalizeAlertSettings(existing);
+  return res.json({ ok: true, search_id: Number(id) || id, settings });
+});
+
+app.put('/api/searches/:id/alert-settings', (req, res) => {
+  const id = String(req.params.id || '').trim();
+  if (!id) return res.status(400).json({ ok: false, error: 'missing id' });
+  const store = readAlertSettingsStore();
+  const next = normalizeAlertSettings((req.body || {}).settings || req.body);
+  store[id] = next;
+  const ok = writeAlertSettingsStore(store);
+  if (!ok) return res.status(500).json({ ok: false, error: 'write_failed' });
+  return res.json({ ok: true, search_id: Number(id) || id, settings: next });
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(helmet({
@@ -907,6 +981,21 @@ if (process.env.NODE_ENV !== 'production') {
 
       const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 25, 200));
 
+
+      // Respect per-search alert settings (server-backed)
+      const force = String(req.query.force || '').toLowerCase();
+      const settings = getAlertSettingsForSearchId(searchId);
+      if (!settings.enabled && force !== '1' && force !== 'true' && force !== 'yes') {
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: 'alerts_disabled',
+          search_id: searchId,
+          settings,
+        });
+      }
+
+
       // Pull enabled email destination for this search
       const { rows } = await pool.query(
         `
@@ -958,6 +1047,21 @@ if (process.env.NODE_ENV !== 'production') {
       if (Number.isNaN(searchId)) return res.status(400).json({ error: 'Invalid search id' });
 
       const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 25, 200));
+
+
+      // Respect per-search alert settings (server-backed)
+      const force = String(req.query.force || '').toLowerCase();
+      const settings = getAlertSettingsForSearchId(searchId);
+      if (!settings.enabled && force !== '1' && force !== 'true' && force !== 'yes') {
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: 'alerts_disabled',
+          search_id: searchId,
+          settings,
+        });
+      }
+
 
       // Pull enabled email destination for this search
       const { rows } = await pool.query(

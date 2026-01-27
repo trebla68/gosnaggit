@@ -441,7 +441,8 @@
         }
     </style>
     <link href="/app.css" rel="stylesheet" />
-    <script defer="True" src="/ui.js"></script>
+    <script defer="True" src="/ui.js">loadAlertSettings().then(s => applyAlertSettingsUX(s));
+</script>
 </head>
 
 <body>
@@ -453,10 +454,11 @@
         </section>
         <div class="page-actions">
             <a class="btn btn-secondary" href="searches.html">← Saved Searches</a>
-            <a class="btn btn-primary" href="search-detail.html" id="backToDetail">Search Detail</a>
+            <a class="btn btn-primary" href="#" id="backToDetail">Search Detail</a>
             <button class="btn btn-secondary" id="refreshBtn" type="button">Refresh</button>
             <button class="btn btn-primary" id="sendNowBtn" type="button">Send now</button>
         </div>
+        <div id="alerts-settings-banner" class="flash" style="display:none; margin:12px 0 0 0;"></div>
 
         <div class="wrap">
             <div class="flash" id="flash" role="status" aria-live="polite"></div>
@@ -527,7 +529,56 @@
 
             const qs = new URLSearchParams(window.location.search);
             const searchId = qs.get("search_id") || qs.get("id");
-            if (!searchId) alert("Missing search_id in URL. Example: search-alerts.html?search_id=2");
+
+            const sid = Number(searchId);
+            const backToDetail = document.getElementById('backToDetail');
+            if (backToDetail && Number.isFinite(sid) && sid > 0) {
+                backToDetail.href = `search-detail.html?id=${sid}`;
+            }
+
+            const bannerEl = document.getElementById('alerts-settings-banner');
+            const sendNowBtn = document.getElementById('sendNowBtn');
+
+            async function loadAlertSettings() {
+                if (!Number.isFinite(sid) || sid <= 0) return null;
+                try {
+                    const r = await fetch(`/api/searches/${sid}/alert-settings`, { cache: 'no-store' });
+                    if (!r.ok) return null;
+                    const j = await r.json();
+                    return j?.settings || null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function applyAlertSettingsUX(settings) {
+                const enabled = settings ? !!settings.enabled : true;
+
+                if (bannerEl) {
+                    bannerEl.style.display = 'block';
+                    bannerEl.className = 'flash ' + (enabled ? 'ok' : 'warn');
+                    bannerEl.textContent = enabled
+                        ? 'Alerts are enabled for this search.'
+                        : 'Alerts are disabled for this search — Send now is unavailable.';
+                }
+
+                if (sendNowBtn) {
+                    sendNowBtn.disabled = !enabled;
+                    sendNowBtn.title = !enabled ? 'Alerts are disabled for this search' : '';
+                }
+            }
+
+            if (!searchId) {
+                const bannerEl = document.getElementById('alerts-settings-banner');
+                if (bannerEl) {
+                    bannerEl.style.display = 'block';
+                    bannerEl.className = 'flash warn';
+                    bannerEl.textContent = 'Missing search id in URL (e.g., ?search_id=2).';
+                }
+                const sendNowBtn = document.getElementById('sendNowBtn');
+                if (sendNowBtn) sendNowBtn.disabled = true;
+            }
+
 
             function updateSummaryBar(counts) {
                 const p = counts?.pending ?? 0;
@@ -953,7 +1004,8 @@
             refreshAll();
             // Summary bar is updated as part of refreshAll()
 
-        </script>
+        loadAlertSettings().then(s => applyAlertSettingsUX(s));
+</script>
     </main>
 </body>
 

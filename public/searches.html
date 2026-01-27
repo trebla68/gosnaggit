@@ -1316,8 +1316,12 @@
             return;
           }
 
-          const sent = d2.sent ?? 0;
-          alert(sent > 0 ? `Sent ${sent} alert(s).` : 'No pending alerts to send.');
+          if (d2 && d2.skipped && d2.reason === 'alerts_disabled') {
+            alert('Alerts are disabled for this search — send skipped. (Enable alerts in Search Detail → Alerts.)');
+          } else {
+            const sent = d2.sent ?? 0;
+            alert(sent > 0 ? `Sent ${sent} alert(s).` : 'No pending alerts to send.');
+          }
 
           location.reload();
         } catch (err) {

@@ -316,6 +316,7 @@
 <a class="btn btn-ghost" href="/searches.html">← Back to saved searches</a>
 <a class="btn btn-secondary" href="#" id="view-results-link">View results</a>
 <a class="btn btn-primary" href="#" id="edit-search-link">Edit this search</a>
+<a class="btn btn-secondary" href="#" id="manage-alerts-link">Manage alerts</a>
 </div>
 <div class="message" id="message"></div>
 </div>
@@ -347,7 +348,35 @@
                     </div>
 </div>
 </div>
-<footer>
+
+<!-- Alerts settings -->
+<div class="card">
+  <div class="section-title">Alerts</div>
+  <div class="message" style="margin-bottom:10px;">
+    Turn alerts on/off for this search. (Saved on the server, so it works the same on localhost and 127.0.0.1.)
+  </div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+    <label style="display:flex; gap:10px; align-items:center;">
+      <input type="checkbox" id="alerts-enabled" />
+      <span><strong>Enable alerts</strong></span>
+    </label>
+    <label style="display:flex; gap:8px; align-items:center;">
+      <span class="muted">Mode</span>
+      <select id="alerts-mode" class="input" style="min-width:160px;">
+        <option value="immediate">Immediate</option>
+        <option value="daily">Daily digest</option>
+      </select>
+    </label>
+    <label style="display:flex; gap:8px; align-items:center;">
+      <span class="muted">Max per email</span>
+      <input id="alerts-max" class="input" type="number" min="1" max="200" value="25" style="width:90px;" />
+    </label>
+    <button class="btn btn-primary" id="alerts-save-btn" type="button">Save</button>
+    <span class="chip" id="alerts-saved-chip" style="display:none;">Saved</span>
+  </div>
+</div>
+
+<footer
                 GoSnaggit – internal MVP prototype. Details view is driven from your local “searches” table via the API.
             </footer>
 </div>
@@ -356,7 +385,7 @@
         function getParams() {
             const params = new URLSearchParams(window.location.search);
             return {
-                id: params.get('id')
+                id: params.get('id') || params.get('search_id') || params.get('sid')
             };
         }
 
@@ -469,6 +498,50 @@
         }
 
         document.addEventListener('DOMContentLoaded', loadDetails);
+
+
+        // --- Alerts settings wiring (server-backed) ---
+        async function loadAlertSettings(searchId) {
+            const enabledEl = document.getElementById('alerts-enabled');
+            const modeEl = document.getElementById('alerts-mode');
+            const maxEl = document.getElementById('alerts-max');
+            if (!enabledEl || !modeEl || !maxEl) return;
+            const s = (window.GoSnaggit && GoSnaggit.getAlertSettings) ? await GoSnaggit.getAlertSettings(searchId) : { enabled:true, mode:'immediate', maxPerEmail:25 };
+            enabledEl.checked = !!s.enabled;
+            modeEl.value = (s.mode === 'daily') ? 'daily' : 'immediate';
+            maxEl.value = String(s.maxPerEmail || 25);
+        }
+
+        async function saveAlertSettings(searchId) {
+            const enabledEl = document.getElementById('alerts-enabled');
+            const modeEl = document.getElementById('alerts-mode');
+            const maxEl = document.getElementById('alerts-max');
+            const chip = document.getElementById('alerts-saved-chip');
+            if (!enabledEl || !modeEl || !maxEl) return;
+            const settings = { enabled: !!enabledEl.checked, mode: String(modeEl.value || 'immediate'), maxPerEmail: Number(maxEl.value || 25) };
+            const res = (window.GoSnaggit && GoSnaggit.setAlertSettings) ? await GoSnaggit.setAlertSettings(searchId, settings) : { ok:false };
+            if (chip) {
+                chip.style.display = (res && res.ok) ? 'inline-flex' : 'none';
+                if (res && res.ok) setTimeout(()=>{ chip.style.display='none'; }, 1800);
+            }
+        }
+
+
+        document.addEventListener('DOMContentLoaded', async function(){
+            const { id } = getParams();
+            const sid = Number(id);
+            const manage = document.getElementById('manage-alerts-link');
+            if (manage && Number.isFinite(sid) && sid > 0) {
+                manage.href = `/search-alerts.html?search_id=${sid}`;
+            }
+            if (Number.isFinite(sid) && sid > 0) {
+                await loadAlertSettings(sid);
+                const saveBtn = document.getElementById('alerts-save-btn');
+                const enabledEl = document.getElementById('alerts-enabled');
+                if (saveBtn) saveBtn.addEventListener('click', ()=>saveAlertSettings(sid));
+                if (enabledEl) enabledEl.addEventListener('change', ()=>saveAlertSettings(sid));
+            }
+        });
 </script>
 </main>
 </body>

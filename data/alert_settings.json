@@ -1,0 +1,7 @@
+{
+  "2": {
+    "enabled": false,
+    "mode": "immediate",
+    "maxPerEmail": 25
+  }
+}
