@@ -5,10 +5,10 @@
 <head>
     <meta charset="utf-8" />
     <title>GoSnaggit – Alerts</title>
-  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
-  <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+    <link rel="shortcut icon" href="/favicon.ico">
 
-<meta content="width=device-width, initial-scale=1" name="viewport" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
     <style>
         :root {
             --bg: #0b1020;
@@ -559,7 +559,17 @@
                     .replaceAll("&", "&amp;")
                     .replaceAll("<", "&lt;")
                     .replaceAll(">", "&gt;")
-                    .replaceAll('"', "&quot;");
+                    .replaceAll('"', "&quot;")
+                    .replaceAll("'", "&#39;");
+            }
+
+            function formatDuration(totalSeconds) {
+                const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+                const mins = Math.floor(s / 60);
+                const secs = s % 60;
+                if (mins <= 0) return `${secs}s`;
+                if (secs === 0) return `${mins}m`;
+                return `${mins}m ${secs}s`;
             }
 
 
@@ -758,8 +768,9 @@
             // ----------------------------
             // Main refresh
             // ----------------------------
-            async function refreshAll() {
-                showFlash("", "");
+            async function refreshAll(opts = {}) {
+                const { keepFlash = false } = opts;
+                if (!keepFlash) showFlash("", "");
                 renderPagerLabel();
 
                 try {
@@ -787,6 +798,7 @@
                     if (next) next.disabled = true;
                 }
             }
+
 
             // ----------------------------
             // Events
@@ -856,6 +868,14 @@
                         showFlash('', 'Sending alerts…', 0);
 
                         const result = await dispatchAlertsDev(25);
+                        if (result?.skipped && result?.reason === "cooldown") {
+                            const remaining = Math.max(0, Number(result.cooldown_seconds) - Number(result.seconds_since_last_sent));
+                            showFlash('ok', `⏳ Cooldown active — try again in ${formatDuration(remaining)}.`, 6500);
+                            offset = 0;
+                            await refreshAll({ keepFlash: true });
+                            return;
+                        }
+
 
                         const sent = Number(result?.sent || 0);
                         const emailed = Number(result?.emailed || 0);
@@ -870,7 +890,7 @@
                         }
 
                         offset = 0;
-                        await refreshAll();
+                        await refreshAll({ keepFlash: true });
                     } catch (err) {
                         showFlash('bad', err.message || String(err));
                     } finally {
