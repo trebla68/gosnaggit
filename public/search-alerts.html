@@ -573,6 +573,22 @@
             }
 
 
+            function formatDateTime(isoString) {
+                const iso = String(isoString || "");
+                if (!iso) return "—";
+                const d = new Date(iso);
+                if (Number.isNaN(d.getTime())) return iso;
+                return new Intl.DateTimeFormat(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "2-digit",
+                    hour: "numeric",
+                    minute: "2-digit"
+                }).format(d);
+            }
+
+
+
             let __flashTimer = null;
             function showFlash(kind, msg, autoHideMs) {
                 const el = $("#flash");
@@ -648,6 +664,11 @@
 
             async function dispatchAlertsDev(sendLimit = 25) {
                 return fetchJSON(`/dev/searches/${searchId}/dispatch-alerts?limit=${sendLimit}`);
+            }
+
+
+            async function devRefreshSearch() {
+                return fetchJSON(`/dev/searches/${searchId}/refresh`);
             }
 
             // ----------------------------
@@ -739,7 +760,9 @@
                     const price = esc(a.price);
                     const currency = esc(a.currency);
                     const url = esc(a.listing_url);
-                    const created = esc(a.alert_created_at);
+                    const createdIso = String(a.alert_created_at || "");
+                    const createdLabel = esc(formatDateTime(createdIso));
+                    const createdTitle = esc(createdIso);
 
                     const toggleLabel = (status === "dismissed") ? "Undo dismiss" : "Dismiss";
                     const nextStatus = (status === "dismissed") ? "pending" : "dismissed";
@@ -754,7 +777,7 @@
           </td>
           <td class="mono">${currency} ${price}</td>
           <td><a class="btn btn-secondary btn-sm" href="${url}" target="_blank" rel="noopener">Open</a></td>
-          <td class="mono">${created}</td>
+          <td class="mono" title="${createdTitle}">${createdLabel}</td>
           <td>
             <div class="actions">
               <button class="btn btn-secondary btn-sm" data-action="toggle" data-next="${esc(nextStatus)}">${toggleLabel}</button>
@@ -848,9 +871,19 @@
                         offset = 0;
                         refreshBtn.disabled = true;
                         refreshBtn.textContent = 'Refreshing…';
-                        showFlash('', 'Refreshing…', 0);
-                        await refreshAll();
-                        showFlash('ok', '🔄 Updated just now.', 4500);
+                        showFlash('', 'Refreshing marketplaces…', 0);
+
+                        // Dev-only: run a real refresh job (fetch marketplaces + insert new results/alerts)
+                        const r = await devRefreshSearch();
+
+                        const fetched = (r && r.fetched != null) ? r.fetched : "—";
+                        const inserted = (r && r.inserted != null) ? r.inserted : 0;
+                        const alertsInserted = (r && r.alertsInserted != null) ? r.alertsInserted : 0;
+
+                        showFlash('ok', `🔄 Refresh complete. fetched=${fetched} inserted=${inserted} new alerts=${alertsInserted}`, 6500);
+
+                        // Update table + counts, but keep the flash visible
+                        await refreshAll({ keepFlash: true });
                     } finally {
                         refreshBtn.disabled = false;
                         refreshBtn.textContent = old;
