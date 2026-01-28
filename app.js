@@ -58,12 +58,14 @@ function writeAlertSettingsStore(store) {
 }
 
 function normalizeAlertSettings(input) {
-  const d = { enabled: true, mode: 'immediate', maxPerEmail: 25 };
+  const d = { enabled: true, mode: 'immediate', maxPerEmail: 25, lastDigestSentAt: null };
   const s = Object.assign({}, d, (input || {}));
   s.enabled = !!s.enabled;
   s.mode = (s.mode === 'daily') ? 'daily' : 'immediate';
   const mpe = Number(s.maxPerEmail);
   s.maxPerEmail = Number.isFinite(mpe) && mpe > 0 ? Math.min(200, Math.max(1, Math.floor(mpe))) : 25;
+  const lds = s.lastDigestSentAt;
+  s.lastDigestSentAt = (typeof lds === 'string' && lds.trim()) ? lds.trim() : null;
   return s;
 }
 
@@ -76,6 +78,33 @@ function getAlertSettingsForSearchId(searchId) {
 }
 
 
+
+function setAlertSettingsForSearchId(searchId, nextSettings) {
+  const id = String(searchId || '').trim();
+  if (!id) return false;
+  const store = readAlertSettingsStore();
+  store[id] = normalizeAlertSettings(nextSettings);
+  return writeAlertSettingsStore(store);
+}
+
+function markDigestSentForSearchId(searchId, whenIso) {
+  const cur = getAlertSettingsForSearchId(searchId);
+  cur.lastDigestSentAt = whenIso || new Date().toISOString();
+  return setAlertSettingsForSearchId(searchId, cur);
+}
+
+function hasDigestBeenSentToday(settings) {
+  try {
+    const iso = settings && settings.lastDigestSentAt ? String(settings.lastDigestSentAt) : '';
+    if (!iso) return false;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return false;
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  } catch (e) {
+    return false;
+  }
+}
 
 process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason);
@@ -985,6 +1014,17 @@ if (process.env.NODE_ENV !== 'production') {
       // Respect per-search alert settings (server-backed)
       const force = String(req.query.force || '').toLowerCase();
       const settings = getAlertSettingsForSearchId(searchId);
+      // Daily digest guard: only allow ONE send per local day (unless force)
+      if (settings.mode === 'daily' && hasDigestBeenSentToday(settings) && force !== '1' && force !== 'true' && force !== 'yes') {
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: 'daily_already_sent',
+          search_id: searchId,
+          settings,
+        });
+      }
+
       if (!settings.enabled && force !== '1' && force !== 'true' && force !== 'yes') {
         return res.json({
           ok: true,
@@ -1027,6 +1067,12 @@ if (process.env.NODE_ENV !== 'production') {
         limit,
       });
 
+      // If this search is in daily digest mode and we actually sent an email,
+      // record that we sent the digest today so we don't send again until tomorrow.
+      if (settings && settings.mode === 'daily' && result && Number(result.sent || 0) > 0) {
+        markDigestSentForSearchId(searchId, new Date().toISOString());
+      }
+
       return res.json({ ok: true, ...result });
     } catch (err) {
       console.error('GET /dev/searches/:id/dispatch-alerts failed:', err);
@@ -1052,6 +1098,17 @@ if (process.env.NODE_ENV !== 'production') {
       // Respect per-search alert settings (server-backed)
       const force = String(req.query.force || '').toLowerCase();
       const settings = getAlertSettingsForSearchId(searchId);
+      // Daily digest guard: only allow ONE send per local day (unless force)
+      if (settings.mode === 'daily' && hasDigestBeenSentToday(settings) && force !== '1' && force !== 'true' && force !== 'yes') {
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: 'daily_already_sent',
+          search_id: searchId,
+          settings,
+        });
+      }
+
       if (!settings.enabled && force !== '1' && force !== 'true' && force !== 'yes') {
         return res.json({
           ok: true,
@@ -1094,6 +1151,12 @@ if (process.env.NODE_ENV !== 'production') {
         limit,
         ignoreCooldown: true,
       });
+
+      // If this search is in daily digest mode and we actually sent an email,
+      // record that we sent the digest today so we don't send again until tomorrow.
+      if (settings && settings.mode === 'daily' && result && Number(result.sent || 0) > 0) {
+        markDigestSentForSearchId(searchId, new Date().toISOString());
+      }
 
       return res.json({ ok: true, ...result });
     } catch (err) {

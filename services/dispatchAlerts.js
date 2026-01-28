@@ -3,6 +3,77 @@
 const { sendEmail, buildAlertEmail } = require('./notifications');
 console.log("### dispatchAlerts.js LOADED from:", __filename);
 
+const fs = require('fs');
+const path = require('path');
+
+const ALERT_SETTINGS_FILE = path.join(__dirname, '..', 'data', 'alert_settings.json');
+
+function readAlertSettingsStore() {
+  try {
+    const raw = fs.readFileSync(ALERT_SETTINGS_FILE, 'utf8');
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function writeAlertSettingsStore(store) {
+  try {
+    fs.mkdirSync(path.dirname(ALERT_SETTINGS_FILE), { recursive: true });
+  } catch (e) {}
+  try {
+    fs.writeFileSync(ALERT_SETTINGS_FILE, JSON.stringify(store, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('[dispatch] failed to write alert settings store', e);
+    return false;
+  }
+}
+
+function normalizeAlertSettings(input) {
+  const d = { enabled: true, mode: 'immediate', maxPerEmail: 25, lastDigestSentAt: null };
+  const s = Object.assign({}, d, (input || {}));
+  s.enabled = !!s.enabled;
+  s.mode = (s.mode === 'daily') ? 'daily' : 'immediate';
+  const mpe = Number(s.maxPerEmail);
+  s.maxPerEmail = Number.isFinite(mpe) && mpe > 0 ? Math.min(200, Math.max(1, Math.floor(mpe))) : 25;
+  const lds = s.lastDigestSentAt;
+  s.lastDigestSentAt = (typeof lds === 'string' && lds.trim()) ? lds.trim() : null;
+  return s;
+}
+
+function getAlertSettingsForSearchId(searchId) {
+  const id = String(searchId || '').trim();
+  if (!id) return normalizeAlertSettings(null);
+  const store = readAlertSettingsStore();
+  return normalizeAlertSettings(store[id]);
+}
+
+function markDigestSentForSearchId(searchId, whenIso) {
+  const id = String(searchId || '').trim();
+  if (!id) return false;
+  const store = readAlertSettingsStore();
+  const cur = normalizeAlertSettings(store[id]);
+  cur.lastDigestSentAt = whenIso || new Date().toISOString();
+  store[id] = cur;
+  return writeAlertSettingsStore(store);
+}
+
+function hasDigestBeenSentToday(settings) {
+  try {
+    const iso = settings && settings.lastDigestSentAt ? String(settings.lastDigestSentAt) : '';
+    if (!iso) return false;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return false;
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  } catch (e) {
+    return false;
+  }
+}
+
+
+
 /**
  * Dispatch up to `limit` pending alerts for a single search, in ONE email.
  *
@@ -328,6 +399,17 @@ async function dispatchAllEnabledEmailAlerts({ pool, limitPerSearch = 25 }) {
 
     for (const s of settings) {
         totals.searches += 1;
+
+        // Respect per-search alert settings (server-backed JSON store)
+        const as = getAlertSettingsForSearchId(s.search_id);
+        if (!as.enabled) {
+            totals.skipped += 1;
+            continue;
+        }
+        if (as.mode === 'daily' && hasDigestBeenSentToday(as)) {
+            totals.skipped += 1;
+            continue;
+        }
 
         let r;
         try {
