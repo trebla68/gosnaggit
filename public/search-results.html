@@ -678,6 +678,7 @@
 
         let currentPage = initialPage || 1;
         const limitPerPage = 6;
+        let resultsRequestId = 0;
         // Note: backend does not currently return total count/pages.
         // We use "gotFullPage" to decide if "Next" should be enabled.
 
@@ -711,188 +712,223 @@
         }
 
 
-        // Load basic info about the search itself for the left panel
-        function loadSearchContext() {
-          fetch('/api/searches/' + searchId)
-            .then(response => {
-              if (!response.ok) {
-                throw new Error('Failed to load search details');
-              }
-              return response.json();
-            })
-            .then(data => {
-              const item = data.search_item || 'Saved search';
-              searchTitleEl.textContent = item;
-              searchSubtitleEl.textContent = 'Viewing results for this saved search.';
-              infoItemEl.textContent = item;
-              infoLocationEl.textContent = data.location || '—';
-              infoCategoryEl.textContent = data.category || '—';
-              infoMaxPriceEl.textContent = data.max_price ? '$' + data.max_price : '—';
 
-              const status = (data.status || '—').toLowerCase();
-              infoStatusPill.textContent = 'Status: ' + (data.status || '—');
-            })
-            .catch(err => {
-              resultsMetaEl.textContent = 'Error loading search details: ' + err.message;
-            });
-        }
-        // Load stored marketplace results for this search (paginated)
-        function loadResults() {
+        // Load basic info about the search itself for the left panel
+        async function loadSearchContext() {
           if (!searchId) return;
 
+          try {
+            const response = await fetchWithTimeout(`/api/searches/${searchId}`, {}, 12000);
+
+            if (!response.ok) {
+              throw new Error('Failed to load search details');
+            }
+
+            const data = await response.json();
+
+            const item = data.search_item || 'Saved search';
+            searchTitleEl.textContent = item;
+            searchSubtitleEl.textContent = 'Viewing results for this saved search.';
+            infoItemEl.textContent = item;
+            infoLocationEl.textContent = data.location || '—';
+            infoCategoryEl.textContent = data.category || '—';
+
+            // Max price formatting (robust)
+            if (data.max_price != null && data.max_price !== '') {
+              const n = Number(data.max_price);
+              infoMaxPriceEl.textContent = Number.isFinite(n) ? `$${n.toFixed(2)}` : `$${String(data.max_price)}`;
+            } else {
+              infoMaxPriceEl.textContent = '—';
+            }
+
+            // Status pill (robust + flexible)
+            const statusRaw = (data.status || '—').toString();
+            const status = statusRaw.toLowerCase().trim();
+            infoStatusPill.textContent = 'Status: ' + statusRaw;
+
+            // Stable attribute for CSS styling later (optional)
+            infoStatusPill.setAttribute('data-status', status || 'unknown');
+          } catch (err) {
+            const msg =
+              (err?.name === 'AbortError')
+                ? 'Search details timed out. Please refresh.'
+                : ('Error loading search details: ' + (err?.message || String(err)));
+
+            resultsMetaEl.textContent = msg;
+            showMessage('error', msg, 6500);
+          }
+        }
+
+        function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+          const controller = new AbortController();
+          const t = setTimeout(() => controller.abort(), timeoutMs);
+          return fetch(url, { ...options, signal: controller.signal })
+            .finally(() => clearTimeout(t));
+        }
+
+        // Load stored marketplace results for this search (paginated)
+        async function loadResults() {
+          if (!searchId) return 0;
+
+          const myReq = ++resultsRequestId;
+
           setLoading(true, 'Loading results…');
-          messageEl.textContent = '';
-          messageEl.className = '';
+          // Clear any prior message
+          showMessage('', '', 0);
+
           resultsGrid.innerHTML = '';
           showEmpty(false);
 
           const offset = (currentPage - 1) * limitPerPage;
 
-          fetch(`/api/searches/${searchId}/results?limit=${limitPerPage}&offset=${offset}`)
-            .then(response => {
-              if (!response.ok) {
-                if (response.status === 404) {
-                  return [];
-                }
+          try {
+            const response = await fetchWithTimeout(
+              `/api/searches/${searchId}/results?limit=${limitPerPage}&offset=${offset}`,
+              {},
+              15000
+            );
+
+            let results;
+            if (!response.ok) {
+              if (response.status === 404) {
+                results = [];
+              } else {
                 throw new Error('Failed to load results');
               }
-              return response.json(); // now expects an ARRAY
-            })
-            .then(results => {
-              // Ensure array
-              results = Array.isArray(results) ? results : [];
+            } else {
+              results = await response.json(); // expects ARRAY
+            }
 
-              // We don’t yet know totalResults/totalPages from the backend.
-              // For now, we can infer pagination like this:
-              // - If we got fewer than limitPerPage results, we’re likely on the last page.
-              // - Next button enabled only when we got a "full page" worth of results.
-              const gotFullPage = results.length === limitPerPage;
+            // Ensure array
+            results = Array.isArray(results) ? results : [];
 
-              // Display counts based on what we know (this page only)
-              infoCountPill.textContent = `Results: ${results.length}${gotFullPage ? '+' : ''}`;
-              resultsMetaEl.textContent = results.length
-                ? `Showing ${results.length} result(s) (page ${currentPage}).`
-                : 'No results yet — this hunt is ready and will populate as sources are checked. Tip: broaden your search, remove filters, or check back later.';
+            // If a newer request started after this one, ignore this render
+            if (myReq !== resultsRequestId) return 0;
 
+            // Infer pagination:
+            const gotFullPage = results.length === limitPerPage;
 
-              resultsGrid.innerHTML = '';
-              setLoading(false);
+            // Display counts based on what we know (this page only)
+            infoCountPill.textContent = `Results: ${results.length}${gotFullPage ? '+' : ''}`;
+            resultsMetaEl.textContent = results.length
+              ? `Showing ${results.length} result(s) (page ${currentPage}).`
+              : 'No results yet — this hunt is ready and will populate as sources are checked. Tip: broaden your search, remove filters, or check back later.';
 
-              if (results.length === 0) {
-                emptyStateEl.style.display = 'block';
+            resultsGrid.innerHTML = '';
 
-                prevPageBtn.disabled = currentPage <= 1;
-                nextPageBtn.disabled = true;
-              } else {
-                emptyStateEl.style.display = 'none';
+            if (results.length === 0) {
+              emptyStateEl.style.display = 'block';
+              prevPageBtn.disabled = currentPage <= 1;
+              nextPageBtn.disabled = true;
+            } else {
+              emptyStateEl.style.display = 'none';
 
-                results.forEach(r => {
-                  const card = document.createElement('div');
-                  card.className = 'result-card';
+              results.forEach(r => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
 
-                  const titleRaw = r.title || 'Listing';
-                  const sourceRaw = r.marketplace || 'Marketplace';
+                const titleRaw = r.title || 'Listing';
+                const sourceRaw = r.source || r.site || r.marketplace || 'Marketplace';
 
-                  const price =
-                    r.price != null
-                      ? `${r.currency ? r.currency + ' ' : '$'}${Number(r.price).toFixed(2)}`
-                      : '—';
+                const conditionRaw = r.condition || 'Unknown';
+                const locationRaw = r.location || 'Online';
+                const postedAt = r.found_at
+                  ? new Date(r.found_at).toLocaleDateString()
+                  : '—';
 
-                  const conditionRaw = r.condition || 'Unknown';
-                  const locationRaw = r.location || 'Online';
-                  const postedAt = r.found_at
-                    ? new Date(r.found_at).toLocaleDateString()
-                    : '—';
+                const url = safeUrl(r.listing_url || '#', '#');
 
-                  const url = safeUrl(r.listing_url || '#', '#');
+                const img = safeUrl(r.image_url || '', '');
+                const mp = (r.marketplace || 'Marketplace').toString();
+                const mpLabel = mp.charAt(0).toUpperCase() + mp.slice(1);
 
-                  const img = safeUrl(r.image_url || '', '');
-                  const mp = (r.marketplace || 'Marketplace').toString();
-                  const mpLabel = mp.charAt(0).toUpperCase() + mp.slice(1);
+                const priceText = (() => {
+                  if (r.price == null) return '—';
+                  const n = Number(r.price);
+                  if (!Number.isFinite(n)) return '—';
 
-                  const priceText = (() => {
-                    if (r.price == null) return '—';
-                    const n = Number(r.price);
-                    if (!Number.isFinite(n)) return '—';
-
-                    const cur = (r.currency || '').toString().trim();
-                    // Use Intl currency formatting when possible
-                    if (cur && cur.length === 3) {
-                      try {
-                        return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(n);
-                      } catch (e) {
-                        // fall through
-                      }
+                  const cur = (r.currency || '').toString().trim();
+                  // Use Intl currency formatting when possible
+                  if (cur && cur.length === 3) {
+                    try {
+                      return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(n);
+                    } catch (e) {
+                      // fall through
                     }
-                    // Fallback
-                    return `$${n.toFixed(2)}`;
-                  })();
+                  }
+                  // Fallback
+                  return `$${n.toFixed(2)}`;
+                })();
 
-                  const titleEsc = escapeHtml(titleRaw);
-                  const sourceEsc = escapeHtml(sourceRaw);
-                  const conditionEsc = escapeHtml(conditionRaw);
-                  const locationEsc = escapeHtml(locationRaw);
-                  const mpLabelEsc = escapeHtml(mpLabel);
+                const titleEsc = escapeHtml(titleRaw);
+                const sourceEsc = escapeHtml(sourceRaw);
+                const conditionEsc = escapeHtml(conditionRaw);
+                const locationEsc = escapeHtml(locationRaw);
+                const mpLabelEsc = escapeHtml(mpLabel);
 
-                  card.innerHTML = `
-  <div class="result-top">
-    <div class="thumb">
-      ${img ? `<img src="${img}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('thumb-fallback');">` : ''}
+                card.innerHTML = `
+<div class="result-top">
+  <div class="thumb">
+    ${img ? `<img src="${img}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('thumb-fallback');">` : ''}
+  </div>
+
+  <div class="result-main">
+    <div class="result-header">${titleEsc}</div>
+
+    <div class="result-source-row">
+      <span class="mp-pill">${mpLabelEsc}</span>
+      <span class="result-source">${sourceEsc}</span>
     </div>
 
-    <div class="result-main">
-      <div class="result-header">${titleEsc}</div>
+    <div class="result-price-row">
+      <span class="price-pill">${escapeHtml(priceText)}</span>
+      <span class="condition-pill">${conditionEsc}</span>
+    </div>
 
-      <div class="result-source-row">
-        <span class="mp-pill">${mpLabelEsc}</span>
-        <span class="result-source">${sourceEsc}</span>
-      </div>
-
-      <div class="result-price-row">
-        <span class="price-pill">${escapeHtml(priceText)}</span>
-        <span class="condition-pill">${conditionEsc}</span>
-      </div>
-
-      <div class="result-footer">
-        <span>${locationEsc} • ${escapeHtml(postedAt)}</span>
-        <div class="result-actions">
-          <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
-          <button type="button" class="copy-link" data-url="${url}">Copy link</button>
-        </div>
+    <div class="result-footer">
+      <span>${locationEsc} • ${escapeHtml(postedAt)}</span>
+      <div class="result-actions">
+        <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
+        <button type="button" class="copy-link" data-url="${url}">Copy link</button>
       </div>
     </div>
   </div>
+</div>
 `;
 
+                resultsGrid.appendChild(card);
+              });
 
+              prevPageBtn.disabled = currentPage <= 1;
+              nextPageBtn.disabled = !gotFullPage;
+            }
 
-                  resultsGrid.appendChild(card);
-                });
+            // Update the simple page indicator
+            pageSummaryEl.textContent = `Page ${currentPage}${gotFullPage ? '+' : ''}`;
 
-                prevPageBtn.disabled = currentPage <= 1;
-                nextPageBtn.disabled = !gotFullPage;
-              }
+            return results.length;
 
-              // Update the simple page indicator
-              pageSummaryEl.textContent = `Page ${currentPage}${gotFullPage ? '+' : ''}`;
-              setLoading(false);
-              return results.length;
-            })
-            .catch(err => {
-              setLoading(false);
-              resultsGrid.innerHTML = '';
-              emptyStateEl.style.display = 'block';
+          } catch (err) {
+            resultsGrid.innerHTML = '';
+            emptyStateEl.style.display = 'block';
 
-              resultsMetaEl.textContent = 'Could not load results.';
-              messageEl.textContent = 'Please try again. If this keeps happening, restart the server.';
-              messageEl.className = 'message-error';
+            resultsMetaEl.textContent = 'Could not load results.';
 
-              prevPageBtn.disabled = true;
-              nextPageBtn.disabled = true;
-              return 0;
-            });
+            const msg =
+              (err?.name === 'AbortError')
+                ? 'This is taking too long. Please try Refresh.'
+                : 'Please try again. If this keeps happening, restart the server.';
+
+            showMessage('error', msg, 6500);
+
+            prevPageBtn.disabled = true;
+            nextPageBtn.disabled = true;
+            return 0;
+
+          } finally {
+            setLoading(false);
+          }
         }
-
 
         resultsGrid.addEventListener('click', async (e) => {
           const btn = e.target.closest('.copy-link');
@@ -927,22 +963,20 @@
           }
         });
 
-
-        prevPageBtn.addEventListener('click', function () {
+        prevPageBtn.addEventListener('click', async function () {
           if (prevPageBtn.disabled) return;
 
           currentPage -= 1;
-          loadResults();
+          await loadResults();
           updateUrl();
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });
 
-
-        nextPageBtn.addEventListener('click', function () {
+        nextPageBtn.addEventListener('click', async function () {
           if (nextPageBtn.disabled) return;
 
           currentPage += 1;
-          loadResults();
+          await loadResults();
           updateUrl();
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });
@@ -952,12 +986,12 @@
 
           const oldText = refreshBtn.textContent;
           try {
-            showMessage('', '');
+            showMessage('', '', 0);
             refreshBtn.disabled = true;
             refreshBtn.textContent = 'Refreshing…';
             resultsMetaEl.textContent = 'Refreshing…';
 
-            const r = await fetch(`/api/searches/${searchId}/refresh`, { method: 'POST' });
+            const r = await fetchWithTimeout(`/api/searches/${searchId}/refresh`, { method: 'POST' }, 20000);
             if (!r.ok) throw new Error('Refresh failed');
 
             await loadSearchContext();
@@ -989,11 +1023,32 @@
 
         function updateUrl() {
           const params = new URLSearchParams(window.location.search);
-          params.set('search_id', searchId);
+
+          // Preserve whichever ID param style the user arrived with
+          const key = params.has('id') ? 'id' : (params.has('searchId') ? 'searchId' : 'search_id');
+          params.set(key, searchId);
+
           params.set('page', String(currentPage));
           const newUrl = window.location.pathname + '?' + params.toString();
           window.history.replaceState({}, '', newUrl);
         }
+        // --- Boot on first load (robust) ---
+        (async function boot() {
+          try {
+            // Pull page from URL if present
+            const params = new URLSearchParams(window.location.search);
+            const p = Number(params.get('page') || '1');
+            currentPage = Number.isFinite(p) && p > 0 ? p : 1;
+
+            // Always load context first (left panel), then results
+            await loadSearchContext();
+            await loadResults();
+          } catch (e) {
+            // If something goes sideways, make sure we don't sit in a fake loading state
+            setLoading(false);
+            showMessage('error', e?.message || String(e), 6500);
+          }
+        })();
 
       </script>
   </main>
