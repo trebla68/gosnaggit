@@ -442,7 +442,7 @@
     </style>
     <link href="/app.css" rel="stylesheet" />
     <script defer="True" src="/ui.js">loadAlertSettings().then(s => applyAlertSettingsUX(s));
-</script>
+    </script>
 </head>
 
 <body>
@@ -528,12 +528,13 @@
             // -----------------------------------------
 
             const qs = new URLSearchParams(window.location.search);
-            const searchId = qs.get("search_id") || qs.get("id");
+            const searchId = qs.get("search_id") || qs.get("searchId") || qs.get("id");
+
 
             const sid = Number(searchId);
             const backToDetail = document.getElementById('backToDetail');
             if (backToDetail && Number.isFinite(sid) && sid > 0) {
-                backToDetail.href = `search-detail.html?id=${sid}`;
+                backToDetail.href = `search-detail.html?search_id=${sid}`;
             }
 
             const bannerEl = document.getElementById('alerts-settings-banner');
@@ -1004,8 +1005,8 @@
             refreshAll();
             // Summary bar is updated as part of refreshAll()
 
-        loadAlertSettings().then(s => applyAlertSettingsUX(s));
-</script>
+            loadAlertSettings().then(s => applyAlertSettingsUX(s));
+        </script>
     </main>
 </body>
 
