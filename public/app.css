@@ -1,10 +1,10 @@
 /* GoSnaggit global UI system (Phase B) */
-:root{
+:root {
   --gs-brand: var(--brand, var(--brand-500, #6c5ce7));
   --gs-text: var(--text, #0f172a);
   --gs-bg: var(--bg, #0b1020);
-  --gs-surface: var(--surface, rgba(255,255,255,0.06));
-  --gs-border: var(--border, rgba(255,255,255,0.14));
+  --gs-surface: var(--surface, rgba(255, 255, 255, 0.06));
+  --gs-border: var(--border, rgba(255, 255, 255, 0.14));
   --gs-container: 1100px;
 }
 
@@ -16,7 +16,7 @@
   We override those legacy layout rules when the global UI system is active.
 */
 
-body.gs-app{
+body.gs-app {
   margin: 0 !important;
   min-height: 100vh !important;
   display: block !important;
@@ -26,20 +26,20 @@ body.gs-app{
 }
 
 /* Standard page container for consistent alignment */
-.gs-page{
+.gs-page {
   max-width: var(--gs-container);
   margin: 0 auto;
   padding: 28px 18px 54px;
 }
 
 /* Bring legacy "shell" wrappers into the same grid as the header */
-body.gs-app .shell{
+body.gs-app .shell {
   max-width: var(--gs-container) !important;
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
-.app-header{
+.app-header {
   position: sticky;
   top: 0;
   z-index: 50;
@@ -49,7 +49,7 @@ body.gs-app .shell{
   border-bottom: 1px solid var(--gs-border);
 }
 
-.app-header .inner{
+.app-header .inner {
   max-width: var(--gs-container);
   margin: 0 auto;
   padding: 14px 18px;
@@ -59,7 +59,7 @@ body.gs-app .shell{
   gap: 14px;
 }
 
-.gs-brand{
+.gs-brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -67,7 +67,7 @@ body.gs-app .shell{
   color: inherit;
 }
 
-.gs-brand-badge{
+.gs-brand-badge {
   width: 34px;
   height: 34px;
   border-radius: 12px;
@@ -77,25 +77,27 @@ body.gs-app .shell{
   color: white;
   font-weight: 800;
   letter-spacing: -0.02em;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
 }
 
-.gs-brand-text{
+.gs-brand-text {
   display: flex;
   flex-direction: column;
   line-height: 1.05;
 }
-.gs-brand-text .name{
+
+.gs-brand-text .name {
   font-weight: 800;
   letter-spacing: -0.02em;
 }
-.gs-brand-text .tag{
+
+.gs-brand-text .tag {
   font-size: 12px;
   opacity: 0.75;
   margin-top: 2px;
 }
 
-.gs-nav{
+.gs-nav {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -103,7 +105,7 @@ body.gs-app .shell{
   justify-content: flex-end;
 }
 
-.gs-nav a{
+.gs-nav a {
   text-decoration: none;
   color: inherit;
   opacity: 0.82;
@@ -111,18 +113,20 @@ body.gs-app .shell{
   padding: 8px 10px;
   border-radius: 10px;
 }
-.gs-nav a:hover{
+
+.gs-nav a:hover {
   opacity: 1;
   background: var(--gs-surface);
 }
-.gs-nav a.is-active{
+
+.gs-nav a.is-active {
   opacity: 1;
   background: var(--gs-surface);
   box-shadow: inset 0 0 0 1px var(--gs-border);
 }
 
 /* Button system */
-.btn{
+.btn {
   appearance: none;
   border: 1px solid var(--gs-border);
   background: transparent;
@@ -139,34 +143,55 @@ body.gs-app .shell{
   user-select: none;
   transition: transform 0.06s ease, background 0.15s ease, opacity 0.15s ease;
 }
-.btn:hover{ background: var(--gs-surface); }
-.btn:active{ transform: translateY(1px); }
-.btn[disabled], .btn.disabled{
+
+.btn:hover {
+  background: var(--gs-surface);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn[disabled],
+.btn.disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
 /* Support both new and legacy variants */
-.btn-primary, .btn.primary{
+.btn-primary,
+.btn.primary {
   background: var(--gs-brand);
   color: #fff;
   border-color: transparent;
 }
-.btn-primary:hover, .btn.primary:hover{ filter: brightness(1.02); }
 
-.btn-secondary, .btn.secondary{
+.btn-primary:hover,
+.btn.primary:hover {
+  filter: brightness(1.02);
+}
+
+.btn-secondary,
+.btn.secondary {
   background: transparent;
 }
 
-.btn-danger, .btn.danger, .btn.destructive{
+.btn-danger,
+.btn.danger,
+.btn.destructive {
   background: #d63031;
   color: #fff;
   border-color: transparent;
 }
-.btn-danger:hover, .btn.danger:hover, .btn.destructive:hover{ filter: brightness(1.02); }
+
+.btn-danger:hover,
+.btn.danger:hover,
+.btn.destructive:hover {
+  filter: brightness(1.02);
+}
 
 /* "NEW" badge (used in Saved searches list) */
-.badge-new{
+.badge-new {
   display: inline-block;
   margin-left: 8px;
   padding: 2px 9px;
@@ -177,34 +202,57 @@ body.gs-app .shell{
   text-transform: uppercase;
   vertical-align: baseline;
 
-  color: rgba(255,255,255,0.96);
+  color: rgba(255, 255, 255, 0.96);
   background: color-mix(in srgb, var(--gs-brand) 22%, transparent);
   border: 1px solid color-mix(in srgb, var(--gs-brand) 62%, transparent);
 
   box-shadow: 0 0 14px color-mix(in srgb, var(--gs-brand) 30%, transparent);
-  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
   animation: gs-badge-pop 900ms ease-out 1;
 }
 
-@media (prefers-reduced-motion: reduce){
-  .badge-new{ animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .badge-new {
+    animation: none;
+  }
 }
 
-@keyframes gs-badge-pop{
-  0%   { transform: translateY(-1px) scale(0.92); filter: saturate(0.7); opacity: 0.2; }
-  45%  { transform: translateY(0) scale(1.06);   filter: saturate(1.1); opacity: 1; }
-  100% { transform: translateY(0) scale(1.00);   filter: saturate(1);   opacity: 1; }
+@keyframes gs-badge-pop {
+  0% {
+    transform: translateY(-1px) scale(0.92);
+    filter: saturate(0.7);
+    opacity: 0.2;
+  }
+
+  45% {
+    transform: translateY(0) scale(1.06);
+    filter: saturate(1.1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0) scale(1.00);
+    filter: saturate(1);
+    opacity: 1;
+  }
 }
 
-.page-hero{
+.page-hero {
   max-width: var(--gs-container);
   margin: 14px auto 0;
   padding: 0 18px;
 }
-.page-hero h1{ margin: 0 0 8px 0; }
-.page-hero .subtitle{ margin: 0; opacity: 0.85; }
 
-.page-actions{
+.page-hero h1 {
+  margin: 0 0 8px 0;
+}
+
+.page-hero .subtitle {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.page-actions {
   max-width: var(--gs-container);
   margin: 12px auto 0;
   padding: 0 18px;
@@ -217,16 +265,19 @@ body.gs-app .shell{
 
 /* When a page opts into the unified container (.gs-page), avoid double padding */
 .gs-page .page-hero,
-.gs-page .page-actions{
+.gs-page .page-actions {
   max-width: none;
   padding: 0;
   margin-left: 0;
   margin-right: 0;
 }
-.gs-page .page-hero{ margin-top: 0; }
+
+.gs-page .page-hero {
+  margin-top: 0;
+}
 
 /* Empty + loading states */
-.state{
+.state {
   border: 1px dashed var(--gs-border);
   background: color-mix(in srgb, var(--gs-surface) 70%, transparent);
   border-radius: 16px;
@@ -234,15 +285,18 @@ body.gs-app .shell{
   text-align: center;
   opacity: 0.9;
 }
-.state .state-title{
+
+.state .state-title {
   font-weight: 800;
   margin-bottom: 6px;
 }
-.state .state-subtitle{
+
+.state .state-subtitle {
   opacity: 0.8;
   font-size: 14px;
 }
-.state--loading .spinner{
+
+.state--loading .spinner {
   width: 18px;
   height: 18px;
   border-radius: 999px;
@@ -253,13 +307,42 @@ body.gs-app .shell{
   vertical-align: middle;
   margin-right: 8px;
 }
-@keyframes gs-spin { to { transform: rotate(360deg); } }
+
+@keyframes gs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Alerts summary bar */
+.alerts-summary {
+  margin: 14px 0 18px 0;
+}
+
+.alerts-summary-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.alerts-summary .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 14px;
+}
 
 /* Fix: index.html had body layout styles that can treat the header like a sidebar.
    Force a normal document flow on the home page so the global header stays on top. */
-body.gs-index{
+body.gs-index {
   display: block !important;
 }
-body.gs-index .page-hero{
-  margin-top: 0; /* header is sticky; keep existing spacing inside hero */
+
+body.gs-index .page-hero {
+  margin-top: 0;
+  /* header is sticky; keep existing spacing inside hero */
 }
