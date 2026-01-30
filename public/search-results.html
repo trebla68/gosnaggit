@@ -544,6 +544,7 @@
             </div>
             <div class="results-controls">
               <button class="refresh-btn" id="refresh-button" type="button">Refresh</button>
+              <a class="btn secondary" id="detail-link" href="#">Search Detail</a>
               <a class="btn secondary" id="alerts-link" href="#">Alerts</a>
             </div>
           </div>
@@ -577,6 +578,11 @@
           // - ?search_id=2 (current)
           // - ?id=2 (older links / your error text)
           const search_id = params.get('search_id') || params.get('searchId') || params.get('id');
+
+          const detailLink = document.getElementById("detail-link");
+          if (detailLink && search_id) {
+            detailLink.href = `/search-detail.html?search_id=${encodeURIComponent(search_id)}`;
+          }
 
           const alertsLink = document.getElementById("alerts-link");
           if (alertsLink && search_id) {

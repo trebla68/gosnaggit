@@ -1051,10 +1051,12 @@ if (process.env.NODE_ENV !== 'production') {
       );
 
       if (!rows || rows.length === 0) {
-        return res.status(400).json({
-          ok: false,
-          error: 'No enabled email notification setting found for this search',
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: 'no_email_enabled',
           search_id: searchId,
+          message: 'Email notifications are not enabled for this search. Enable an email destination in Search Detail → Alerts.',
         });
       }
 
@@ -1135,10 +1137,12 @@ if (process.env.NODE_ENV !== 'production') {
       );
 
       if (!rows || rows.length === 0) {
-        return res.status(400).json({
-          ok: false,
-          error: 'No enabled email notification setting found for this search',
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: 'no_email_enabled',
           search_id: searchId,
+          message: 'Email notifications are not enabled for this search. Enable an email destination in Search Detail → Alerts.',
         });
       }
 

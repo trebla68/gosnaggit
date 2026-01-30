@@ -1006,9 +1006,9 @@
           actionsTd.classList.add('actions-cell');
 
           const detailsLink = document.createElement('a');
-          detailsLink.textContent = 'Open';
+          detailsLink.textContent = 'Details';
           detailsLink.title = 'View search details and settings';
-          detailsLink.href = `/search-detail.html?search_id=${search.id}`;
+          detailsLink.href = `search-detail.html?search_id=${search.id}`;
           detailsLink.title = 'View search details';
 
           detailsLink.className = 'btn btn-secondary btn-mini';
@@ -1318,6 +1318,8 @@
 
           if (d2 && d2.skipped && d2.reason === 'alerts_disabled') {
             alert('Alerts are disabled for this search — send skipped. (Enable alerts in Search Detail → Alerts.)');
+          } else if (d2 && d2.skipped && d2.reason === 'no_email_enabled') {
+            alert('Email is not enabled for this search — send skipped. (Enable email in Search Detail → Alerts.)');
           } else {
             const sent = d2.sent ?? 0;
             alert(sent > 0 ? `Sent ${sent} alert(s).` : 'No pending alerts to send.');

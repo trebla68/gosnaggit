@@ -441,8 +441,7 @@
         }
     </style>
     <link href="/app.css" rel="stylesheet" />
-    <script defer="True" src="/ui.js">loadAlertSettings().then(s => applyAlertSettingsUX(s));
-    </script>
+    <script defer="True" src="/ui.js"></script>
 </head>
 
 <body>
@@ -553,6 +552,8 @@
             }
 
             function applyAlertSettingsUX(settings) {
+                if (!searchId) return;
+
                 const enabled = settings ? !!settings.enabled : true;
 
                 if (bannerEl) {
@@ -570,15 +571,32 @@
             }
 
             if (!searchId) {
-                const bannerEl = document.getElementById('alerts-settings-banner');
                 if (bannerEl) {
                     bannerEl.style.display = 'block';
-                    bannerEl.className = 'flash warn';
-                    bannerEl.textContent = 'Missing search id in URL (e.g., ?search_id=2).';
+                    bannerEl.className = 'flash bad';
+                    bannerEl.textContent = 'No search selected. Please open this page from Saved Searches.';
                 }
-                const sendNowBtn = document.getElementById('sendNowBtn');
+
+                // Disable controls that require a search id
+                const refreshBtn = document.getElementById('refreshBtn');
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+
                 if (sendNowBtn) sendNowBtn.disabled = true;
+                if (refreshBtn) refreshBtn.disabled = true;
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) nextBtn.disabled = true;
+
+                // Update hero text so it doesn't look broken
+                const sidHero = document.getElementById("searchIdHero");
+                const sid = document.getElementById("searchId");
+                if (sidHero) sidHero.textContent = "—";
+                if (sid) sid.textContent = "—";
+            } else {
+                loadAlertSettings().then(s => applyAlertSettingsUX(s));
             }
+
+
 
 
             function updateSummaryBar(counts) {
@@ -600,7 +618,7 @@
 
 
             // UI state
-            let currentStatus = "pending"; // pending | sent | dismissed | error | all
+            let currentStatus = "all"; // pending | sent | dismissed | error | all
             let limit = 5;                 // match your UI label default
             let offset = 0;                // pagination offset
 
@@ -791,7 +809,6 @@
                     tbody.innerHTML = "";
                     if (empty) empty.style.display = "block";
                     if ($("#rangeLine")) $("#rangeLine").textContent = "Showing 0";
-                    return;
                 }
 
                 if (empty) empty.style.display = "none";
@@ -885,7 +902,6 @@
                     currentStatus = chip.getAttribute("data-chip");
                     offset = 0;
                     await refreshAll();
-                    return;
                 }
 
                 // table actions
@@ -912,7 +928,6 @@
                             btn.disabled = false;
                         }
                     }
-                    return;
                 }
 
                 // refresh button
@@ -940,7 +955,6 @@
                         refreshBtn.disabled = false;
                         refreshBtn.textContent = old;
                     }
-                    return;
                 }
 
                 // send now button (dev)
@@ -953,21 +967,40 @@
                         showFlash('', 'Sending alerts…', 0);
 
                         const result = await dispatchAlertsDev(25);
-                        if (result?.skipped && result?.reason === "cooldown") {
-                            const remaining = Math.max(0, Number(result.cooldown_seconds) - Number(result.seconds_since_last_sent));
-                            showFlash('ok', `⏳ Cooldown active — try again in ${formatDuration(remaining)}.`, 6500);
+
+                        // Handle skip reasons (cooldown, disabled, no email, daily digest, etc.)
+                        if (result?.skipped) {
+                            const reason = String(result?.reason || "");
+
+                            if (reason === "cooldown") {
+                                const remaining = Math.max(0, Number(result.cooldown_seconds) - Number(result.seconds_since_last_sent));
+                                showFlash('ok', `⏳ Cooldown active — try again in ${formatDuration(remaining)}.`, 6500);
+                            } else if (reason === "no_email_enabled") {
+                                showFlash('warn', '📧 Email alerts aren\'t enabled for this search. Open Search Detail → Alerts to enable an email destination.', 9000);
+                            } else if (reason === "alerts_disabled") {
+                                showFlash('warn', '🔕 Alerts are disabled for this search. Open Search Detail → Alerts to enable them.', 9000);
+                            } else if (reason === "daily_already_sent") {
+                                showFlash('warn', '🗓️ Daily digest already sent today. Try again tomorrow (or force in dev).', 9000);
+                            } else {
+                                showFlash('warn', `Dispatch skipped (${reason || "unknown"}).`, 6500);
+                            }
+
                             offset = 0;
                             await refreshAll({ keepFlash: true });
                             return;
                         }
-
 
                         const sent = Number(result?.sent || 0);
                         const emailed = Number(result?.emailed || 0);
                         const error = Number(result?.error || 0);
 
                         if (sent === 0 && error === 0) {
-                            showFlash('ok', '📭 No pending alerts to send right now.', 5000);
+                            const pb = Number(result?.pending_before || 0);
+                            if (pb > 0) {
+                                showFlash('warn', `📭 No sendable pending alerts right now (pending=${pb}).`, 7000);
+                            } else {
+                                showFlash('ok', '📭 No pending alerts to send right now.', 5000);
+                            }
                         } else if (error > 0) {
                             showFlash('bad', `⚠️ Dispatch finished with issues. sent=${sent} emailed=${emailed} error=${error}`);
                         } else {
@@ -982,31 +1015,30 @@
                         sendNowBtn.disabled = false;
                         sendNowBtn.textContent = old;
                     }
-                    return;
                 }// pager
                 const prevBtn = e.target.closest("#prevBtn");
                 if (prevBtn) {
                     offset = Math.max(0, offset - limit);
                     await refreshAll();
-                    return;
                 }
 
                 const nextBtn = e.target.closest("#nextBtn");
                 if (nextBtn) {
                     offset = offset + limit;
                     await refreshAll();
-                    return;
                 }
             });
 
-            // Init
-            setSubtitle();
-            renderPagerLabel();
-            refreshAll();
-            // Summary bar is updated as part of refreshAll()
-
-            loadAlertSettings().then(s => applyAlertSettingsUX(s));
-        </script>
+            if (searchId) {
+                // Init
+                            setSubtitle();
+                            renderPagerLabel();
+                            refreshAll();
+                            // Summary bar is updated as part of refreshAll()
+                
+                        
+                }
+</script>
     </main>
 </body>
 
