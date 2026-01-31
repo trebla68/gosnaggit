@@ -1335,6 +1335,101 @@ app.get('/searches/:id/alerts', getSearchAlerts);
 app.all('/api/searches/:id/alerts', methodNotAllowed(['GET']));
 app.all('/searches/:id/alerts', methodNotAllowed(['GET']));
 
+// Send Now (non-dev): dispatch pending alerts for a search (respects cooldown/settings)
+// Example: POST /api/searches/2/alerts/send-now?limit=25
+async function sendNowHandler(req, res) {
+  try {
+    const searchId = parseInt(req.params.id, 10);
+    if (Number.isNaN(searchId)) return res.status(400).json({ error: 'Invalid search id' });
+
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 25, 200));
+
+    // Respect per-search alert settings (server-backed)
+    const force = String(req.query.force || '').toLowerCase();
+    const settings = getAlertSettingsForSearchId(searchId);
+
+    // Daily digest guard: only allow ONE send per local day (unless force)
+    if (
+      settings.mode === 'daily' &&
+      hasDigestBeenSentToday(settings) &&
+      force !== '1' && force !== 'true' && force !== 'yes'
+    ) {
+      return res.json({
+        ok: true,
+        skipped: true,
+        reason: 'daily_already_sent',
+        search_id: searchId,
+        settings,
+      });
+    }
+
+    if (!settings.enabled && force !== '1' && force !== 'true' && force !== 'yes') {
+      return res.json({
+        ok: true,
+        skipped: true,
+        reason: 'alerts_disabled',
+        search_id: searchId,
+        settings,
+      });
+    }
+
+    // Pull enabled email destination for this search
+    const { rows } = await pool.query(
+      `
+      SELECT destination
+      FROM notification_settings
+      WHERE search_id = $1
+        AND channel = 'email'
+        AND is_enabled = TRUE
+        AND destination IS NOT NULL
+      LIMIT 1
+      `,
+      [searchId]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.json({
+        ok: true,
+        skipped: true,
+        reason: 'no_email_enabled',
+        search_id: searchId,
+        message: 'Email notifications are not enabled for this search. Enable an email destination in Search Detail → Alerts.',
+      });
+    }
+
+    const toEmail = rows[0].destination;
+
+    const result = await dispatchPendingAlertsForSearch({
+      pool,
+      searchId,
+      toEmail,
+      limit,
+    });
+
+    // If this search is in daily digest mode and we actually sent an email,
+    // record that we sent the digest today so we don't send again until tomorrow.
+    if (settings && settings.mode === 'daily' && result && Number(result.sent || 0) > 0) {
+      markDigestSentForSearchId(searchId, new Date().toISOString());
+    }
+
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('POST /api/searches/:id/alerts/send-now failed:', err);
+    return res.status(500).json({
+      ok: false,
+      error: 'Failed to dispatch alerts',
+      details: err?.message || String(err),
+      stack: err?.stack || null,
+    });
+  }
+}
+
+app.post('/api/searches/:id/alerts/send-now', sendNowHandler);
+app.post('/searches/:id/alerts/send-now', sendNowHandler);
+app.all('/api/searches/:id/alerts/send-now', methodNotAllowed(['POST']));
+app.all('/searches/:id/alerts/send-now', methodNotAllowed(['POST']));
+
+
 async function patchAlertStatus(req, res) {
   try {
     const alertId = toInt(req.params.alert_id);

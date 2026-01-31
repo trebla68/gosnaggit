@@ -214,7 +214,7 @@
             color: #ffd7dd;
         }
 
-        
+
         .flash.warn {
             display: block;
             border-color: rgba(255, 179, 71, 0.60);
@@ -222,7 +222,7 @@
             color: #ffe9c9;
         }
 
-.flash.ok {
+        .flash.ok {
             display: block;
             border-color: rgba(51, 209, 122, 0.55);
             background: rgba(51, 209, 122, 0.10);
@@ -710,8 +710,31 @@
                 if (secs === 0) return `${mins}m`;
                 return `${mins}m ${secs}s`;
             }
+            function setSendNowCooldown(seconds) {
+                const btn = document.getElementById("sendNowBtn");
+                if (!btn) return;
 
+                const wasDisabledAlready = btn.disabled;
 
+                if (seconds > 0) {
+                    btn.disabled = true;
+                    btn.title = `Cooldown active — try again in ${formatDuration(seconds)}`;
+
+                    setTimeout(() => {
+                        // Only re-enable if we weren't disabled for another reason (like alerts disabled)
+                        if (!wasDisabledAlready) {
+                            btn.disabled = false;
+                            btn.title = "";
+                        }
+                    }, seconds * 1000);
+                } else {
+                    // Only enable if we weren't disabled for another reason
+                    if (!wasDisabledAlready) btn.disabled = false;
+                    btn.title = "";
+                }
+            }
+
+            
             function formatDateTime(isoString) {
                 const iso = String(isoString || "");
                 if (!iso) return "—";
@@ -801,8 +824,31 @@
                 });
             }
 
+            async function sendNowProd(sendLimit = 25) {
+                // Preferred (non-dev) endpoint. Uses POST.
+                // If your backend doesn't have this yet, we'll fall back to the /dev endpoint automatically.
+                return fetchJSON(`/api/searches/${searchId}/alerts/send-now?limit=${sendLimit}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
+
             async function dispatchAlertsDev(sendLimit = 25) {
+                // Legacy/dev endpoint (GET). Kept as a fallback.
                 return fetchJSON(`/dev/searches/${searchId}/dispatch-alerts?limit=${sendLimit}`);
+            }
+
+                        async function sendNowAuto(sendLimit = 25) {
+                try {
+                    return await sendNowProd(sendLimit);
+                } catch (e) {
+                    const msg = String(e?.message || "");
+                    // Only fall back when the prod route is missing / not allowed
+                    if (msg.includes("HTTP 404") || msg.includes("HTTP 405")) {
+                        return await dispatchAlertsDev(sendLimit);
+                    }
+                    throw e;
+                }
             }
 
 
@@ -1035,12 +1081,13 @@
                 const sendNowBtnClick = e.target.closest("#sendNowBtn");
                 if (sendNowBtnClick) {
                     const old = sendNowBtnClick.textContent;
+                    let keepDisabled = false;
                     try {
                         sendNowBtnClick.disabled = true;
                         sendNowBtnClick.textContent = "Sending…";
                         showFlash("", "Sending alerts…", 0);
 
-                        const result = await dispatchAlertsDev(25);
+                        const result = await sendNowAuto(25);
 
                         // Handle skip reasons (cooldown, disabled, no email, etc.)
                         if (result?.skipped) {
@@ -1051,6 +1098,8 @@
                                     Number(result.cooldown_seconds) - Number(result.seconds_since_last_sent)
                                 );
                                 showFlash("ok", `⏳ Cooldown active — try again in ${formatDuration(remaining)}.`, 6500);
+                                keepDisabled = true;
+                                setSendNowCooldown(remaining);
                             } else if (reason === "no_email_enabled") {
                                 showFlash("warn", "📧 Email alerts aren’t enabled for this search. Open Search Detail → Alerts to enable an email destination.", 9000);
                             } else if (reason === "alerts_disabled") {
@@ -1088,10 +1137,9 @@
                     } catch (err) {
                         showFlash("bad", err.message || String(err));
                     } finally {
-                        sendNowBtnClick.disabled = false;
                         sendNowBtnClick.textContent = old;
+                        if (!keepDisabled) sendNowBtnClick.disabled = false;
                     }
-                    return;
                 }
 
                 // pager

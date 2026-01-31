@@ -1,1 +1,8 @@
-{}
+{
+  "156": {
+    "enabled": true,
+    "mode": "immediate",
+    "maxPerEmail": 25,
+    "lastDigestSentAt": null
+  }
+}
