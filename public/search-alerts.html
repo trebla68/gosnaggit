@@ -214,11 +214,26 @@
             color: #ffd7dd;
         }
 
-        .flash.ok {
+        
+        .flash.warn {
+            display: block;
+            border-color: rgba(255, 179, 71, 0.60);
+            background: rgba(255, 179, 71, 0.12);
+            color: #ffe9c9;
+        }
+
+.flash.ok {
             display: block;
             border-color: rgba(51, 209, 122, 0.55);
             background: rgba(51, 209, 122, 0.10);
             color: #d8ffe9;
+        }
+
+
+
+        .subtle {
+            color: rgba(255, 255, 255, 0.68);
+            font-size: 13px;
         }
 
         .chips {
@@ -417,6 +432,20 @@
             font-size: 12px;
         }
 
+        .email-edit-hint {
+            margin-left: 10px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.55);
+            border: 1px dashed rgba(255, 255, 255, 0.25);
+            padding: 2px 8px;
+            border-radius: 999px;
+            cursor: not-allowed;
+        }
+
+        .email-edit-hint:hover {
+            color: rgba(255, 255, 255, 0.7);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
 
 
         /* Stats vs Filters differentiation */
@@ -458,6 +487,7 @@
             <button class="btn btn-primary" id="sendNowBtn" type="button">Send now</button>
         </div>
         <div id="alerts-settings-banner" class="flash" style="display:none; margin:12px 0 0 0;"></div>
+        <div id="emailStatusLine" class="subtle" style="margin-top:8px;"></div>
 
         <div class="wrap">
             <div class="flash" id="flash" role="status" aria-live="polite"></div>
@@ -551,6 +581,41 @@
                 }
             }
 
+
+            async function loadNotificationStatus() {
+                if (!Number.isFinite(sid) || sid <= 0) return null;
+                try {
+                    const r = await fetch(`/api/searches/${sid}/notification-status`, { cache: 'no-store' });
+                    if (!r.ok) return null;
+                    return await r.json();
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function applyNotificationStatusUX(ns) {
+                const el = document.getElementById('emailStatusLine');
+                if (!el) return;
+                if (!ns || !ns.ok) {
+                    el.textContent = '';
+                    return;
+                }
+
+                let label;
+                if (ns.email_enabled && ns.email_destination) {
+                    label = `Email: ${ns.email_destination}`;
+                } else {
+                    label = `Email: not enabled`;
+                }
+
+                el.innerHTML = `
+    <span>${label}</span>
+    <span class="email-edit-hint" title="User accounts required to change email">
+      Change (coming soon)
+    </span>
+  `;
+            }
+
             function applyAlertSettingsUX(settings) {
                 if (!searchId) return;
 
@@ -592,8 +657,12 @@
                 const sid = document.getElementById("searchId");
                 if (sidHero) sidHero.textContent = "—";
                 if (sid) sid.textContent = "—";
+
+                const emailLine = document.getElementById("emailStatusLine");
+                if (emailLine) emailLine.textContent = "";
             } else {
                 loadAlertSettings().then(s => applyAlertSettingsUX(s));
+                loadNotificationStatus().then(ns => applyNotificationStatusUX(ns));
             }
 
 
@@ -805,14 +874,18 @@
                 const empty = $("#empty");
                 if (!tbody) return;
 
+                // Empty state
                 if (!Array.isArray(rows) || rows.length === 0) {
                     tbody.innerHTML = "";
                     if (empty) empty.style.display = "block";
-                    if ($("#rangeLine")) $("#rangeLine").textContent = "Showing 0";
+                    const rl = $("#rangeLine");
+                    if (rl) rl.textContent = "Showing 0";
+                    return;
                 }
 
                 if (empty) empty.style.display = "none";
-                if ($("#rangeLine")) $("#rangeLine").textContent = `Showing ${rows.length} (offset ${offset}, limit ${limit})`;
+                const rl = $("#rangeLine");
+                if (rl) rl.textContent = `Showing ${rows.length} (offset ${offset}, limit ${limit})`;
 
                 tbody.innerHTML = rows.map(a => {
                     const id = esc(a.alert_id);
@@ -896,12 +969,13 @@
             // Events
             // ----------------------------
             document.addEventListener("click", async (e) => {
-                // chips
+                // chips (filter)
                 const chip = e.target.closest("[data-chip]");
                 if (chip) {
                     currentStatus = chip.getAttribute("data-chip");
                     offset = 0;
                     await refreshAll();
+                    return;
                 }
 
                 // table actions
@@ -916,73 +990,75 @@
                         try {
                             btn.disabled = true;
                             await patchAlertStatus(alertId, next);
-                            if (next === 'dismissed') {
-                                showFlash('ok', '🗑️ Alert dismissed. It will not be sent.', 5000);
+                            if (next === "dismissed") {
+                                showFlash("ok", "🗑️ Alert dismissed. It will not be sent.", 5000);
                             } else {
-                                showFlash('ok', '↩️ Dismiss undone. Alert is pending again.', 5000);
+                                showFlash("ok", "↩️ Dismiss undone. Alert is pending again.", 5000);
                             }
-                            await refreshAll();
+                            await refreshAll({ keepFlash: true });
                         } catch (err) {
                             showFlash("bad", err.message || String(err));
                         } finally {
                             btn.disabled = false;
                         }
                     }
+                    return;
                 }
 
-                // refresh button
+                // refresh button (dev)
                 const refreshBtn = e.target.closest("#refreshBtn");
                 if (refreshBtn) {
                     const old = refreshBtn.textContent;
                     try {
                         offset = 0;
                         refreshBtn.disabled = true;
-                        refreshBtn.textContent = 'Refreshing…';
-                        showFlash('', 'Refreshing marketplaces…', 0);
+                        refreshBtn.textContent = "Refreshing…";
+                        showFlash("", "Refreshing marketplaces…", 0);
 
-                        // Dev-only: run a real refresh job (fetch marketplaces + insert new results/alerts)
                         const r = await devRefreshSearch();
-
                         const fetched = (r && r.fetched != null) ? r.fetched : "—";
                         const inserted = (r && r.inserted != null) ? r.inserted : 0;
                         const alertsInserted = (r && r.alertsInserted != null) ? r.alertsInserted : 0;
 
-                        showFlash('ok', `🔄 Refresh complete. fetched=${fetched} inserted=${inserted} new alerts=${alertsInserted}`, 6500);
-
-                        // Update table + counts, but keep the flash visible
+                        showFlash("ok", `🔄 Refresh complete. fetched=${fetched} inserted=${inserted} new alerts=${alertsInserted}`, 6500);
                         await refreshAll({ keepFlash: true });
+                    } catch (err) {
+                        showFlash("bad", err.message || String(err));
                     } finally {
                         refreshBtn.disabled = false;
                         refreshBtn.textContent = old;
                     }
+                    return;
                 }
 
                 // send now button (dev)
-                const sendNowBtn = e.target.closest("#sendNowBtn");
-                if (sendNowBtn) {
-                    const old = sendNowBtn.textContent;
+                const sendNowBtnClick = e.target.closest("#sendNowBtn");
+                if (sendNowBtnClick) {
+                    const old = sendNowBtnClick.textContent;
                     try {
-                        sendNowBtn.disabled = true;
-                        sendNowBtn.textContent = 'Sending…';
-                        showFlash('', 'Sending alerts…', 0);
+                        sendNowBtnClick.disabled = true;
+                        sendNowBtnClick.textContent = "Sending…";
+                        showFlash("", "Sending alerts…", 0);
 
                         const result = await dispatchAlertsDev(25);
 
-                        // Handle skip reasons (cooldown, disabled, no email, daily digest, etc.)
+                        // Handle skip reasons (cooldown, disabled, no email, etc.)
                         if (result?.skipped) {
                             const reason = String(result?.reason || "");
 
                             if (reason === "cooldown") {
-                                const remaining = Math.max(0, Number(result.cooldown_seconds) - Number(result.seconds_since_last_sent));
-                                showFlash('ok', `⏳ Cooldown active — try again in ${formatDuration(remaining)}.`, 6500);
+                                const remaining = Math.max(0,
+                                    Number(result.cooldown_seconds) - Number(result.seconds_since_last_sent)
+                                );
+                                showFlash("ok", `⏳ Cooldown active — try again in ${formatDuration(remaining)}.`, 6500);
                             } else if (reason === "no_email_enabled") {
-                                showFlash('warn', '📧 Email alerts aren\'t enabled for this search. Open Search Detail → Alerts to enable an email destination.', 9000);
+                                showFlash("warn", "📧 Email alerts aren’t enabled for this search. Open Search Detail → Alerts to enable an email destination.", 9000);
                             } else if (reason === "alerts_disabled") {
-                                showFlash('warn', '🔕 Alerts are disabled for this search. Open Search Detail → Alerts to enable them.', 9000);
+                                showFlash("warn", "🔕 Alerts are disabled for this search. Open Search Detail → Alerts to enable them.", 9000);
                             } else if (reason === "daily_already_sent") {
-                                showFlash('warn', '🗓️ Daily digest already sent today. Try again tomorrow (or force in dev).', 9000);
+                                showFlash("warn", "🗓️ Daily digest already sent today. Try again tomorrow (or force in dev).", 9000);
                             } else {
-                                showFlash('warn', `Dispatch skipped (${reason || "unknown"}).`, 6500);
+                                showFlash("warn", `Dispatch skipped (${reason || "unknown"}).`, 6500);
                             }
 
                             offset = 0;
@@ -997,48 +1073,53 @@
                         if (sent === 0 && error === 0) {
                             const pb = Number(result?.pending_before || 0);
                             if (pb > 0) {
-                                showFlash('warn', `📭 No sendable pending alerts right now (pending=${pb}).`, 7000);
+                                showFlash("warn", `📭 No sendable pending alerts right now (pending=${pb}).`, 7000);
                             } else {
-                                showFlash('ok', '📭 No pending alerts to send right now.', 5000);
+                                showFlash("ok", "📭 No pending alerts to send right now.", 5000);
                             }
                         } else if (error > 0) {
-                            showFlash('bad', `⚠️ Dispatch finished with issues. sent=${sent} emailed=${emailed} error=${error}`);
+                            showFlash("bad", `⚠️ Dispatch finished with issues. sent=${sent} emailed=${emailed} error=${error}`);
                         } else {
-                            showFlash('ok', `📤 Alerts sent successfully. sent=${sent} emailed=${emailed}`, 5500);
+                            showFlash("ok", `📤 Alerts sent successfully. sent=${sent} emailed=${emailed}`, 5500);
                         }
 
                         offset = 0;
                         await refreshAll({ keepFlash: true });
                     } catch (err) {
-                        showFlash('bad', err.message || String(err));
+                        showFlash("bad", err.message || String(err));
                     } finally {
-                        sendNowBtn.disabled = false;
-                        sendNowBtn.textContent = old;
+                        sendNowBtnClick.disabled = false;
+                        sendNowBtnClick.textContent = old;
                     }
-                }// pager
+                    return;
+                }
+
+                // pager
                 const prevBtn = e.target.closest("#prevBtn");
                 if (prevBtn) {
                     offset = Math.max(0, offset - limit);
                     await refreshAll();
+                    return;
                 }
 
                 const nextBtn = e.target.closest("#nextBtn");
                 if (nextBtn) {
                     offset = offset + limit;
                     await refreshAll();
+                    return;
                 }
             });
 
             if (searchId) {
                 // Init
-                            setSubtitle();
-                            renderPagerLabel();
-                            refreshAll();
-                            // Summary bar is updated as part of refreshAll()
-                
-                        
-                }
-</script>
+                setSubtitle();
+                renderPagerLabel();
+                refreshAll();
+                // Summary bar is updated as part of refreshAll()
+
+
+            }
+        </script>
     </main>
 </body>
 

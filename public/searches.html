@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" href="/assets/logo-mark.png">
   <link rel="shortcut icon" href="/favicon.ico">
 
-<meta content="width=device-width, initial-scale=1" name="viewport" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
   <style>
     :root {
       --bg: #0b1020;
@@ -442,6 +442,48 @@
       border: 1px solid rgba(255, 179, 71, 0.55);
       box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
     }
+
+    .email-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .email-badge .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 99px;
+      opacity: 0.85;
+    }
+
+    .email-badge.on {
+      border-color: rgba(51, 209, 122, 0.35);
+      background: rgba(51, 209, 122, 0.08);
+      color: #d8ffe9;
+    }
+
+    .email-badge.on .dot {
+      background: rgba(51, 209, 122, 0.95);
+    }
+
+    .email-badge.off {
+      border-color: rgba(255, 179, 71, 0.35);
+      background: rgba(255, 179, 71, 0.08);
+      color: #ffe9c9;
+    }
+
+    .email-badge.off .dot {
+      background: rgba(255, 179, 71, 0.95);
+    }
+
 
     /* Actions: use the global button system, just smaller */
     .actions-cell {
@@ -1045,6 +1087,17 @@
           });
 
 
+          const emailBadge = document.createElement('span');
+          const emailOn = !!search.email_enabled;
+          emailBadge.className = `email-badge ${emailOn ? 'on' : 'off'}`;
+          emailBadge.innerHTML = `<span class="dot" aria-hidden="true"></span> Email: ${emailOn ? 'ON' : 'OFF'}`;
+          if (search.email_destination) {
+            emailBadge.title = `Email destination: ${search.email_destination}`;
+          } else {
+            emailBadge.title = 'Email destination not enabled';
+          }
+
+
           const editLink = document.createElement('a');
           editLink.textContent = 'Edit';
           editLink.href = `/edit-search.html?id=${search.id}`;
@@ -1161,6 +1214,8 @@
           actionsTd.appendChild(resultsLink);
           actionsTd.appendChild(document.createTextNode(' '));
           actionsTd.appendChild(alertsLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(emailBadge);
           actionsTd.appendChild(document.createTextNode(' '));
           actionsTd.appendChild(editLink);
           actionsTd.appendChild(document.createTextNode(' '));

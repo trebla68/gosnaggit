@@ -30,10 +30,10 @@ const ALERT_SETTINGS_DIR = path.join(__dirname, 'data');
 const ALERT_SETTINGS_FILE = path.join(ALERT_SETTINGS_DIR, 'alert_settings.json');
 
 function ensureAlertSettingsStore() {
-  try { fs.mkdirSync(ALERT_SETTINGS_DIR, { recursive: true }); } catch (e) {}
+  try { fs.mkdirSync(ALERT_SETTINGS_DIR, { recursive: true }); } catch (e) { }
   try {
     if (!fs.existsSync(ALERT_SETTINGS_FILE)) fs.writeFileSync(ALERT_SETTINGS_FILE, JSON.stringify({}), 'utf8');
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function readAlertSettingsStore() {
@@ -485,13 +485,23 @@ async function getSearches(req, res) {
       `
       SELECT
         s.*,
-        r.last_found_at
+        r.last_found_at,
+        COALESCE(n.email_enabled, FALSE) AS email_enabled,
+        n.email_destination
       FROM searches s
       LEFT JOIN (
         SELECT search_id, MAX(found_at) AS last_found_at
         FROM results
         GROUP BY search_id
       ) r ON r.search_id = s.id
+      LEFT JOIN (
+        SELECT
+          search_id,
+          BOOL_OR(is_enabled) FILTER (WHERE channel = 'email' AND destination IS NOT NULL) AS email_enabled,
+          MAX(destination) FILTER (WHERE channel = 'email' AND is_enabled = TRUE AND destination IS NOT NULL) AS email_destination
+        FROM notification_settings
+        GROUP BY search_id
+      ) n ON n.search_id = s.id
       WHERE s.status IS NULL OR s.status <> 'deleted'
       ORDER BY r.last_found_at DESC NULLS LAST, s.created_at DESC
       `
@@ -502,6 +512,7 @@ async function getSearches(req, res) {
     res.status(500).json({ error: 'Failed to fetch searches' });
   }
 }
+
 
 
 app.get('/api/searches', getSearches);
@@ -539,6 +550,37 @@ app.get('/api/searches/deleted', async (req, res) => {
   } catch (err) {
     console.error('GET /api/searches/deleted failed:', err);
     res.status(500).json({ error: 'Failed to fetch deleted searches' });
+  }
+});
+
+app.get('/api/searches/:id/notification-status', async (req, res) => {
+  try {
+    const searchId = Number(req.params.id);
+    if (!Number.isFinite(searchId) || searchId <= 0) {
+      return res.status(400).json({ ok: false, error: 'invalid search id' });
+    }
+
+    const { rows } = await pool.query(
+      `
+      SELECT
+        COALESCE(BOOL_OR(is_enabled) FILTER (WHERE channel = 'email' AND destination IS NOT NULL), FALSE) AS email_enabled,
+        MAX(destination) FILTER (WHERE channel = 'email' AND is_enabled = TRUE AND destination IS NOT NULL) AS email_destination
+      FROM notification_settings
+      WHERE search_id = $1
+      `,
+      [searchId]
+    );
+
+    const row = rows && rows[0] ? rows[0] : {};
+    return res.json({
+      ok: true,
+      search_id: searchId,
+      email_enabled: !!row.email_enabled,
+      email_destination: row.email_destination || null
+    });
+  } catch (err) {
+    console.error('GET /api/searches/:id/notification-status failed:', err);
+    return res.status(500).json({ ok: false, error: 'failed to load notification status' });
   }
 });
 
