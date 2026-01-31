@@ -992,6 +992,21 @@
                     renderSummaryLine(counts);
                     updateSummaryBar(counts);
 
+                    // Auto-switch if user is on Pending but there are no pending alerts.
+                    // This prevents the "empty table" confusion when Sent/All has data.
+                    if (currentStatus === "pending") {
+                        const pendingCount = Number(counts?.pending || 0);
+                        const sentCount = Number(counts?.sent || 0);
+                        const totalCount = Number(counts?.total || (pendingCount + sentCount + Number(counts?.dismissed || 0) + Number(counts?.error || 0)));
+
+                        if (pendingCount === 0 && totalCount > 0) {
+                            currentStatus = (sentCount > 0) ? "sent" : "all";
+                            offset = 0;
+                            renderChips(counts);
+                            renderPagerLabel();
+                        }
+                    }
+
                     const rows = await loadAlerts();
                     renderTable(rows);
 

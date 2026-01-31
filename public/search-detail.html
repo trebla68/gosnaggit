@@ -361,6 +361,10 @@
       <span><strong>Enable alerts</strong></span>
     </label>
     <label style="display:flex; gap:8px; align-items:center;">
+      <span class="muted">Email</span>
+      <input id="alerts-email" class="input" type="email" placeholder="you@example.com" style="min-width:220px;" />
+    </label>
+    <label style="display:flex; gap:8px; align-items:center;">
       <span class="muted">Mode</span>
       <select id="alerts-mode" class="input" style="min-width:160px;">
         <option value="immediate">Immediate</option>
@@ -503,10 +507,14 @@
         // --- Alerts settings wiring (server-backed) ---
         async function loadAlertSettings(searchId) {
             const enabledEl = document.getElementById('alerts-enabled');
+            const emailEl = document.getElementById('alerts-email');
             const modeEl = document.getElementById('alerts-mode');
             const maxEl = document.getElementById('alerts-max');
             if (!enabledEl || !modeEl || !maxEl) return;
             const s = (window.GoSnaggit && GoSnaggit.getAlertSettings) ? await GoSnaggit.getAlertSettings(searchId) : { enabled:true, mode:'immediate', maxPerEmail:25 };
+            if (emailEl && window.GoSnaggit && GoSnaggit.getAlertEmail) {
+                emailEl.value = await GoSnaggit.getAlertEmail(searchId) || '';
+            }
             enabledEl.checked = !!s.enabled;
             modeEl.value = (s.mode === 'daily') ? 'daily' : 'immediate';
             maxEl.value = String(s.maxPerEmail || 25);
@@ -514,11 +522,15 @@
 
         async function saveAlertSettings(searchId) {
             const enabledEl = document.getElementById('alerts-enabled');
+            const emailEl = document.getElementById('alerts-email');
             const modeEl = document.getElementById('alerts-mode');
             const maxEl = document.getElementById('alerts-max');
             const chip = document.getElementById('alerts-saved-chip');
             if (!enabledEl || !modeEl || !maxEl) return;
             const settings = { enabled: !!enabledEl.checked, mode: String(modeEl.value || 'immediate'), maxPerEmail: Number(maxEl.value || 25) };
+            if (emailEl && window.GoSnaggit && GoSnaggit.setAlertEmail) {
+                await GoSnaggit.setAlertEmail(searchId, String(emailEl.value||''));
+            }
             const res = (window.GoSnaggit && GoSnaggit.setAlertSettings) ? await GoSnaggit.setAlertSettings(searchId, settings) : { ok:false };
             if (chip) {
                 chip.style.display = (res && res.ok) ? 'inline-flex' : 'none';
@@ -538,6 +550,7 @@
                 await loadAlertSettings(sid);
                 const saveBtn = document.getElementById('alerts-save-btn');
                 const enabledEl = document.getElementById('alerts-enabled');
+            const emailEl = document.getElementById('alerts-email');
                 if (saveBtn) saveBtn.addEventListener('click', ()=>saveAlertSettings(sid));
                 if (enabledEl) enabledEl.addEventListener('change', ()=>saveAlertSettings(sid));
             }
