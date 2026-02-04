@@ -4,8 +4,9 @@ export default function BrandMark({ className = "", alt = "GoSnaggit" }: { class
       className={`brandMark ${className}`}
       src="/brand/logo.svg"
       alt={alt}
-      width={40}
-      height={40}
+      width={164}
+      height={164}
     />
   );
 }
+
