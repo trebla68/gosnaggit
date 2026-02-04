@@ -1,5 +1,6 @@
 // worker/worker.js
-require('dotenv').config();
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 
 process.on('unhandledRejection', (err) => {
   console.error('[worker] Unhandled promise rejection:', err);

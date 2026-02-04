@@ -12,6 +12,14 @@ function pillClass(status: string | null) {
   return "pill neutral";
 }
 
+function hasNewResults(last_found_at: string | null | undefined, hours = 24) {
+  if (!last_found_at) return false;
+  const t = Date.parse(last_found_at);
+  if (!Number.isFinite(t)) return false;
+  const ageMs = Date.now() - t;
+  return ageMs >= 0 && ageMs <= hours * 60 * 60 * 1000;
+}
+
 export default function SavedSearchesPage() {
   const router = useRouter();
   const [rows, setRows] = useState<SearchRow[]>([]);
@@ -29,6 +37,12 @@ export default function SavedSearchesPage() {
         const data = await api.listSearches(200);
         if (!alive) return;
         setRows(data || []);
+        console.log(
+          "listSearches first row last_found_at:",
+          (data || [])[0]?.last_found_at,
+          "full:",
+          (data || [])[0]
+        );
         setErr(null);
       } catch (e: any) {
         if (!alive) return;
@@ -61,7 +75,7 @@ export default function SavedSearchesPage() {
     return () => { alive = false; };
   }, [rows]);
 
-  const sorted = useMemo(() => [...rows].sort((a,b) => b.id - a.id), [rows]);
+  const sorted = useMemo(() => [...rows].sort((a, b) => b.id - a.id), [rows]);
 
   async function doRefresh(id: number) {
     try {
@@ -70,7 +84,7 @@ export default function SavedSearchesPage() {
       await api.refreshSearch(id);
       setToast("Refresh queued ✅");
       setTimeout(() => setToast(null), 2500);
-    } catch (e:any) {
+    } catch (e: any) {
       setToast(null);
       alert(e?.message || "Refresh failed");
     } finally {
@@ -94,8 +108,8 @@ export default function SavedSearchesPage() {
       try {
         const s = await api.getAlertSummary(id);
         setSummaries(prev => ({ ...prev, [id]: s }));
-      } catch {}
-    } catch (e:any) {
+      } catch { }
+    } catch (e: any) {
       setToast(null);
       alert(e?.message || "Send failed");
     } finally {
@@ -103,8 +117,8 @@ export default function SavedSearchesPage() {
     }
   }
 
-  async function doDuplicate(id:number){
-    try{
+  async function doDuplicate(id: number) {
+    try {
       setBusyId(id);
       const r = await api.duplicateSearch(id);
       setToast("Duplicated ✅");
@@ -112,22 +126,28 @@ export default function SavedSearchesPage() {
       // reload list
       const data = await api.listSearches(200);
       setRows(data || []);
-    } catch(e:any){
+      console.log(
+        "after duplicate reload first row last_found_at:",
+        (data || [])[0]?.last_found_at,
+        "full:",
+        (data || [])[0]
+      );
+    } catch (e: any) {
       alert(e?.message || "Duplicate failed");
     } finally {
       setBusyId(null);
     }
   }
 
-  async function doDelete(id:number){
+  async function doDelete(id: number) {
     if (!confirm("Delete this search? You can view deleted searches on the Deleted page.")) return;
-    try{
+    try {
       setBusyId(id);
       await api.deleteSearch(id);
       setToast("Deleted ✅");
       setTimeout(() => setToast(null), 2500);
       setRows(prev => prev.filter(r => r.id !== id));
-    } catch(e:any){
+    } catch (e: any) {
       alert(e?.message || "Delete failed");
     } finally {
       setBusyId(null);
@@ -147,7 +167,7 @@ export default function SavedSearchesPage() {
         </div>
       </div>
 
-      {toast ? <div className="flash ok" style={{marginTop: 10}}>{toast}</div> : null}
+      {toast ? <div className="flash ok" style={{ marginTop: 10 }}>{toast}</div> : null}
 
       <div className="card">
         {loading ? (
@@ -161,12 +181,14 @@ export default function SavedSearchesPage() {
             {sorted.map((s) => {
               const summary = summaries[s.id];
               const disabled = busyId === s.id;
+              const isNew = hasNewResults(s.last_found_at, 24);
               return (
                 <div key={s.id} className="rowCard">
                   <div className="rowTop">
                     <div className="rowTitle">
                       <span className="pill neutral">#{s.id}</span>
-                      <span style={{fontWeight: 850}}>{s.search_item}</span>
+                      <span style={{ fontWeight: 850 }}>{s.search_item}</span>
+                      {isNew ? <span className="pill ok">NEW</span> : null}
                       <span className={pillClass(s.status)}>{(s.status || "—").toUpperCase()}</span>
                       <span className="pill neutral">{(s.plan_tier || "free").toUpperCase()}</span>
                     </div>

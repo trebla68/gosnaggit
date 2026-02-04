@@ -11,6 +11,7 @@ export type SearchRow = {
   plan_tier: string | null;
   created_at: string | null;
   next_refresh_at?: string | null;
+  last_found_at?: string | null;
 };
 
 export type AlertSummary = {
