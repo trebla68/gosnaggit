@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import BrandMark from "../components/BrandMark";
+import TopNav from "./topnav";
 
 export const metadata: Metadata = {
   title: "GoSnaggit Beta",
@@ -25,12 +26,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
 
-            <nav className="nav" aria-label="Primary">
-              <a className="active" href="/">Home</a>
-              <a href="/new-search">New search</a>
-              <a href="/saved-searches">Saved searches</a>
-              <a href="/deleted">Deleted</a>
-            </nav>
+            <TopNav />
           </header>
 
           <main className="main">{children}</main>

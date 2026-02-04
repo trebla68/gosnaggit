@@ -106,6 +106,10 @@ function hasDigestBeenSentToday(settings) {
   }
 }
 
+// --------------------
+// Alert settings (enabled / mode / maxPerEmail) API
+// --------------------
+
 process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason);
   if (reason && typeof reason === 'object' && 'stack' in reason) {
@@ -130,26 +134,54 @@ if (typeof fetch !== 'function') {
 // --------------------
 app.use(express.json());
 
-// ---- Alert settings API ----
-app.get('/api/searches/:id/alert-settings', (req, res) => {
-  const id = String(req.params.id || '').trim();
-  if (!id) return res.status(400).json({ ok: false, error: 'missing id' });
-  const store = readAlertSettingsStore();
-  const existing = store[id];
-  const settings = normalizeAlertSettings(existing);
-  return res.json({ ok: true, search_id: Number(id) || id, settings });
-});
+// --------------------
+// Alert settings routes (support BOTH /searches and /api/searches)
+// --------------------
 
-app.put('/api/searches/:id/alert-settings', (req, res) => {
-  const id = String(req.params.id || '').trim();
-  if (!id) return res.status(400).json({ ok: false, error: 'missing id' });
-  const store = readAlertSettingsStore();
-  const next = normalizeAlertSettings((req.body || {}).settings || req.body);
-  store[id] = next;
-  const ok = writeAlertSettingsStore(store);
-  if (!ok) return res.status(500).json({ ok: false, error: 'write_failed' });
-  return res.json({ ok: true, search_id: Number(id) || id, settings: next });
-});
+function alertSettingsHandlerGET(req, res) {
+  try {
+    const id = String(req.params.id || "").trim();
+    const settings = getAlertSettingsForSearchId(id);
+    return res.json({ ok: true, search_id: Number(id) || id, settings });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: "Failed to load alert settings" });
+  }
+}
+
+function alertSettingsHandlerWRITE(req, res) {
+  try {
+    const id = String(req.params.id || "").trim();
+
+    // accept either {settings:{...}} or direct fields
+    const incoming = (req.body && typeof req.body === "object")
+      ? (req.body.settings && typeof req.body.settings === "object" ? req.body.settings : req.body)
+      : {};
+
+    const current = getAlertSettingsForSearchId(id);
+    const next = Object.assign({}, current, incoming);
+
+    const ok = setAlertSettingsForSearchId(id, next);
+    if (!ok) return res.status(400).json({ ok: false, error: "Invalid search id" });
+
+    return res.json({ ok: true, search_id: Number(id) || id, settings: getAlertSettingsForSearchId(id) });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: "Failed to save alert settings" });
+  }
+}
+
+// canonical backend paths (what your Next proxy is calling)
+app.get("/searches/:id/alert-settings", alertSettingsHandlerGET);
+app.post("/searches/:id/alert-settings", alertSettingsHandlerWRITE);
+app.put("/searches/:id/alert-settings", alertSettingsHandlerWRITE);
+
+// ALSO allow /api/searches (in case anything still calls it)
+app.get("/api/searches/:id/alert-settings", alertSettingsHandlerGET);
+app.post("/api/searches/:id/alert-settings", alertSettingsHandlerWRITE);
+app.put("/api/searches/:id/alert-settings", alertSettingsHandlerWRITE);
+
+
+// ---- Alert settings API ----
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(helmet({
