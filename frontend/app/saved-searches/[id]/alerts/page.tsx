@@ -64,19 +64,27 @@ export default function AlertsPage({ params }: { params: { id: string } }) {
   const [toast, setToast] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  const [alertEnabled, setAlertEnabled] = useState<boolean>(true);
+  const [alertLoading, setAlertLoading] = useState<boolean>(true);
+
   async function reload() {
     setLoading(true);
     setErr(null);
+    setAlertLoading(true);
     try {
-      const [sum, list] = await Promise.all([
+      const [sum, list, settingsRes] = await Promise.all([
         api.getAlertSummary(id).catch(() => null),
         api.listAlerts(id, status, 200, 0),
+        api.getAlertSettings(id).catch(() => null),
       ]);
       setSummary(normalizeSummary(sum));
       setRows(Array.isArray(list) ? list : []);
+      const enabled = settingsRes?.settings ? !!settingsRes.settings.enabled : true;
+      setAlertEnabled(enabled);
     } catch (e: any) {
       setErr(e?.message || "Failed to load alerts");
     } finally {
+      setAlertLoading(false);
       setLoading(false);
     }
   }
@@ -147,12 +155,25 @@ export default function AlertsPage({ params }: { params: { id: string } }) {
         <div className="ctaRow">
           <a className="btn" href={`/saved-searches/${id}`}>Details</a>
           <a className="btn" href={`/saved-searches/${id}/results`}>Results</a>
-          <button className="btn primary" onClick={sendNow} disabled={busy}>Send now</button>
+          <button
+            className="btn primary"
+            onClick={sendNow}
+            disabled={busy || alertLoading || !alertEnabled}
+            title={!alertEnabled ? "Alerts are disabled for this search" : ""}
+          >
+            Send now
+          </button>
           <a className="btn" href="/saved-searches">Back</a>
         </div>
       </div>
 
       {toast ? <div className="flash ok" style={{ marginTop: 10 }}>{toast}</div> : null}
+
+      {!alertLoading && !alertEnabled ? (
+        <div className="flash warn" style={{ marginTop: 10 }}>
+          Alerts are disabled for this search — “Send now” is unavailable.
+        </div>
+      ) : null}
 
       <div className="rowActions" style={{ marginTop: 10 }}>
         <span className="pill ok">Pending: {summary.pending}</span>

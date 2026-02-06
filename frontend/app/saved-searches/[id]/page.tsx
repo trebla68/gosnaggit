@@ -31,6 +31,43 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
 
   const [search, setSearch] = useState<SearchRow | null>(null);
   const [summary, setSummary] = useState<AlertSummary | null>(null);
+  const [alertEnabled, setAlertEnabled] = useState<boolean>(true);
+  const [alertLoading, setAlertLoading] = useState<boolean>(true);
+  const [alertSaving, setAlertSaving] = useState<boolean>(false);
+
+  async function loadAlertSettings() {
+    setAlertLoading(true);
+    try {
+      const res = await api.getAlertSettings(id);
+      const enabled = res?.settings ? !!res.settings.enabled : true;
+      setAlertEnabled(enabled);
+    } catch {
+      // if settings cannot be loaded, assume enabled (legacy default)
+      setAlertEnabled(true);
+    } finally {
+      setAlertLoading(false);
+    }
+  }
+
+  async function saveAlertEnabled(next: boolean) {
+    setAlertSaving(true);
+    try {
+      // Preserve defaults for fields we’re not focusing on today
+      await api.saveAlertSettings(id, {
+        enabled: next,
+        mode: "immediate",
+        maxPerEmail: 25,
+      });
+      setAlertEnabled(next);
+      setToast(next ? "Alerts enabled ✅" : "Alerts disabled ✅");
+      setTimeout(() => setToast(null), 1800);
+    } catch (e: any) {
+      alert(e?.message || "Failed to save alert setting");
+    } finally {
+      setAlertSaving(false);
+    }
+  }
+
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -53,6 +90,8 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
         if (!alive) return;
         setSearch(s);
         setSummary(sum ? normalizeSummary(sum) : normalizeSummary(null));
+
+        await loadAlertSettings();
       } catch (e: any) {
         if (!alive) return;
         setErr(e?.message || "Failed to load search");
@@ -145,9 +184,55 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
 
               <div className="ctaRow">
                 <button className="btn" onClick={doRefresh} disabled={busy}>Refresh</button>
-                <button className="btn primary" onClick={doSendNow} disabled={busy}>Send now</button>
+                <button
+                  className="btn primary"
+                  onClick={doSendNow}
+                  disabled={busy || alertLoading || alertSaving || !alertEnabled}
+                  title={!alertEnabled ? "Alerts are disabled for this search" : ""}
+                >
+                  Send now
+                </button>
+
               </div>
             </div>
+
+            <div className="panel" style={{ marginTop: 12 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700 }}>Alerts</div>
+                  <div className="muted" style={{ marginTop: 4 }}>
+                    Turn alerts on/off for this search (legacy parity).
+                  </div>
+                </div>
+
+                <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={alertEnabled}
+                    disabled={alertLoading || alertSaving}
+                    onChange={(e) => saveAlertEnabled(e.target.checked)}
+                  />
+                  <span>
+                    {alertLoading ? "Loading…" : alertEnabled ? "Enabled" : "Disabled"}
+                  </span>
+                </label>
+              </div>
+
+              {!alertLoading && !alertEnabled ? (
+                <div className="flash warn" style={{ marginTop: 10 }}>
+                  Alerts are disabled for this search — “Send now” should be unavailable.
+                </div>
+              ) : null}
+            </div>
+
 
             <div className="rowMeta muted" style={{ marginTop: 10, display: "flex", gap: 14, flexWrap: "wrap" }}>
               <span>📍 {search.location || "—"}</span>
