@@ -302,7 +302,7 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
             </label>
 
             <label className="row" style={{ gap: 8, opacity: 0.7 }}>
-              <input type="checkbox" checked={false} disabled />
+              <input type="checkbox" checked={marketplaces.etsy} disabled />
               <span>
                 Etsy <span className="pill neutral" style={{ marginLeft: 6 }}>Coming soon</span>
               </span>

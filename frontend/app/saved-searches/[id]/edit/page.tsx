@@ -14,7 +14,7 @@ function normalizeMarketplaces(input: any): Record<MpKey, boolean> {
   const m = (input && typeof input === "object") ? input : {};
   return {
     ebay: asBool(m.ebay, true),
-    etsy: asBool(m.etsy, true),
+    etsy: asBool(m.etsy, false),
     facebook: asBool(m.facebook, false),
     craigslist: asBool(m.craigslist, false),
   };
@@ -191,10 +191,10 @@ export default function EditSearch({ params }: { params: { id: string } }) {
               className={"btn" + (mps[k] ? " primary" : "")}
               type="button"
               onClick={() => toggleMp(k)}
-              disabled={busy}
-              title={mps[k] ? "Enabled" : "Disabled"}
+              disabled={busy || k === "etsy"}
+              title={k === "etsy" ? "Coming soon" : (mps[k] ? "Enabled" : "Disabled")}
             >
-              {k.toUpperCase()}: {mps[k] ? "ON" : "OFF"}
+              {k.toUpperCase()}: {mps[k] ? "ON" : "OFF"}{k === "etsy" ? " (Coming soon)" : ""}
             </button>
           ))}
         </div>
