@@ -508,8 +508,96 @@ app.post('/searches', createSearch);
 app.post('/api/searches', createSearch);
 
 
+async function patchSearch(req, res) {
+  try {
+    const { id } = req.params;
+    const body = req.body || {};
 
+    // Build a partial update: only fields that exist in the request get updated.
+    const sets = [];
+    const values = [];
+    let idx = 1;
 
+    const has = (k) => Object.prototype.hasOwnProperty.call(body, k);
+
+    if (has('search_item')) {
+      const v = String(body.search_item ?? '').trim();
+      if (!v) return res.status(400).json({ error: 'search_item is required' });
+      sets.push(`search_item = $${idx++}`);
+      values.push(v);
+    }
+
+    if (has('location')) {
+      const v = String(body.location ?? '').trim();
+      sets.push(`location = $${idx++}`);
+      values.push(v ? v : null);
+    }
+
+    if (has('category')) {
+      const v = String(body.category ?? '').trim();
+      sets.push(`category = $${idx++}`);
+      values.push(v ? v : null);
+    }
+
+    if (has('max_price')) {
+      // Allow clearing max_price by sending null/"".
+      const raw = body.max_price;
+      if (raw === null || raw === '') {
+        sets.push(`max_price = $${idx++}`);
+        values.push(null);
+      } else {
+        const maxPriceNum = parseMoneyToNumber(raw);
+        if (Number.isNaN(Number(maxPriceNum))) {
+          return res.status(400).json({ error: 'max_price must be a number' });
+        }
+        sets.push(`max_price = $${idx++}`);
+        values.push(maxPriceNum);
+      }
+    }
+
+    if (has('status')) {
+      const status = body.status;
+      const allowedStatuses = ['active', 'paused', 'completed', 'cancelled', 'deleted'];
+      if (status && !allowedStatuses.includes(status)) {
+        return res.status(400).json({
+          error: "Invalid status. Use 'active', 'paused', 'completed', 'cancelled', or 'deleted'.",
+        });
+      }
+      sets.push(`status = $${idx++}`);
+      values.push(status || null);
+    }
+
+    if (has('marketplaces')) {
+      const marketplaces = normalizeMarketplaces(body.marketplaces);
+      sets.push(`marketplaces = $${idx++}`);
+      values.push(marketplaces);
+    }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ error: 'No fields provided to update' });
+    }
+
+    values.push(id);
+    const sql = `
+      UPDATE searches
+      SET ${sets.join(', ')}
+      WHERE id = $${idx}
+      RETURNING *
+    `;
+
+    const result = await pool.query(sql, values);
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
+
+    res.json({ message: 'Search updated', search: result.rows[0] });
+  } catch (err) {
+    console.error('PATCH search failed:', err);
+    res.status(500).json({ error: 'Failed to update search' });
+  }
+}
+
+app.patch('/searches/:id', patchSearch);
+app.patch('/api/searches/:id', patchSearch);
 
 async function getSearches(req, res) {
   try {
@@ -644,109 +732,6 @@ app.get('/api/searches/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch search' });
   }
 });
-
-
-app.patch('/searches/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { search_item, location, category, max_price, status } = req.body || {};
-
-    const marketplaces =
-      (req.body && Object.prototype.hasOwnProperty.call(req.body, 'marketplaces'))
-        ? normalizeMarketplaces(req.body.marketplaces)
-        : null;
-
-
-    const maxPriceNum = parseMoneyToNumber(max_price);
-
-
-    if (!search_item || String(search_item).trim() === '') {
-      return res.status(400).json({ error: 'search_item is required' });
-    }
-
-    const allowedStatuses = ['active', 'paused', 'completed', 'cancelled', 'deleted'];
-    if (status && !allowedStatuses.includes(status)) {
-      return res.status(400).json({
-        error: "Invalid status. Use 'active', 'paused', 'completed', 'cancelled', or 'deleted'.",
-      });
-    }
-
-    const result = await pool.query(
-      `
-      UPDATE searches
-      SET search_item = $1,
-          location    = $2,
-          category    = $3,
-          max_price   = $4,
-          status       = COALESCE($5, status),
-          marketplaces = COALESCE($6, marketplaces)
-          WHERE id = $7
-
-      RETURNING *
-      `,
-      [search_item, location || null, category || null, maxPriceNum, status || null, marketplaces, id]
-
-    );
-
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
-
-    res.json({ message: 'Search updated', search: result.rows[0] });
-  } catch (err) {
-    console.error('PATCH /searches/:id failed:', err);
-    res.status(500).json({ error: 'Failed to update search' });
-  }
-});
-
-app.patch('/api/searches/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { search_item, location, category, max_price, status } = req.body || {};
-
-    const marketplaces =
-      (req.body && Object.prototype.hasOwnProperty.call(req.body, 'marketplaces'))
-        ? normalizeMarketplaces(req.body.marketplaces)
-        : null;
-
-
-    const maxPriceNum = parseMoneyToNumber(max_price);
-
-
-    if (!search_item || String(search_item).trim() === '') {
-      return res.status(400).json({ error: 'search_item is required' });
-    }
-
-    const allowedStatuses = ['active', 'paused', 'completed', 'cancelled', 'deleted'];
-    if (status && !allowedStatuses.includes(status)) {
-      return res.status(400).json({
-        error: "Invalid status. Use 'active', 'paused', 'completed', 'cancelled', or 'deleted'.",
-      });
-    }
-
-    const result = await pool.query(
-      `
-      UPDATE searches
-      SET search_item = $1,
-          location    = $2,
-          category    = $3,
-          max_price   = $4,
-          status       = COALESCE($5, status),
-          marketplaces = COALESCE($6, marketplaces)
-          WHERE id = $7
-          RETURNING *
-      `,
-      [search_item, location || null, category || null, maxPriceNum, status || null, marketplaces, id]
-
-    );
-
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
-
-    res.json({ message: 'Search updated', search: result.rows[0] });
-  } catch (err) {
-    console.error('PATCH /api/searches/:id failed:', err);
-    res.status(500).json({ error: 'Failed to update search' });
-  }
-});
-
 
 app.patch('/searches/:id/status', async (req, res) => {
   try {
