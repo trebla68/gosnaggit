@@ -1,0 +1,30 @@
+{
+  "name": "gosnaggit",
+  "version": "1.0.0",
+  "description": "GoSnaggit – hard-to-find item continual search app",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node app.js",
+    "worker": "node worker/worker.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trebla68/gosnaggit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/trebla68/gosnaggit/issues"
+  },
+  "homepage": "https://github.com/trebla68/gosnaggit#readme",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "nodemailer": "^7.0.13",
+    "pg": "^8.16.3"
+  }
+}

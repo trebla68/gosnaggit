@@ -1,0 +1,14 @@
+{
+  "2": {
+    "enabled": false,
+    "mode": "immediate",
+    "maxPerEmail": 25,
+    "lastDigestSentAt": null
+  },
+  "157": {
+    "enabled": true,
+    "mode": "immediate",
+    "maxPerEmail": 25,
+    "lastDigestSentAt": null
+  }
+}

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>GoSnaggit – About</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --brand: var(--accent);
+      --accent-soft: rgba(255, 179, 71, 0.15);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text: var(--text-main);
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1040px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 26px 24px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0c1120 60%);
+      border: 1px solid rgba(103, 120, 210, 0.4);
+      padding: 16px 16px 14px;
+    }
+
+    h1 {
+      margin: 0 0 0.4rem;
+      font-size: clamp(1.7rem, 2.0vw + 1.0rem, 2.4rem);
+      line-height: 1.15;
+    }
+
+    h2 {
+      margin: 0 0 0.6rem;
+      font-size: 1.15rem;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 760px;
+    }
+
+    .accent-underline {
+      position: relative;
+      display: inline-block;
+    }
+    .accent-underline::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 100%;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+      opacity: 0.9;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    p {
+      margin: 0 0 0.8rem;
+      color: var(--text-main);
+      font-size: 0.93rem;
+      line-height: 1.55;
+    }
+    p.muted { color: var(--text-muted); }
+
+    ul {
+      margin: 0.4rem 0 0;
+      padding-left: 18px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      font-size: 0.9rem;
+    }
+    li { margin: 0.25rem 0; }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.6rem;
+    }
+    .pill {
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      border: 1px solid rgba(255, 179, 71, 0.45);
+      background-color: rgba(8, 10, 25, 0.85);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 0.2rem;
+    }
+
+    footer {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      opacity: 0.85;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    footer a { color: inherit; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+
+  <link href="/app.css" rel="stylesheet" />
+  <script defer="True" src="/ui.js"></script>
+</head>
+
+<body>
+  <header class="app-header" id="gs-header"></header>
+  <main class="gs-page">
+    <section class="page-hero">
+      <h1><span class="accent-underline">About GoSnaggit</span></h1>
+      <p class="subtitle">
+        GoSnaggit helps collectors and shoppers find hard-to-find items by continuously searching supported marketplaces
+        and sending alerts when matches appear.
+      </p>
+    </section>
+
+    <div class="shell">
+      <div class="inner">
+        <div class="grid">
+          <section class="card">
+            <h2>Why it exists</h2>
+            <p>
+              Finding rare, vintage, or one-of-a-kind items often means checking the same sites over and over—
+              classifieds, auctions, niche forums, and marketplaces.
+              That’s time-consuming, and the best listings disappear fast.
+            </p>
+            <p>
+              GoSnaggit was built to do the repetitive part for you:
+              keep searching in the background, then notify you when something that matches your hunt shows up.
+            </p>
+            <div class="pill-row">
+              <span class="pill"><span class="pill-dot"></span> Antique furniture</span>
+              <span class="pill"><span class="pill-dot"></span> Vintage audio &amp; hi-fi</span>
+              <span class="pill"><span class="pill-dot"></span> Classic cars &amp; parts</span>
+              <span class="pill"><span class="pill-dot"></span> Collectibles &amp; oddities</span>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>How it works</h2>
+            <ul>
+              <li>Create a saved search (what you want, optional location, price cap).</li>
+              <li>GoSnaggit checks supported sources for new matches.</li>
+              <li>When something matches, you get an email alert.</li>
+              <li>You can control alerts per search: on/off, mode, and max per email.</li>
+            </ul>
+            <p class="muted" style="margin-top:0.9rem;">
+              GoSnaggit is currently in early access. Supported sources may expand over time as partnerships and approvals are completed.
+            </p>
+            <div class="actions">
+              <a class="btn btn-primary" href="/search.html">Search a Product</a>
+              <a class="btn btn-secondary" href="/searches.html">View My Searches</a>
+            </div>
+          </section>
+        </div>
+
+        <section class="card">
+          <h2>What GoSnaggit is not</h2>
+          <p class="muted">
+            GoSnaggit is designed to help you track your own searches and receive alerts. It is not intended for bulk data harvesting,
+            reselling marketplace data, or bypassing platform rules. We aim to work within marketplace policies and, where required,
+            through official APIs and approvals.
+          </p>
+        </section>
+
+        <footer>
+          <span>© GoSnaggit — Early Access</span>
+          <span style="display:flex; gap:12px; flex-wrap:wrap;">
+            <a href="/">Home</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="/contact.html">Contact</a>
+          </span>
+        </footer>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

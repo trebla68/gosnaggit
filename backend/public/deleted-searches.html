@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>GoSnaggit – Deleted Searches</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --brand: var(--accent);
+      --accent-soft: rgba(255, 179, 71, 0.15);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text: var(--text-main);
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1120px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 24px 22px 20px;
+    }
+
+    header {
+      margin-bottom: 1.2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1b1206;
+      font-weight: 800;
+      font-size: 1rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-text span:first-child {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .logo-text span:last-child {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.12);
+      background-color: rgba(9, 13, 32, 0.9);
+    }
+
+    h1 {
+      margin: 0 0 0.3rem;
+      font-size: 1.4rem;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      max-width: 520px;
+    }
+
+    .subtitle strong {
+      color: var(--accent);
+    }
+
+    .table-card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
+      border: 1px solid rgba(80, 97, 183, 0.6);
+      padding: 14px 13px 12px;
+      margin-top: 1rem;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+      gap: 8px;
+    }
+
+    .table-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .table-wrapper {
+      border-radius: 10px;
+      border: 1px solid rgba(46, 57, 118, 0.9);
+      background-color: rgba(6, 8, 22, 0.96);
+      overflow: auto;
+      max-height: 440px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      min-width: 680px;
+    }
+
+    thead {
+      background: linear-gradient(90deg,
+          rgba(24, 33, 78, 0.95),
+          rgba(19, 25, 61, 0.95));
+    }
+
+    th,
+    td {
+      padding: 7px 8px;
+      text-align: left;
+      border-bottom: 1px solid rgba(30, 38, 88, 0.9);
+      color: var(--text-main);
+      vertical-align: top;
+    }
+
+    th {
+      font-weight: 500;
+      color: var(--text-muted);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tbody tr:hover {
+      background-color: rgba(19, 25, 55, 0.9);
+    }
+
+    td.small {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    /* Action buttons (reuse style) */
+    .actions-cell {
+      white-space: nowrap;
+    }
+
+    .action-btn {
+      display: inline-block;
+      padding: 6px 14px;
+      margin-right: 6px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background-color: #1e293b;
+      color: #f1f5f9;
+      border-color: #334155;
+    }
+
+    .action-btn:hover {
+      background-color: #334155;
+    }
+
+    .action-restore {
+      background-color: #22c55e;
+      /* green-500 */
+      border-color: #16a34a;
+      /* green-600 */
+      color: white;
+    }
+
+    .action-restore:hover {
+      background-color: #16a34a;
+    }
+
+    #message {
+      margin-top: 0.6rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .message-error {
+      color: #ffc5cb;
+    }
+
+    .message-success {
+      color: #a7ffeb;
+    }
+  </style>
+<link href="/app.css" rel="stylesheet"/><script defer="True" src="/ui.js"></script></head>
+<body><header class="app-header" id="gs-header"></header>
+<main class="gs-page">
+<section class="page-hero">
+<h1>Deleted searches</h1>
+<p class="subtitle">Restore a search to bring it back to your active list.</p>
+</section>
+
+<div class="shell">
+<div class="inner">
+<div class="table-card">
+<div class="table-header">
+<div class="table-title">Deleted searches</div>
+</div>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Item</th>
+<th>Location / Category</th>
+<th>Max price</th>
+<th>Status</th>
+<th>Created</th>
+<th>Restore</th>
+</tr>
+</thead>
+<tbody id="deleted-body">
+<!-- Filled by JS -->
+</tbody>
+</table>
+</div>
+<div id="message" class="message" role="status" aria-live="polite"></div>
+</div>
+</div>
+</div>
+</main>
+<script>
+    const deletedBody = document.getElementById('deleted-body');
+    const messageEl = document.getElementById('message');
+
+    let __msgTimer = null;
+    function showMessage(kind, msg, autoHideMs = 4500) {
+      if (!messageEl) return;
+      if (__msgTimer) {
+        clearTimeout(__msgTimer);
+        __msgTimer = null;
+      }
+      messageEl.textContent = msg || '';
+      messageEl.className = 'message' + (kind ? ' ' + kind : '');
+      if (msg && autoHideMs) {
+        __msgTimer = setTimeout(() => {
+          messageEl.textContent = '';
+          messageEl.className = 'message';
+        }, autoHideMs);
+      }
+    }
+
+    function formatDate(isoString) {
+      if (!isoString) return '';
+      const date = new Date(isoString);
+      return date.toLocaleString();
+    }
+
+    function loadDeletedSearches() {
+      fetch('/api/searches/deleted')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to load deleted searches');
+          }
+          return response.json();
+        })
+        .then(data => {
+          deletedBody.innerHTML = '';
+
+          if (!Array.isArray(data) || data.length === 0) {
+            showMessage('', 'No deleted searches. When you delete searches, they will appear here.', 0);
+            return;
+          }
+
+          messageEl.textContent = '';
+
+          data.forEach(search => {
+            const tr = document.createElement('tr');
+
+            const maxPrice = search.max_price || '';
+            const status = search.status || '';
+
+            tr.innerHTML = `
+              <td>${search.id}</td>
+              <td>${search.search_item || ''}</td>
+              <td class="small">
+                ${search.location || '<span style="opacity:0.6;">(no location)</span>'}
+                <br>
+                <span style="opacity:0.7;">${search.category || '(no category)'}</span>
+              </td>
+              <td>${maxPrice ? '$' + maxPrice : ''}</td>
+              <td class="small">${status}</td>
+              <td class="small">${formatDate(search.created_at)}</td>
+              <td class="actions-cell">
+                <button class="action-btn action-restore" data-id="${search.id}">Restore</button>
+              </td>
+            `;
+
+            deletedBody.appendChild(tr);
+          });
+        })
+        .catch(err => {
+          messageEl.textContent = 'Error loading deleted searches: ' + err.message;
+          messageEl.classList.add('message-error');
+        });
+    }
+
+    loadDeletedSearches();
+
+    // Handle restore clicks
+    deletedBody.addEventListener('click', (event) => {
+      const btn = event.target.closest('.action-restore');
+      if (!btn) return;
+
+      const id = btn.getAttribute('data-id');
+      if (!id) return;
+
+      const confirmed = window.confirm('Restore this search? It will reappear in Saved Searches and monitoring will resume.');
+      if (!confirmed) return;
+
+      btn.disabled = true;
+
+      fetch('/api/searches/' + id + '/status', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'active' })
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to restore search');
+          }
+          return response.json();
+        })
+        .then(() => {
+          loadDeletedSearches(); // refresh list
+          showMessage('message-success', '✅ Search restored to active.', 4500);
+        })
+        .catch(err => {
+          showMessage('message-error', 'Error restoring search: ' + err.message, 6500);
+        })
+        .finally(() => {
+          btn.disabled = false;
+        });
+    });
+  </script>
+</body>
+</html>

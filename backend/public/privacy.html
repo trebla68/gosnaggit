@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>GoSnaggit – Privacy Policy</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --brand: var(--accent);
+      --accent-soft: rgba(255, 179, 71, 0.15);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text: var(--text-main);
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1040px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 26px 24px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0c1120 60%);
+      border: 1px solid rgba(103, 120, 210, 0.4);
+      padding: 16px 16px 14px;
+    }
+
+    h1 {
+      margin: 0 0 0.4rem;
+      font-size: clamp(1.7rem, 2.0vw + 1.0rem, 2.4rem);
+      line-height: 1.15;
+    }
+
+    h2 {
+      margin: 0 0 0.6rem;
+      font-size: 1.12rem;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 860px;
+    }
+
+    .accent-underline {
+      position: relative;
+      display: inline-block;
+    }
+    .accent-underline::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 100%;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+      opacity: 0.9;
+    }
+
+    p {
+      margin: 0 0 0.8rem;
+      color: var(--text-main);
+      font-size: 0.93rem;
+      line-height: 1.55;
+    }
+
+    p.muted { color: var(--text-muted); }
+
+    ul {
+      margin: 0.4rem 0 0;
+      padding-left: 18px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      font-size: 0.9rem;
+    }
+
+    li { margin: 0.25rem 0; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 860px) {
+      .two-col { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .note {
+      border: 1px solid rgba(255, 179, 71, 0.25);
+      background: rgba(255, 179, 71, 0.06);
+      border-radius: 12px;
+      padding: 12px 12px 10px;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    footer {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      opacity: 0.85;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    footer a { color: inherit; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+
+  <link href="/app.css" rel="stylesheet" />
+  <script defer="True" src="/ui.js"></script>
+</head>
+
+<body>
+  <header class="app-header" id="gs-header"></header>
+  <main class="gs-page">
+    <section class="page-hero">
+      <h1><span class="accent-underline">Privacy Policy</span></h1>
+      <p class="subtitle">
+        This policy explains what GoSnaggit collects, how it is used, and the choices you have.
+        (Early access version.)
+      </p>
+    </section>
+
+    <div class="shell">
+      <div class="inner">
+        <section class="card">
+          <h2>Summary</h2>
+          <ul>
+            <li>We store your saved searches and alert preferences so the app can notify you.</li>
+            <li>We store the email address you choose for alerts (to send notifications you requested).</li>
+            <li>We do not sell your personal information.</li>
+            <li>We aim to use official APIs and comply with marketplace rules where required.</li>
+          </ul>
+          <div class="note" style="margin-top:0.9rem;">
+            If you have questions, contact us at <span class="mono">support@gosnaggit.com</span> (or update this email to your preferred contact address).
+          </div>
+        </section>
+
+        <div class="two-col">
+          <section class="card">
+            <h2>Information we collect</h2>
+            <p class="muted">Information you provide:</p>
+            <ul>
+              <li>Saved search details (what you’re looking for, optional location, optional price cap).</li>
+              <li>Alert preferences per search (enabled/disabled, mode, max per email).</li>
+              <li>An email address for receiving alerts.</li>
+            </ul>
+
+            <p class="muted" style="margin-top:0.9rem;">Information collected automatically:</p>
+            <ul>
+              <li>Basic server logs (e.g., request time, page accessed) used for reliability and debugging.</li>
+            </ul>
+          </section>
+
+          <section class="card">
+            <h2>How we use information</h2>
+            <ul>
+              <li>To run searches and show your saved hunts in the app.</li>
+              <li>To send alert emails when matches appear, according to your settings.</li>
+              <li>To improve reliability, prevent abuse, and troubleshoot errors.</li>
+            </ul>
+
+            <p class="muted" style="margin-top:0.9rem;">What we do not do:</p>
+            <ul>
+              <li>We do not sell your personal information.</li>
+              <li>We do not send marketing emails unless you explicitly opt in (future feature).</li>
+            </ul>
+          </section>
+        </div>
+
+        <section class="card">
+          <h2>Sharing</h2>
+          <p class="muted">
+            GoSnaggit shares information only as needed to provide the service—for example, sending an email alert through
+            an email provider. We do not share or sell your information to third parties for their marketing.
+          </p>
+        </section>
+
+        <section class="card">
+          <h2>Data retention</h2>
+          <p class="muted">
+            We retain your saved searches and alert preferences while your account (or local usage) is active.
+            You can delete searches from within the app. In early access, additional deletion tools may be limited.
+          </p>
+        </section>
+
+        <section class="card">
+          <h2>Your choices</h2>
+          <ul>
+            <li>Disable alerts per search at any time.</li>
+            <li>Change the alert email address used for notifications.</li>
+            <li>Delete searches you no longer want tracked.</li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>Security</h2>
+          <p class="muted">
+            We use reasonable safeguards to protect your data. No system is 100% secure, but we work to minimize risk
+            and fix issues quickly.
+          </p>
+        </section>
+
+        <section class="card">
+          <h2>Changes to this policy</h2>
+          <p class="muted">
+            We may update this policy as GoSnaggit evolves. When we do, we’ll update the date on this page.
+          </p>
+          <p class="muted"><strong>Last updated:</strong> January 31, 2026</p>
+        </section>
+
+        <footer>
+          <span>© GoSnaggit — Early Access</span>
+          <span style="display:flex; gap:12px; flex-wrap:wrap;">
+            <a href="/">Home</a>
+            <a href="/about.html">About</a>
+            <a href="/contact.html">Contact</a>
+          </span>
+        </footer>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

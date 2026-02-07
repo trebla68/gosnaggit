@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>GoSnaggit – Edit Search</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --brand: var(--accent);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text: var(--text-main);
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --danger: #ff4b5c;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 900px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 22px 22px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1b1206;
+      font-weight: 800;
+      font-size: 1rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-text span:first-child {
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .logo-text span:last-child {
+      font-size: 0.98rem;
+      font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.12);
+      background-color: rgba(9, 13, 32, 0.9);
+    }
+
+    h1 {
+      margin: 0 0 0.3rem;
+      font-size: clamp(1.4rem, 1.9vw + 0.9rem, 1.9rem);
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      max-width: 560px;
+    }
+
+    .card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, #151827, #050712 70%);
+      border: 1px solid rgba(80, 97, 183, 0.6);
+      padding: 16px 16px 14px;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.86rem;
+    }
+
+    label {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      border-radius: 10px;
+      border: 1px solid rgba(75, 85, 99, 0.8);
+      background-color: rgba(6, 8, 22, 0.96);
+      padding: 7px 9px;
+      color: var(--text-main);
+      font-size: 0.88rem;
+      outline: none;
+    }
+
+    input::placeholder {
+      color: rgba(148, 163, 184, 0.8);
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(129, 140, 248, 0.9);
+      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.55);
+    }
+
+    .field-inline {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 720px) {
+      .field-inline {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .hint {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .buttons-row {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+.message {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .message.error {
+      color: #fecaca;
+    }
+
+    .message.success {
+      color: #bbf7d0;
+    }
+
+    footer {
+      margin-top: 4px;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      opacity: 0.9;
+    }
+
+    .checkbox-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .checkbox-row label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      opacity: 0.85;
+    }
+
+    .badge-soon {
+      opacity: 0.75;
+    }
+
+    .help {
+      margin-top: 8px;
+      font-size: 13px;
+      opacity: 0.85;
+    }
+  
+  
+  </style>
+  <link href="/app.css" rel="stylesheet" />
+  <script defer="True" src="/ui.js"></script>
+</head>
+
+<body>
+  <header class="app-header" id="gs-header"></header>
+  <main class="gs-page">
+    <section class="page-hero">
+  <h1 id="page-title">Edit search</h1>
+  <p class="subtitle" id="page-subtitle">Adjust the item, price ceiling, location, or status for this saved hunt.</p>
+</section>
+<div class="shell">
+      <div class="inner">
+
+        
+        <div class="card">
+          <form id="edit-form">
+            <div class="field-group">
+              <label for="search_item">Search item</label>
+              <input id="search_item" name="search_item" placeholder="e.g. Vintage car radio – Blaupunkt" required=""
+                type="text" />
+              <div class="hint">This is the anchor description for this hunt.</div>
+            </div>
+            <div class="field-inline">
+              <div class="field-group">
+                <label for="location">Location</label>
+                <input id="location" name="location" placeholder="e.g. Los Angeles, CA" type="text" />
+              </div>
+              <div class="field-group">
+                <label for="category">Category</label>
+                <input id="category" name="category" placeholder="e.g. Vintage Audio" type="text" />
+              </div>
+            </div>
+            <div class="field-inline">
+              <div class="field-group">
+                <label for="max_price">Max price</label>
+                <input id="max_price" min="0" name="max_price" placeholder="e.g. 350.00" step="0.01" type="number" />
+                <div class="hint">Optional price ceiling. You can tweak this as you refine the search.</div>
+              </div>
+              <div class="field-group">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="deleted">Deleted</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>Marketplaces</label>
+              <div class="checkbox-row">
+                <label><input checked id="mk_ebay" type="checkbox"> eBay</label>
+
+                <label id="mk_etsy_wrap">
+                  <input id="mk_etsy" type="checkbox">
+                  <span id="mk_etsy_label">Etsy</span>
+                  <span class="badge badge-soon" id="mk_etsy_badge">Coming soon</span>
+                </label>
+
+                <label><input id="mk_facebook" type="checkbox"> Facebook</label>
+                <label><input id="mk_craigslist" type="checkbox"> Craigslist</label>
+              </div>
+              <div class="help" id="mk_help"></div>
+            </div>
+
+            <div class="buttons-row">
+              <button class="btn btn-primary" type="submit">Save changes</button>
+              <a class="btn btn-secondary" href="#" id="view-details-link">View details</a>
+              <a class="btn btn-ghost" href="/searches.html">← Back to saved searches</a>
+            </div>
+            <div class="message" id="message"></div>
+          </form>
+        </div>
+        <footer>
+          GoSnaggit – internal MVP prototype. This edit form sends a PATCH request to your
+          <code>/api/searches/:id</code>
+          API.
+        </footer>
+      </div>
+    </div>
+    <script>
+      function getParams() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+          id: params.get('id')
+        };
+      }
+
+      const { id: searchId } = getParams();
+
+      const form = document.getElementById('edit-form');
+      const messageEl = document.getElementById('message');
+      const viewDetailsLink = document.getElementById('view-details-link');
+
+      const searchItemInput = document.getElementById('search_item');
+      const locationInput = document.getElementById('location');
+      const categoryInput = document.getElementById('category');
+      const maxPriceInput = document.getElementById('max_price');
+      const statusSelect = document.getElementById('status');
+      // Marketplace checkboxes
+      const mkEbay = document.getElementById('mk_ebay');
+      const mkEtsy = document.getElementById('mk_etsy');
+      const mkFacebook = document.getElementById('mk_facebook');
+      const mkCraigslist = document.getElementById('mk_craigslist');
+
+      const mkHelp = document.getElementById('mk_help');
+      const mkEtsyBadge = document.getElementById('mk_etsy_badge');
+      const mkEtsyLabel = document.getElementById('mk_etsy_label');
+      const mkEtsyWrap = document.getElementById('mk_etsy_wrap');
+
+      function setMarketplaceCheckboxes(marketplaces) {
+        const def = { ebay: true, etsy: false, facebook: false, craigslist: false };
+        const mp = (marketplaces && typeof marketplaces === 'object') ? { ...def, ...marketplaces } : def;
+
+        mkEbay.checked = !!mp.ebay;
+        mkEtsy.checked = !!mp.etsy;
+        mkFacebook.checked = !!mp.facebook;
+        mkCraigslist.checked = !!mp.craigslist;
+      }
+
+      function readMarketplaceCheckboxes() {
+        return {
+          ebay: mkEbay?.checked ?? true,
+          etsy: mkEtsy?.checked ?? false,
+          facebook: mkFacebook?.checked ?? false,
+          craigslist: mkCraigslist?.checked ?? false
+        };
+      }
+
+      async function applyMarketplaceAvailability() {
+        try {
+          const r = await fetch('/api/config', { cache: 'no-store' });
+          const cfg = await r.json();
+          const etsyAvailable = !!(cfg && cfg.marketplaces && cfg.marketplaces.etsy && cfg.marketplaces.etsy.available);
+
+          if (!etsyAvailable) {
+            mkEtsy.checked = false;
+            mkEtsy.disabled = true;
+            if (mkEtsyBadge) mkEtsyBadge.style.display = 'inline-block';
+            if (mkHelp) {
+              mkHelp.style.display = 'block';
+              mkHelp.textContent = 'Etsy is coming soon. This build searches eBay only.';
+            }
+            if (mkEtsyWrap) mkEtsyWrap.title = 'Coming soon — not enabled in this build';
+          } else {
+            mkEtsy.disabled = false;
+            if (mkEtsyBadge) mkEtsyBadge.style.display = 'none';
+            if (mkHelp) mkHelp.style.display = 'none';
+            if (mkEtsyWrap) mkEtsyWrap.title = '';
+          }
+        } catch (e) {
+          console.warn('Failed to load /api/config:', e);
+        }
+      }
+
+
+      function setMessage(text, type) {
+        messageEl.textContent = text || '';
+        messageEl.className = 'message';
+        if (type) {
+          messageEl.classList.add(type);
+        }
+      }
+
+      async function loadSearch() {
+        if (!searchId) {
+          setMessage('Missing search id in URL (e.g., edit-search.html?id=1).', 'error');
+          form.querySelector('button[type="submit"]').disabled = true;
+          return;
+        }
+
+        viewDetailsLink.href = '/search-detail.html?id=' + encodeURIComponent(searchId);
+
+        setMessage('Loading search details…');
+
+        try {
+          const res = await fetch('/api/searches/' + searchId);
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || 'Failed to load search');
+          }
+
+          const data = await res.json();
+
+          searchItemInput.value = data.search_item || '';
+          locationInput.value = data.location || '';
+          categoryInput.value = data.category || '';
+          maxPriceInput.value =
+            (data.max_price === null || data.max_price === undefined) ? '' : String(data.max_price);
+          setMarketplaceCheckboxes(data.marketplaces);
+          await applyMarketplaceAvailability();
+
+
+          if (data.status) {
+            statusSelect.value = data.status;
+          }
+
+          document.getElementById('page-title').textContent = `Edit “${data.search_item || 'Saved search'}”`;
+          setMessage('Search loaded. Make your changes and click Save.', 'success');
+        } catch (err) {
+          console.error(err);
+          setMessage('Error loading search: ' + err.message, 'error');
+        }
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        if (!searchId) {
+          setMessage('Missing search id – cannot save.', 'error');
+          return;
+        }
+
+        const search_item = searchItemInput.value.trim();
+        const location = locationInput.value.trim() || null;
+        const category = categoryInput.value.trim() || null;
+        const max_price_raw = maxPriceInput.value;
+        const status = statusSelect.value;
+
+        if (!search_item) {
+          setMessage('Search item is required.', 'error');
+          searchItemInput.focus();
+          return;
+        }
+
+        const max_price = max_price_raw === '' ? null : Number(max_price_raw);
+
+        setMessage('Saving changes…');
+
+        try {
+          const res = await fetch('/api/searches/' + searchId, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              search_item,
+              location,
+              category,
+              max_price,
+              status,
+              marketplaces: readMarketplaceCheckboxes()
+            })
+
+          });
+
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || 'Failed to update search');
+          }
+
+          const data = await res.json();
+          setMessage('Changes saved. You can return to Saved searches or view details.', 'success');
+        } catch (err) {
+          console.error(err);
+          setMessage('Error saving changes: ' + err.message, 'error');
+        }
+      });
+
+      document.addEventListener('DOMContentLoaded', loadSearch);
+    </script>
+  </main>
+</body>
+
+</html>

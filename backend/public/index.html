@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>GoSnaggit – Find Hard-to-Find Items</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+<meta content="width=device-width, initial-scale=1" name="viewport" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --brand: var(--accent);
+      --accent-soft: rgba(255, 179, 71, 0.15);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text: var(--text-main);
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --danger: #ff4b5c;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1040px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 28px 26px 26px;
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.5fr);
+      gap: 26px;
+    }
+
+    @media (max-width: 840px) {
+      .inner {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 22px 18px 20px;
+      }
+    }
+
+    header {
+      margin-bottom: 1.6rem;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 0.75rem;
+    }
+
+    .logo-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1b1206;
+      font-weight: 800;
+      font-size: 1.1rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-text span:first-child {
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .logo-text span:last-child {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    h1 {
+      font-size: clamp(1.9rem, 2.4vw + 1.1rem, 2.6rem);
+      margin: 0 0 0.6rem;
+      line-height: 1.15;
+    }
+
+    .accent-underline {
+      position: relative;
+      display: inline-block;
+    }
+
+    .accent-underline::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 100%;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+      opacity: 0.9;
+    }
+
+    .tagline {
+      font-size: 0.98rem;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0;
+    }
+
+    .tagline strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .pill-row {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      border: 1px solid rgba(255, 179, 71, 0.45);
+      background-color: rgba(8, 10, 25, 0.85);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .actions {
+      margin-top: 1.8rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+
+    .meta-row {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .meta-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--border-subtle);
+    }
+
+    /* RIGHT SIDE: RESULTS PREVIEW CARD */
+    .side-card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0c1120 60%);
+      border: 1px solid rgba(103, 120, 210, 0.4);
+      padding: 16px 16px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .side-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.8rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .side-tag {
+      border-radius: 999px;
+      padding: 3px 9px;
+      background-color: rgba(21, 226, 150, 0.08);
+      border: 1px solid rgba(88, 255, 177, 0.4);
+      color: #b4ffda;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* CLICKABLE PILL FIX — restores proportions */
+    .side-tag-link {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .side-tag-link:hover {
+      text-decoration: underline;
+    }
+
+    .side-tag-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #4cf3ad;
+    }
+
+    .side-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.4rem;
+    }
+
+    .side-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.9rem;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      font-size: 0.78rem;
+    }
+
+    .result-tile {
+      border-radius: 12px;
+      background-color: rgba(7, 10, 26, 0.95);
+      border: 1px solid rgba(50, 61, 112, 0.8);
+      padding: 8px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .result-title {
+      font-weight: 500;
+      font-size: 0.8rem;
+    }
+
+    .result-meta {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .result-price {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .result-badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.7rem;
+      margin-top: 2px;
+    }
+
+    .result-badge {
+      border-radius: 999px;
+      padding: 2px 7px;
+      background-color: rgba(74, 86, 175, 0.55);
+      color: #d8deff;
+    }
+
+    .result-source {
+      color: var(--text-muted);
+      opacity: 0.9;
+    }
+
+    .side-footer {
+      margin-top: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .side-progress {
+      position: relative;
+      flex: 1;
+      height: 5px;
+      border-radius: 999px;
+      background-color: rgba(37, 43, 84, 0.9);
+      margin-right: 10px;
+      overflow: hidden;
+    }
+
+    .side-progress-fill {
+      position: absolute;
+      inset: 0;
+      width: 68%;
+      background: linear-gradient(90deg, var(--accent-strong), #5effc3);
+    }
+
+    .side-count {
+      font-size: 0.76rem;
+    }
+
+    footer {
+      grid-column: 1 / -1;
+      margin-top: 0.6rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      opacity: 0.8;
+    }
+  </style>
+  <link href="/app.css" rel="stylesheet" />
+  <script defer="True" src="/ui.js"></script>
+</head>
+
+<body>
+  <header class="app-header" id="gs-header"></header>
+  <main class="gs-page">
+    <section class="page-hero">
+      <h1><span class="accent-underline">On the hunt for hard-to-find items?</span></h1>
+      <p class="tagline">
+        Don’t let somebody else beat you to it. <strong>GoSnaggit</strong> searches
+        vintage classifieds and hidden marketplaces for you and sends alerts
+        when your item is found—so you can snag it first.
+      </p>
+    </section>
+    <div class="shell">
+      <div class="inner">
+        <!-- LEFT SIDE -->
+        <div>
+
+          <div class="pill-row">
+            <div class="pill"><span class="pill-dot"></span> Vintage audio &amp; hi-fi</div>
+            <div class="pill"><span class="pill-dot"></span> Classic cars &amp; parts</div>
+            <div class="pill"><span class="pill-dot"></span> Antique furniture</div>
+            <div class="pill"><span class="pill-dot"></span> One-of-a-kind collectibles</div>
+          </div>
+          <div class="actions">
+            <a class="btn btn-primary" href="/search.html">
+              <span class="icon">🔍</span>
+              <span>Search a Product</span>
+            </a>
+            <a class="btn btn-secondary" href="/searches.html">View My Searches</a>
+          </div>
+          <div class="meta-row">
+            <span><span class="meta-dot"></span> Early access preview – real searches and alerts are active</span>
+            <span><span class="meta-dot"></span> Continuously scans supported marketplaces for your items</span>
+          </div>
+        
+        <section style="margin-top:2.5rem;">
+          <h2 style="font-size:1.2rem;">What is GoSnaggit?</h2>
+          <p class="tagline">
+            GoSnaggit was built for people who hunt for rare, vintage, or hard‑to‑find items online.
+            Instead of manually checking dozens of sites every day, GoSnaggit continuously searches
+            supported marketplaces for you and notifies you when your item appears.
+          </p>
+          <p class="tagline" style="margin-top:0.6rem;">
+            Whether you're looking for antique furniture, classic car parts, vintage audio gear, or unique collectibles,
+            GoSnaggit helps you find it faster — before someone else does.
+          </p>
+        </section>
+
+        </div>
+        <!-- RIGHT SIDE -->
+        <aside class="side-card">
+          <div class="side-header">
+            <span>Live hunt preview</span>
+            <!-- CLICKABLE PILL -->
+            <a class="side-tag side-tag-link" href="/searches.html">
+              <span class="side-tag-dot"></span>
+              <span id="active-count">—</span> <span id="active-label">active searches</span>
+            </a>
+          </div>
+          <div class="side-title">You’re tracking:</div>
+          <div class="side-subtitle">
+            A few examples of the kinds of items GoSnaggit is meant to help you find.
+          </div>
+          <div class="results-grid">
+            <div class="result-tile">
+              <div class="result-title">Vintage car radio – Blaupunkt</div>
+              <div class="result-meta"><span>Berlin</span><span class="result-price">$185</span></div>
+              <div class="result-badge-row">
+                <span class="result-badge">New listing</span>
+                <span class="result-source">Mock • Local classifieds</span>
+              </div>
+            </div>
+            <div class="result-tile">
+              <div class="result-title">1960 Porsche 356 – project</div>
+              <div class="result-meta"><span>Los Angeles</span><span class="result-price">$32,000</span></div>
+              <div class="result-badge-row">
+                <span class="result-badge">Price drop</span>
+                <span class="result-source">Mock • Specialty forum</span>
+              </div>
+            </div>
+            <div class="result-tile">
+              <div class="result-title">Antique oak writing desk</div>
+              <div class="result-meta"><span>New York</span><span class="result-price">$420</span></div>
+              <div class="result-badge-row">
+                <span class="result-badge">Matches max price</span>
+                <span class="result-source">Mock • Marketplace</span>
+              </div>
+            </div>
+            <div class="result-tile">
+              <div class="result-title">Tube amp receiver (1960s)</div>
+              <div class="result-meta"><span>Chicago</span><span class="result-price">$610</span></div>
+              <div class="result-badge-row">
+                <span class="result-badge">Rare find</span>
+                <span class="result-source">Mock • Auction site</span>
+              </div>
+            </div>
+          </div>
+          <div class="side-footer">
+            <div class="side-progress">
+              <div class="side-progress-fill"></div>
+            </div>
+            <div class="side-count">Mock scan: 68% of sources checked</div>
+          </div>
+        </aside>
+        <footer>
+          GoSnaggit is an early‑access service that helps collectors and shoppers find hard‑to‑find items by automatically searching supported marketplaces and sending alerts when matches appear.
+        </footer>
+        <div style="margin-top:10px; font-size:0.7rem; color:var(--text-muted); display:flex; gap:12px;">
+          <a href="/about.html" style="color:inherit;">About</a>
+          <a href="/privacy.html" style="color:inherit;">Privacy</a>
+          <a href="/contact.html" style="color:inherit;">Contact</a>
+        </div>
+      </div>
+    </div>
+    <script>
+      async function updateHomeCounts() {
+        const countEl = document.getElementById('active-count');
+        const labelEl = document.getElementById('active-label');
+
+        try {
+          const res = await fetch('/api/searches');
+          if (!res.ok) throw new Error('Failed to fetch searches');
+          const searches = await res.json();
+
+          const activeCount = searches.filter(s => s.status === 'active').length;
+
+          if (countEl) countEl.textContent = activeCount;
+          if (labelEl) labelEl.textContent = activeCount === 1 ? 'active search' : 'active searches';
+        } catch (err) {
+          console.error('Home count error:', err);
+          if (countEl) countEl.textContent = '—';
+          if (labelEl) labelEl.textContent = 'active searches';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', updateHomeCounts);
+    </script>
+  </main>
+</body>
+
+</html>
