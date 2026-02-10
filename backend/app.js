@@ -969,20 +969,24 @@ async function getSearchResults(req, res) {
     const offsetNum = clampInt(req.query.offset, { min: 0, max: 1_000_000, fallback: 0 });
 
     const sql = `
-      SELECT
-        id,
-        search_id,
-        marketplace,
-        external_id,
-        title,
-        price,
-        currency,
-        listing_url,
-        image_url,
-        location,
-        condition,
-        seller_username,
-        found_at
+SELECT
+  id,
+  search_id,
+  marketplace,
+  external_id,
+  title,
+  price,
+  currency,
+  price_num,
+  shipping_num,
+  total_price,
+  listing_url,
+  image_url,
+  location,
+  condition,
+  seller_username,
+  found_at
+
       FROM results
       WHERE search_id = $1
       ORDER BY found_at DESC, id DESC
@@ -1022,6 +1026,39 @@ async function postSearchResults(req, res) {
   }
 }
 
+async function getSearchPricingSummary(req, res) {
+  try {
+    const searchId = toInt(req.params.id);
+    if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+
+    const sql = `
+      SELECT
+        COUNT(*) FILTER (WHERE price_num IS NOT NULL) AS priced_count,
+        MIN(price_num) AS min_price,
+        MAX(price_num) AS max_price,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY price_num) AS median_price
+      FROM results
+      WHERE search_id = $1
+    `;
+
+    const { rows } = await pool.query(sql, [searchId]);
+    const r = rows[0] || {};
+
+    res.json({
+      search_id: searchId,
+      priced_count: Number(r.priced_count || 0),
+      min_price: r.min_price,
+      max_price: r.max_price,
+      median_price: r.median_price,
+      currency: 'USD'
+    });
+  } catch (err) {
+    console.error('GET pricing summary failed:', err);
+    res.status(500).json({ error: 'Failed to fetch pricing summary' });
+  }
+}
+
+
 app.get('/searches/:id/results', getSearchResults);
 app.get('/api/searches/:id/results', getSearchResults);
 
@@ -1030,6 +1067,10 @@ app.post('/api/searches/:id/results', postSearchResults);
 
 app.all('/searches/:id/results', methodNotAllowed(['GET', 'POST']));
 app.all('/api/searches/:id/results', methodNotAllowed(['GET', 'POST']));
+
+app.get('/searches/:id/pricing-summary', getSearchPricingSummary);
+app.get('/api/searches/:id/pricing-summary', getSearchPricingSummary);
+
 
 // --------------------
 // Refresh (enqueue only)
