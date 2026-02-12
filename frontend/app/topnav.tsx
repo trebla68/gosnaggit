@@ -17,8 +17,13 @@ export default function TopNav() {
         { href: "/", label: "Home" },
         { href: "/new-search", label: "New search" },
         { href: "/saved-searches", label: "Saved searches" },
+        { href: "/pricing", label: "Pricing" },
+        { href: "/register", label: "Register" },
+        { href: "/about", label: "About" },
+        { href: "/privacy", label: "Privacy" },
         { href: "/deleted", label: "Deleted" },
     ];
+
 
     return (
         <nav className="nav" aria-label="Primary">

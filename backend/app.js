@@ -1612,6 +1612,38 @@ app.post('/api/searches/:id/notifications/email', notificationsEmailHandler);
 app.all('/searches/:id/notifications/email', methodNotAllowed(['POST']));
 app.all('/api/searches/:id/notifications/email', methodNotAllowed(['POST']));
 
+// --------------------
+// Registration (MVP) — emails admin for now
+// --------------------
+app.post('/api/registrations', async (req, res) => {
+  try {
+    const { name, email, notes } = req.body || {};
+    const emailNorm = normalizeEmail(email);
+    if (!emailNorm) return res.status(400).json({ ok: false, error: 'Valid email is required' });
+
+    const safeName = (name === undefined || name === null) ? '' : String(name).trim();
+    const safeNotes = (notes === undefined || notes === null) ? '' : String(notes).trim();
+
+    const to = process.env.SIGNUP_TO_EMAIL || process.env.ALERTS_FROM_EMAIL;
+    if (!to) return res.status(500).json({ ok: false, error: 'Missing SIGNUP_TO_EMAIL (or ALERTS_FROM_EMAIL)' });
+
+    const subject = 'GoSnaggit Beta Registration';
+    const text =
+      `New beta registration:\n\n` +
+      `Name: ${safeName || '(not provided)'}\n` +
+      `Email: ${emailNorm}\n` +
+      `Notes: ${safeNotes || '(none)'}\n\n` +
+      `Time: ${new Date().toISOString()}\n`;
+
+    const result = await sendEmail({ to, subject, text });
+    return res.json({ ok: true, delivered: result });
+  } catch (err) {
+    console.error('POST /api/registrations failed:', err);
+    return res.status(500).json({ ok: false, error: 'Failed to submit registration' });
+  }
+});
+
+app.all('/api/registrations', methodNotAllowed(['POST']));
 
 
 // --------------------

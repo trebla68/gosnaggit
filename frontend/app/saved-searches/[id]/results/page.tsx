@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../../../../lib/api";
+import { api, type SearchRow } from "../../../../lib/api";
 
 type ResultRow = {
   id?: string | number;
@@ -22,6 +22,9 @@ type ResultRow = {
 
   found_at?: string | null;
   created_at?: string | null;
+
+  // Neon numeric column (you added)
+  price_num?: number | null;
 };
 
 function fmtPrice(price: any, currency?: string | null) {
@@ -29,7 +32,6 @@ function fmtPrice(price: any, currency?: string | null) {
   const n = Number(price);
   if (Number.isFinite(n)) {
     try {
-      // If currency is valid, Intl will format nicely
       if (currency) {
         return new Intl.NumberFormat(undefined, {
           style: "currency",
@@ -43,6 +45,18 @@ function fmtPrice(price: any, currency?: string | null) {
   return String(price);
 }
 
+function numPrice(r: any) {
+  // Prefer indexed numeric column
+  const n1 = Number(r?.price_num);
+  if (Number.isFinite(n1) && n1 > 0) return n1;
+
+  // Fallback legacy
+  const n2 = Number(r?.price);
+  if (Number.isFinite(n2) && n2 > 0) return n2;
+
+  return null;
+}
+
 function fmtWhen(iso?: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -51,13 +65,16 @@ function fmtWhen(iso?: string | null) {
 }
 
 function pillClass(kind: "ok" | "warn" | "bad" | "neutral" = "neutral") {
-  // Reuse your existing vibe (soft pills). Falls back gracefully if CSS is minimal.
   return `pill pill-${kind}`;
 }
 
 export default function ResultsPage({ params }: { params: { id: string } }) {
   const id = Number(params.id);
+
   const [rows, setRows] = useState<ResultRow[]>([]);
+  const [search, setSearch] = useState<SearchRow | null>(null);
+  const [sortBy, setSortBy] = useState<"newest" | "price_low" | "price_high">("newest");
+
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -65,13 +82,20 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     let alive = true;
+
     (async () => {
       try {
         setLoading(true);
-        const data = await api.getResults(id, 200, 0);
-        if (!alive) return;
-        setRows(Array.isArray(data) ? data : []);
         setErr(null);
+
+        const [s, data] = await Promise.all([
+          api.getSearch(id),
+          api.getResults(id, 200, 0),
+        ]);
+
+        if (!alive) return;
+        setSearch(s);
+        setRows(Array.isArray(data) ? (data as ResultRow[]) : []);
       } catch (e: any) {
         if (!alive) return;
         setErr(e?.message || "Failed to load results");
@@ -79,21 +103,49 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         if (alive) setLoading(false);
       }
     })();
+
     return () => {
       alive = false;
     };
   }, [id]);
 
   const sorted = useMemo(() => {
-    const copy = [...(rows || [])];
-    // prefer found_at desc, fallback created_at
-    copy.sort((a, b) => {
-      const ta = Date.parse((a.found_at || a.created_at || "") as any) || 0;
-      const tb = Date.parse((b.found_at || b.created_at || "") as any) || 0;
+    const copy = [...rows];
+
+    if (sortBy === "price_low") {
+      return copy.sort((a, b) => (numPrice(a) ?? Infinity) - (numPrice(b) ?? Infinity));
+    }
+
+    if (sortBy === "price_high") {
+      return copy.sort((a, b) => (numPrice(b) ?? -Infinity) - (numPrice(a) ?? -Infinity));
+    }
+
+    // Default: newest first
+    return copy.sort((a, b) => {
+      const ta = new Date(a.found_at || a.created_at || 0).getTime();
+      const tb = new Date(b.found_at || b.created_at || 0).getTime();
       return tb - ta;
     });
-    return copy;
-  }, [rows]);
+  }, [rows, sortBy]);
+
+  const priceStats = useMemo(() => {
+    const nums = (sorted || [])
+      .map((r) => numPrice(r))
+      .filter((n): n is number => n !== null)
+      .sort((a, b) => a - b);
+
+    if (nums.length === 0) return null;
+
+    const min = nums[0];
+    const max = nums[nums.length - 1];
+    const mid = Math.floor(nums.length / 2);
+    const median = nums.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
+
+    const maxPrice = search?.max_price ?? null;
+    const underMax = maxPrice == null ? null : nums.filter((n) => n <= maxPrice).length;
+
+    return { min, median, max, count: nums.length, maxPrice, underMax };
+  }, [sorted, search]);
 
   return (
     <main className="page">
@@ -105,12 +157,30 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             {loading ? "" : `• ${count} item${count === 1 ? "" : "s"}`}
           </p>
         </div>
+
         <div className="ctaRow">
           <a className="btn" href={`/saved-searches/${id}`}>Details</a>
           <a className="btn" href={`/saved-searches/${id}/alerts`}>Alerts</a>
-          <a className="btn" href="/saved-searches">Back</a>
         </div>
       </div>
+
+      {priceStats ? (
+        <div className="card" style={{ padding: 14, marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <span className="pill pill-neutral">Lowest: {fmtPrice(priceStats.min, "USD")}</span>
+            <span className="pill pill-neutral">Median: {fmtPrice(priceStats.median, "USD")}</span>
+            <span className="pill pill-neutral">Highest: {fmtPrice(priceStats.max, "USD")}</span>
+
+            {priceStats.maxPrice != null ? (
+              <span className="pill pill-ok">
+                Under your max ({priceStats.maxPrice}): {priceStats.underMax ?? 0}/{priceStats.count}
+              </span>
+            ) : (
+              <span className="pill pill-warn">No max price set for this search</span>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className="card">
         {loading ? (
@@ -120,198 +190,215 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         ) : sorted.length === 0 ? (
           <div className="empty">No results yet.</div>
         ) : (
-          <div className="resultsGrid">
-            {sorted.map((r, idx) => {
-              const key = (r.id ?? r.external_id ?? idx) as any;
-              const mp = (r.marketplace || "").toLowerCase();
-              const mpLabel = r.marketplace ? r.marketplace.toUpperCase() : "SOURCE";
-              const priceLabel = fmtPrice(r.price, r.currency);
-              const when = fmtWhen(r.found_at || r.created_at);
-              const hasImg = !!r.image_url;
+          <>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ fontWeight: 800 }}>{sorted.length} results</div>
 
-              return (
-                <div className="resultCard" key={key}>
-                  <div className="resultMedia">
-                    {hasImg ? (
-                      // using <img> to keep it simple; Next Image can be added later
-                      <img
-                        src={r.image_url as string}
-                        alt={r.title || "Result image"}
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="resultMediaFallback">
-                        <span>no image</span>
-                      </div>
-                    )}
-                  </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="muted">Sort</span>
+                <select
+                  className="input"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                >
+                  <option value="newest">Newest</option>
+                  <option value="price_low">Price: Low → High</option>
+                  <option value="price_high">Price: High → Low</option>
+                </select>
+              </label>
+            </div>
 
-                  <div className="resultBody">
-                    <div className="resultTop">
-                      <span className={pillClass(mp === "ebay" ? "ok" : "neutral")}>
-                        {mpLabel}
-                      </span>
-                      {r.condition ? (
-                        <span className={pillClass("neutral")}>{r.condition}</span>
-                      ) : null}
-                      {r.location ? (
-                        <span className={pillClass("neutral")}>{r.location}</span>
-                      ) : null}
-                    </div>
+            <div className="resultsGrid">
+              {sorted.map((r, idx) => {
+                const key = (r.id ?? r.external_id ?? idx) as any;
+                const mp = (r.marketplace || "").toLowerCase();
+                const mpLabel = r.marketplace ? r.marketplace.toUpperCase() : "SOURCE";
+                const priceLabel = fmtPrice(r.price_num ?? r.price, r.currency);
+                const p = numPrice(r);
 
-                    <div className="resultTitle" title={r.title || ""}>
-                      {r.title || "—"}
-                    </div>
+                const isBest = priceStats && p != null && p === priceStats.min;
+                const underMax =
+                  priceStats && p != null && priceStats.maxPrice != null && p <= priceStats.maxPrice;
 
-                    <div className="resultMeta">
-                      <div className="resultPrice">{priceLabel}</div>
-                      <div className="resultSub">
-                        {r.seller_username ? <span>Seller: {r.seller_username}</span> : <span />}
-                        {when ? <span className="muted">Found: {when}</span> : null}
-                      </div>
-                    </div>
+                const when = fmtWhen(r.found_at || r.created_at);
+                const hasImg = !!r.image_url;
 
-                    <div className="resultActions">
-                      {r.listing_url ? (
-                        <a className="btn btnSmall" href={r.listing_url} target="_blank" rel="noreferrer">
-                          Open
-                        </a>
+                return (
+                  <div className="resultCard" key={key}>
+                    <div className="resultMedia">
+                      {hasImg ? (
+                        <img
+                          src={r.image_url as string}
+                          alt={r.title || "Result image"}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
                       ) : (
-                        <span className="muted">No link</span>
+                        <div className="resultMediaFallback">
+                          <span>no image</span>
+                        </div>
                       )}
+                    </div>
 
-                      {r.listing_url ? (
-                        <button
-                          className="btn btnSmall btnGhost"
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(r.listing_url as string);
-                            } catch { }
-                          }}
-                          title="Copy listing link"
-                        >
-                          Copy link
-                        </button>
-                      ) : null}
+                    <div className="resultBody">
+                      <div className="resultTop">
+                        <span className={pillClass(mp === "ebay" ? "ok" : "neutral")}>{mpLabel}</span>
+                        {isBest ? <span className={pillClass("ok")}>BEST PRICE</span> : null}
+                        {underMax ? <span className={pillClass("warn")}>UNDER MAX</span> : null}
+                        {r.condition ? <span className={pillClass("neutral")}>{r.condition}</span> : null}
+                        {r.location ? <span className={pillClass("neutral")}>{r.location}</span> : null}
+                      </div>
+
+                      <div className="resultTitle">{r.title || "Untitled listing"}</div>
+
+                      <div className="resultMeta">
+                        <div className="resultPrice">{priceLabel}</div>
+                        <div className="muted">{when}</div>
+                      </div>
+
+                      <div className="resultActions">
+                        {r.listing_url ? (
+                          <a className="btn primary" href={r.listing_url as string} target="_blank" rel="noreferrer">
+                            Open listing
+                          </a>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
-      {/* Minimal CSS (scoped globally by class names you can keep). */}
-      <style jsx global>{`
-        .resultsGrid{
-          display:grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-          gap: 14px;
+      <style jsx>{`
+        .page {
+          padding: 18px;
         }
-        .resultCard{
-          display:grid;
-          grid-template-columns: 120px 1fr;
-          gap: 12px;
-          padding: 12px;
-          border: 1px solid rgba(0,0,0,.08);
-          border-radius: 14px;
-          background: rgba(255,255,255,.65);
-          box-shadow: 0 8px 20px rgba(0,0,0,.06);
-        }
-        .resultMedia{
-          width: 120px;
-          height: 120px;
-          border-radius: 12px;
-          overflow:hidden;
-          background: rgba(255,255,255,.75);
-          border: 1px solid rgba(0,0,0,.08);
-          display:flex;
-          align-items:center;
-          justify-content:center;
-        }
-        .resultMedia img{
-          width:100%;
-          height:100%;
-          object-fit: cover;
-          display:block;
-        }
-        .resultMediaFallback{
-          width:100%;
-          height:100%;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          font-size: 12px;
-          color: rgba(0,0,0,.45);
-          text-transform: uppercase;
-          letter-spacing: .08em;
-        }
-        .resultBody{
-          min-width: 0;
-          display:flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .resultTop{
-          display:flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          align-items:center;
-        }
-        .pill{
-          display:inline-flex;
-          align-items:center;
-          padding: 4px 10px;
-          border-radius: 999px;
-          font-size: 12px;
-          border: 1px solid rgba(0,0,0,.12);
-          background: rgba(255,255,255,.85);
-        }
-        .pill-ok{ background: rgba(186, 230, 186, .65); }
-        .pill-warn{ background: rgba(255, 220, 168, .65); }
-        .pill-bad{ background: rgba(255, 186, 186, .65); }
-        .pill-neutral{ background: rgba(255,255,255,.75); }
-        .resultTitle{
-          font-weight: 800;
-          line-height: 1.25;
-          font-size: 15px;
-          overflow: hidden;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-        }
-        .resultMeta{
-          display:flex;
-          align-items:flex-end;
+        .pageHead {
+          display: flex;
+          align-items: flex-start;
           justify-content: space-between;
           gap: 12px;
+          margin-bottom: 12px;
         }
-        .resultPrice{
+        .h1 {
+          margin: 0;
+          font-size: 22px;
           font-weight: 900;
-          font-size: 16px;
         }
-        .resultSub{
-          display:flex;
-          flex-direction: column;
-          gap: 2px;
-          text-align: right;
+        .muted {
+          opacity: 0.72;
+          margin: 6px 0 0;
+        }
+        .ctaRow {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .card {
+          padding: 14px;
+          border-radius: 14px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(0, 0, 0, 0.12);
+        }
+        .empty {
+          padding: 18px;
+          opacity: 0.8;
+        }
+        .resultsGrid {
+          display: grid;
+          gap: 12px;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        }
+        .resultCard {
+          border-radius: 14px;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(0, 0, 0, 0.10);
+          display: grid;
+          grid-template-rows: 160px auto;
+        }
+        .resultMedia {
+          background: rgba(255, 255, 255, 0.04);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+        .resultMedia img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .resultMediaFallback {
+          opacity: 0.7;
           font-size: 12px;
         }
-        .resultActions{
-          display:flex;
+        .resultBody {
+          padding: 12px;
+          display: grid;
           gap: 8px;
-          align-items:center;
         }
-        .btnSmall{
-          padding: 8px 12px;
+        .resultTop {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          align-items: center;
+        }
+        .resultTitle {
+          font-weight: 800;
+          line-height: 1.2;
+        }
+        .resultMeta {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          align-items: baseline;
+        }
+        .resultPrice {
+          font-weight: 900;
+        }
+        .resultActions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .pill {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 8px;
           border-radius: 999px;
-          font-size: 13px;
+          font-size: 11px;
+          font-weight: 800;
+          border: 1px solid rgba(255, 255, 255, 0.10);
+          background: rgba(255, 255, 255, 0.06);
         }
-        .btnGhost{
-          background: rgba(255,255,255,.55);
+        .pill-neutral {
+          background: rgba(255, 255, 255, 0.06);
+        }
+        .pill-ok {
+          background: rgba(46, 204, 113, 0.18);
+          border-color: rgba(46, 204, 113, 0.45);
+        }
+        .pill-warn {
+          background: rgba(255, 179, 71, 0.18);
+          border-color: rgba(255, 179, 71, 0.45);
+        }
+        .pill-bad {
+          background: rgba(231, 76, 60, 0.18);
+          border-color: rgba(231, 76, 60, 0.45);
         }
       `}</style>
     </main>

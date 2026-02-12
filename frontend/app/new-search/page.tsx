@@ -72,6 +72,17 @@ export default function NewSearch() {
         Create a saved search. You can adjust marketplaces and alert settings after you create it.
       </p>
 
+      <div className="card" style={{ padding: 14, marginTop: 12, marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 800 }}>Want beta access + pricing insights?</div>
+            <div className="muted">Register so we can notify you as we roll out memberships and payments.</div>
+          </div>
+          <a className="btn primary" href="/register">Register</a>
+        </div>
+      </div>
+
+
       <div className="panel">
         <label>Search item</label>
         <input

@@ -10,5 +10,11 @@
     "mode": "immediate",
     "maxPerEmail": 25,
     "lastDigestSentAt": null
+  },
+  "161": {
+    "enabled": true,
+    "mode": "immediate",
+    "maxPerEmail": 15,
+    "lastDigestSentAt": null
   }
 }
