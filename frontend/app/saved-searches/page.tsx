@@ -22,196 +22,190 @@ function hasNewResults(last_found_at: string | null | undefined, hours = 24) {
 
 export default function SavedSearchesPage() {
   const router = useRouter();
+
   const [rows, setRows] = useState<SearchRow[]>([]);
+  const [summaries, setSummaries] = useState<Record<string, AlertSummary>>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [summaries, setSummaries] = useState<Record<number, AlertSummary>>({});
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
+    setLoading(true);
+    setErr(null);
+
     (async () => {
       try {
-        setLoading(true);
-        const data = await api.listSearches(200);
+        const list = await api.listSearches({ limit: 200 });
         if (!alive) return;
-        setRows(data || []);
-        console.log(
-          "listSearches first row last_found_at:",
-          (data || [])[0]?.last_found_at,
-          "full:",
-          (data || [])[0]
+
+        setRows(list || []);
+
+        // fetch summaries (best-effort)
+        const next: Record<string, AlertSummary> = {};
+        await Promise.all(
+          (list || []).map(async (s) => {
+            try {
+              const sum = await api.getAlertsSummary(Number(s.id));
+              next[String(s.id)] = sum;
+            } catch {
+              // ignore per-row errors
+            }
+          })
         );
-        setErr(null);
+
+        if (!alive) return;
+        setSummaries(next);
+        setLoading(false);
       } catch (e: any) {
         if (!alive) return;
-        setErr(e?.message || "Failed to load searches");
-      } finally {
-        if (alive) setLoading(false);
+        setErr(String(e?.message || e));
+        setLoading(false);
       }
     })();
+
     return () => {
       alive = false;
     };
   }, []);
 
-  // fetch alert summary per search after initial load (non-blocking)
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const ids = rows.map(r => r.id);
-      for (const id of ids) {
-        if (!alive) return;
-        try {
-          const s = await api.getAlertSummary(id);
-          if (!alive) return;
-          setSummaries(prev => ({ ...prev, [id]: s }));
-        } catch {
-          // ignore summary failures per-row
-        }
-      }
-    })();
-    return () => { alive = false; };
-  }, [rows]);
+  const active = useMemo(() => rows.filter((r) => String(r.status || "").toLowerCase() !== "deleted"), [rows]);
+  const deleted = useMemo(() => rows.filter((r) => String(r.status || "").toLowerCase() === "deleted"), [rows]);
 
-  const sorted = useMemo(() => [...rows].sort((a, b) => b.id - a.id), [rows]);
-
-  async function doRefresh(id: number) {
+  async function onDelete(id: number) {
+    setBusyId(id);
     try {
-      setBusyId(id);
-      setToast("Refreshing…");
-      await api.refreshSearch(id);
-      setToast("Refresh queued ✅");
-      setTimeout(() => setToast(null), 2500);
-    } catch (e: any) {
-      setToast(null);
-      alert(e?.message || "Refresh failed");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function doSendNow(id: number) {
-    try {
-      setBusyId(id);
-      setToast("Sending…");
-      const res = await api.sendNow(id, 25);
-      // show skip reasons if present
-      if (res?.skipped) {
-        setToast(`Skipped: ${res?.reason || "unknown"}`);
-      } else {
-        setToast("Send complete ✅");
-      }
-      setTimeout(() => setToast(null), 3500);
-      // refresh summary
-      try {
-        const s = await api.getAlertSummary(id);
-        setSummaries(prev => ({ ...prev, [id]: s }));
-      } catch { }
-    } catch (e: any) {
-      setToast(null);
-      alert(e?.message || "Send failed");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function doDuplicate(id: number) {
-    try {
-      setBusyId(id);
-      const r = await api.duplicateSearch(id);
-      setToast("Duplicated ✅");
-      setTimeout(() => setToast(null), 2500);
-      // reload list
-      const data = await api.listSearches(200);
-      setRows(data || []);
-      console.log(
-        "after duplicate reload first row last_found_at:",
-        (data || [])[0]?.last_found_at,
-        "full:",
-        (data || [])[0]
-      );
-    } catch (e: any) {
-      alert(e?.message || "Duplicate failed");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function doDelete(id: number) {
-    if (!confirm("Delete this search? You can view deleted searches on the Deleted page.")) return;
-    try {
-      setBusyId(id);
       await api.deleteSearch(id);
-      setToast("Deleted ✅");
-      setTimeout(() => setToast(null), 2500);
-      setRows(prev => prev.filter(r => r.id !== id));
-    } catch (e: any) {
-      alert(e?.message || "Delete failed");
+      router.refresh?.();
+      // local update for instant UX
+      setRows((prev) => prev.map((r) => (Number(r.id) === id ? { ...r, status: "deleted" } : r)));
     } finally {
       setBusyId(null);
     }
   }
 
   return (
-    <main className="page">
-      <div className="pageHead">
-        <div>
-          <h1 className="h1">Saved searches</h1>
-          <p className="muted">Live data + actions (refresh, send, edit, alerts).</p>
-        </div>
-        <div className="ctaRow">
-          <a className="btn primary" href="/new-search">New search</a>
-          <button className="btn" onClick={() => router.refresh()} disabled={loading}>Reload</button>
-        </div>
-      </div>
+    <main className="section">
+      <div className="shell">
+        <h1>Saved Searches</h1>
+        <p className="muted">Your saved items. Tap a row for details, results, and alerts.</p>
 
-      {toast ? <div className="flash ok" style={{ marginTop: 10 }}>{toast}</div> : null}
+        <div className="rowActions" style={{ marginTop: 12 }}>
+          <a className="btn primary" href="/new-search">
+            + New search
+          </a>
+          <a className="btn" href="/deleted">
+            Deleted
+          </a>
+        </div>
 
-      <div className="card">
+        {err ? <div className="flash bad">{err}</div> : null}
+
         {loading ? (
-          <div className="empty">Loading…</div>
-        ) : err ? (
-          <div className="empty">Error: {err}</div>
-        ) : sorted.length === 0 ? (
-          <div className="empty">No searches found yet.</div>
-        ) : (
-          <div className="list">
-            {sorted.map((s) => {
-              const summary = summaries[s.id];
-              const disabled = busyId === s.id;
-              const isNew = hasNewResults(s.last_found_at, 24);
-              return (
-                <div key={s.id} className="rowCard">
-                  <div className="rowTop">
-                    <div className="rowTitle">
-                      <span className="pill neutral">#{s.id}</span>
-                      <span style={{ fontWeight: 850 }}>{s.search_item}</span>
-                      {isNew ? <span className="badge-new" title="New in last 24 hours">NEW</span> : null}
-                      <span className={pillClass(s.status)}>{(s.status || "—").toUpperCase()}</span>
-                      <span className="pill neutral">{(s.plan_tier || "free").toUpperCase()}</span>
-                    </div>
-                    <div className="rowMeta muted">
-                      {s.location ? <span>📍 {s.location}</span> : <span>📍 —</span>}
-                      {s.max_price != null ? <span>💰 {s.max_price}</span> : <span>💰 —</span>}
-                    </div>
-                  </div>
-
-                  <div className="rowActions">
-                    <a className="btn" href={`/saved-searches/${s.id}`}>Details</a>
-                    <a className="btn" href={`/saved-searches/${s.id}/results`}>Results</a>
-                    <a className="btn" href={`/saved-searches/${s.id}/alerts`}>Alerts{summary ? ` (${summary.pending})` : ""}</a>
-                    <a className="btn" href={`/saved-searches/${s.id}/edit`}>Edit</a>
-                    <button className="btn" onClick={() => doRefresh(s.id)} disabled={disabled}>Refresh</button>
-                    <button className="btn primary" onClick={() => doSendNow(s.id)} disabled={disabled}>Send now</button>
-                    <button className="btn" onClick={() => doDuplicate(s.id)} disabled={disabled}>Duplicate</button>
-                    <button className="btn" onClick={() => doDelete(s.id)} disabled={disabled}>Delete</button>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="card" style={{ marginTop: 14 }}>
+            Loading…
           </div>
+        ) : (
+          <>
+            <div className="grid" style={{ marginTop: 14 }}>
+              {active.map((s) => {
+                const sum = summaries[String(s.id)];
+                const disabled = busyId === s.id;
+                const isNew = hasNewResults(s.last_found_at || s.created_at, 48);
+                return (
+                  <div key={s.id} className="rowCard">
+                    <div className="rowTop">
+                      <div className="rowTitle">
+                        <span className="pill neutral">#{s.id}</span>
+                        <span style={{ fontWeight: 850 }}>{s.search_item}</span>
+
+                        {isNew ? (
+                          <div style={{ display: "grid", gap: 4, alignItems: "start" }}>
+                            <span
+                              className="pill bad"
+                              title="New results recently found"
+                              style={{
+                                background: "rgba(193, 18, 31, 0.22)",
+                                borderColor: "rgba(193, 18, 31, 0.60)",
+                                color: "rgba(255,255,255,0.95)",
+                                letterSpacing: "0.08em",
+                              }}
+                            >
+                              NEW
+                            </span>
+                            <a
+                              href={`/saved-searches/${s.id}/results?focus=new`}
+                              style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, textDecoration: "underline" }}
+                            >
+                              View new →
+                            </a>
+                          </div>
+                        ) : null}
+
+                        <span className={pillClass(s.status)}>{(s.status || "—").toUpperCase()}</span>
+                        <span className="pill neutral">{(s.marketplace || "All").toString()}</span>
+                      </div>
+
+                      <div className="rowBtns">
+                        <a className="btn" href={`/saved-searches/${s.id}`}>
+                          Details
+                        </a>
+                        <a className="btn" href={`/saved-searches/${s.id}/results`}>
+                          Results
+                        </a>
+                        <a className="btn" href={`/saved-searches/${s.id}/alerts`}>
+                          Alerts
+                        </a>
+                        <button className="btn danger" disabled={disabled} onClick={() => onDelete(Number(s.id))}>
+                          {disabled ? "Deleting…" : "Delete"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="rowMeta">
+                      <div className="muted">
+                        {s.location ? <span>📍 {s.location}</span> : <span>📍 Anywhere</span>}
+                        {s.max_price != null ? <span> • Max ${s.max_price}</span> : null}
+                        {s.created_at ? <span> • Created {new Date(s.created_at).toLocaleDateString()}</span> : null}
+                      </div>
+
+                      {sum ? (
+                        <div className="metaPills">
+                          <span className="pill neutral">Pending {sum.pending}</span>
+                          <span className="pill ok">Sent {sum.sent}</span>
+                          <span className="pill neutral">Dismissed {sum.dismissed}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {deleted.length ? (
+              <div style={{ marginTop: 18 }}>
+                <h2 style={{ margin: "16px 0 8px" }}>Deleted</h2>
+                <div className="grid">
+                  {deleted.map((s) => (
+                    <div key={s.id} className="rowCard" style={{ opacity: 0.7 }}>
+                      <div className="rowTop">
+                        <div className="rowTitle">
+                          <span className="pill neutral">#{s.id}</span>
+                          <span style={{ fontWeight: 850 }}>{s.search_item}</span>
+                          <span className={pillClass(s.status)}>{(s.status || "—").toUpperCase()}</span>
+                        </div>
+                        <div className="rowBtns">
+                          <a className="btn" href="/deleted">
+                            Manage
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     </main>

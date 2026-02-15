@@ -13,7 +13,12 @@ const pool = require('./db');
 const { getEbayAppToken } = require('./services/ebayAuth');
 const { insertResults } = require('./services/resultsStore');
 const { createNewListingAlert } = require('./services/alerts');
-const { sendEmail, buildAlertEmail } = require('./services/notifications');
+const {
+  sendEmail,
+  buildAlertEmail,
+  buildSignupConfirmationEmail,
+  buildNewSignupNoticeEmail,
+} = require('./services/notifications');
 const { enqueueRefreshJobForSearch } = require('./services/jobs');
 const { dispatchPendingAlertsForSearch, requeueStuckSendingAlerts } = require('./services/dispatchAlerts');
 const { setTierAndReschedule } = require('./services/schedule');   // ← add this line
@@ -1613,7 +1618,7 @@ app.all('/searches/:id/notifications/email', methodNotAllowed(['POST']));
 app.all('/api/searches/:id/notifications/email', methodNotAllowed(['POST']));
 
 // --------------------
-// Registration (MVP) — emails admin for now
+// Registration (MVP) — emails admin + optional confirmation
 // --------------------
 app.post('/api/registrations', async (req, res) => {
   try {
@@ -1624,19 +1629,34 @@ app.post('/api/registrations', async (req, res) => {
     const safeName = (name === undefined || name === null) ? '' : String(name).trim();
     const safeNotes = (notes === undefined || notes === null) ? '' : String(notes).trim();
 
-    const to = process.env.SIGNUP_TO_EMAIL || process.env.ALERTS_FROM_EMAIL;
-    if (!to) return res.status(500).json({ ok: false, error: 'Missing SIGNUP_TO_EMAIL (or ALERTS_FROM_EMAIL)' });
+    const to = process.env.SIGNUP_TO_EMAIL || process.env.INFO_TO_EMAIL || process.env.ALERTS_SMTP_USER || '';
+    if (!to) return res.status(500).json({ ok: false, error: 'Missing SIGNUP_TO_EMAIL (or INFO_TO_EMAIL)' });
 
-    const subject = 'GoSnaggit Beta Registration';
-    const text =
-      `New beta registration:\n\n` +
-      `Name: ${safeName || '(not provided)'}\n` +
-      `Email: ${emailNorm}\n` +
-      `Notes: ${safeNotes || '(none)'}\n\n` +
-      `Time: ${new Date().toISOString()}\n`;
+    const notice = buildNewSignupNoticeEmail({ customerEmail: emailNorm });
+    const subject = notice.subject;
+    const text = notice.text;
 
-    const result = await sendEmail({ to, subject, text });
-    return res.json({ ok: true, delivered: result });
+
+    // Admin notification (from info@ identity)
+    const result = await sendEmail({ to, subject, text, kind: "signup" });
+
+    // Optional: confirmation email to registrant
+    const sendConfirmation = String(process.env.SIGNUP_SEND_CONFIRMATION || '').toLowerCase() === 'true';
+    let confirmResult = null;
+
+    if (sendConfirmation) {
+      const supportEmail = process.env.SIGNUP_FROM_EMAIL || process.env.ALERTS_FROM_EMAIL || '';
+      const confirm = buildSignupConfirmationEmail({ supportEmail });
+
+      confirmResult = await sendEmail({
+        to: emailNorm,
+        subject: confirm.subject,
+        text: confirm.text,
+        kind: "signup",
+      });
+    }
+
+    return res.json({ ok: true, delivered: result, confirmation: confirmResult });
   } catch (err) {
     console.error('POST /api/registrations failed:', err);
     return res.status(500).json({ ok: false, error: 'Failed to submit registration' });
