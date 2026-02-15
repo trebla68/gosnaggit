@@ -141,6 +141,11 @@ export const api = {
   sendNow: (id: number, limit = 25) =>
     apiFetch<any>(`/api/searches/${id}/alerts/send-now?limit=${limit}`, { method: "POST" }),
 
+  // Backwards-compatible alias (older UI code calls this name)
+  dispatchAlertsDev: (id: number, limit = 25) =>
+    api.sendNow(id, limit),
+
   listDeleted: (limit = 100) =>
     apiFetch<SearchRow[]>(`/api/searches/deleted?limit=${encodeURIComponent(String(limit))}`),
+
 };

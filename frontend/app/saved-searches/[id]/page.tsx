@@ -40,6 +40,14 @@ function normalizeMk(input: any): MkMap {
   };
 }
 
+function hasNewResults(last_found_at: string | null | undefined, hours = 48) {
+  if (!last_found_at) return false;
+  const t = Date.parse(last_found_at);
+  if (!Number.isFinite(t)) return false;
+  const ageMs = Date.now() - t;
+  return ageMs >= 0 && ageMs <= hours * 60 * 60 * 1000;
+}
+
 export default function SearchDetail({ params }: { params: { id: string } }) {
   const id = Number(params.id);
 
@@ -62,7 +70,12 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
   const [emailSaving, setEmailSaving] = useState<boolean>(false);
 
   // Marketplaces for this search
-  const [marketplaces, setMarketplaces] = useState<MkMap>({ ebay: true, etsy: false, facebook: false, craigslist: false });
+  const [marketplaces, setMarketplaces] = useState<MkMap>({
+    ebay: true,
+    etsy: false,
+    facebook: false,
+    craigslist: false,
+  });
   const [mkSaving, setMkSaving] = useState<boolean>(false);
 
   const hasEmail = useMemo(() => !!emailDestination.trim(), [emailDestination]);
@@ -182,6 +195,19 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
       <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline" }}>
         <div>
           <h1 className="h1" style={{ marginBottom: 6 }}>{search.search_item}</h1>
+
+          {hasNewResults((search as any).last_found_at || (search as any).lastFoundAt || search.created_at, 48) ? (
+            <div className="flash warn" style={{ marginTop: 10 }}>
+              NEW results recently found —{" "}
+              <Link
+                href={`/saved-searches/${id}/results?focus=new`}
+                style={{ textDecoration: "underline", fontWeight: 800 }}
+              >
+                view new →
+              </Link>
+            </div>
+          ) : null}
+
           <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
             <span className={pill(search.status)}>{(search.status || "—").toUpperCase()}</span>
             {search.location ? <span className="pill neutral">{search.location}</span> : null}

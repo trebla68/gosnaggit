@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { api, type SearchRow } from "../../../../lib/api";
 
 type ResultRow = {
@@ -27,24 +28,6 @@ type ResultRow = {
   price_num?: number | null;
 };
 
-function fmtPrice(price: any, currency?: string | null) {
-  if (price === null || price === undefined || price === "") return "—";
-  const n = Number(price);
-  if (Number.isFinite(n)) {
-    try {
-      if (currency) {
-        return new Intl.NumberFormat(undefined, {
-          style: "currency",
-          currency,
-          maximumFractionDigits: 2,
-        }).format(n);
-      }
-    } catch { }
-    return n.toFixed(2);
-  }
-  return String(price);
-}
-
 function numPrice(r: any) {
   // Prefer indexed numeric column
   const n1 = Number(r?.price_num);
@@ -57,15 +40,39 @@ function numPrice(r: any) {
   return null;
 }
 
+function isRecent(iso?: string | null, hours = 48) {
+  if (!iso) return false;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return false;
+  const age = Date.now() - t;
+  return age >= 0 && age <= hours * 60 * 60 * 1000;
+}
+
+function resultKey(r: ResultRow): string {
+  return String(r.id ?? r.external_id ?? r.listing_url ?? `${r.marketplace ?? "m"}:${r.title ?? "t"}`);
+}
+
+function fmtPrice(price: any, currency?: string | null) {
+  const n = Number(price);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  const cur = (currency || "USD").toUpperCase();
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(n);
+  } catch {
+    return `$${n.toFixed(2)}`;
+  }
+}
+
 function fmtWhen(iso?: string | null) {
   if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return "";
+  const d = new Date(t);
   return d.toLocaleString();
 }
 
 function pillClass(kind: "ok" | "warn" | "bad" | "neutral" = "neutral") {
-  return `pill pill-${kind}`;
+  return `pill ${kind}`;
 }
 
 export default function ResultsPage({ params }: { params: { id: string } }) {
@@ -75,34 +82,65 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
   const [search, setSearch] = useState<SearchRow | null>(null);
   const [sortBy, setSortBy] = useState<"newest" | "price_low" | "price_high">("newest");
 
+  const searchParams = useSearchParams();
+  const focusNew = (searchParams.get("focus") || "").toLowerCase() === "new";
+
+  const storageKey = `gosnaggit:hiddenResults:${id}`;
+  const [hiddenKeys, setHiddenKeys] = useState<string[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
   const count = rows?.length ?? 0;
 
   useEffect(() => {
+    // Load per-search hidden (dismissed) results
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const arr = raw ? (JSON.parse(raw) as string[]) : [];
+      if (Array.isArray(arr)) setHiddenKeys(arr.map(String));
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  useEffect(() => {
+    // Persist hidden keys
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(hiddenKeys));
+    } catch {
+      // ignore
+    }
+  }, [storageKey, hiddenKeys]);
+
+  function hideResult(k: string) {
+    setHiddenKeys((prev) => (prev.includes(k) ? prev : [...prev, k]));
+  }
+
+  function undoHide() {
+    setHiddenKeys([]);
+  }
+
+  useEffect(() => {
     let alive = true;
+    setLoading(true);
+    setErr(null);
 
     (async () => {
       try {
-        setLoading(true);
-        setErr(null);
-
-        const [s, data] = await Promise.all([
-          api.getSearch(id),
-          api.getResults(id, 200, 0),
-        ]);
-
+        const [s, r] = await Promise.all([api.getSearch(id), api.getResults(id, 200, 0)]);
         if (!alive) return;
-        setSearch(s);
-        setRows(Array.isArray(data) ? (data as ResultRow[]) : []);
+        setSearch(s || null);
+        setRows(r?.rows || r || []);
+        setLoading(false);
       } catch (e: any) {
         if (!alive) return;
-        setErr(e?.message || "Failed to load results");
-      } finally {
-        if (alive) setLoading(false);
+        setErr(String(e?.message || e));
+        setLoading(false);
       }
     })();
+
 
     return () => {
       alive = false;
@@ -112,19 +150,41 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
   const sorted = useMemo(() => {
     const copy = [...rows];
 
-    if (sortBy === "price_low") {
-      return copy.sort((a, b) => (numPrice(a) ?? Infinity) - (numPrice(b) ?? Infinity));
-    }
+    const isNewRow = (r: ResultRow) => isRecent(r.found_at || r.created_at, 48);
 
-    if (sortBy === "price_high") {
-      return copy.sort((a, b) => (numPrice(b) ?? -Infinity) - (numPrice(a) ?? -Infinity));
-    }
+    const cmpNewFirst = (a: ResultRow, b: ResultRow) => {
+      const na = isNewRow(a) ? 1 : 0;
+      const nb = isNewRow(b) ? 1 : 0;
+      return nb - na;
+    };
 
-    // Default: newest first
-    return copy.sort((a, b) => {
+    const cmpNewest = (a: ResultRow, b: ResultRow) => {
       const ta = new Date(a.found_at || a.created_at || 0).getTime();
       const tb = new Date(b.found_at || b.created_at || 0).getTime();
       return tb - ta;
+    };
+
+    if (sortBy === "price_low") {
+      return copy.sort((a, b) => {
+        const p = cmpNewFirst(a, b);
+        if (p !== 0) return p;
+        return (numPrice(a) ?? Infinity) - (numPrice(b) ?? Infinity);
+      });
+    }
+
+    if (sortBy === "price_high") {
+      return copy.sort((a, b) => {
+        const p = cmpNewFirst(a, b);
+        if (p !== 0) return p;
+        return (numPrice(b) ?? -Infinity) - (numPrice(a) ?? -Infinity);
+      });
+    }
+
+    // Default: NEW first, then newest
+    return copy.sort((a, b) => {
+      const p = cmpNewFirst(a, b);
+      if (p !== 0) return p;
+      return cmpNewest(a, b);
     });
   }, [rows, sortBy]);
 
@@ -153,133 +213,143 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         <div>
           <h1 className="h1">Results for #{id}</h1>
           <p className="muted">
-            Latest stored results from the backend{" "}
-            {loading ? "" : `• ${count} item${count === 1 ? "" : "s"}`}
+            Latest stored results from the backend {loading ? "" : `• ${count} item${count === 1 ? "" : "s"}`}
+            {focusNew ? " • showing NEW first" : ""}
           </p>
         </div>
 
         <div className="ctaRow">
-          <a className="btn" href={`/saved-searches/${id}`}>Details</a>
-          <a className="btn" href={`/saved-searches/${id}/alerts`}>Alerts</a>
+          <a className="btn" href={`/saved-searches/${id}`}>
+            Details
+          </a>
+          <a className="btn" href={`/saved-searches/${id}/alerts`}>
+            Alerts
+          </a>
         </div>
       </div>
 
-      {priceStats ? (
-        <div className="card" style={{ padding: 14, marginBottom: 12 }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <span className="pill pill-neutral">Lowest: {fmtPrice(priceStats.min, "USD")}</span>
-            <span className="pill pill-neutral">Median: {fmtPrice(priceStats.median, "USD")}</span>
-            <span className="pill pill-neutral">Highest: {fmtPrice(priceStats.max, "USD")}</span>
+      {hiddenKeys.length ? (
+        <div className="flash warn" style={{ marginBottom: 12 }}>
+          You hid {hiddenKeys.length} result{hiddenKeys.length === 1 ? "" : "s"}.
+          <button className="btn" style={{ marginLeft: 10 }} type="button" onClick={undoHide}>
+            Undo
+          </button>
+        </div>
+      ) : null}
 
-            {priceStats.maxPrice != null ? (
-              <span className="pill pill-ok">
-                Under your max ({priceStats.maxPrice}): {priceStats.underMax ?? 0}/{priceStats.count}
-              </span>
-            ) : (
-              <span className="pill pill-warn">No max price set for this search</span>
-            )}
+      {priceStats ? (
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="resultMeta" style={{ marginBottom: 6 }}>
+            <div>
+              <strong>Price stats:</strong> min {fmtPrice(priceStats.min)} • median {fmtPrice(priceStats.median)} • max{" "}
+              {fmtPrice(priceStats.max)}
+            </div>
+            <div className="muted">
+              {priceStats.maxPrice != null ? `Under max (${priceStats.maxPrice}): ${priceStats.underMax}` : ""}
+            </div>
+          </div>
+
+          <div className="ctaRow">
+            <button className={`btn ${sortBy === "newest" ? "primary" : ""}`} onClick={() => setSortBy("newest")}>
+              Newest
+            </button>
+            <button
+              className={`btn ${sortBy === "price_low" ? "primary" : ""}`}
+              onClick={() => setSortBy("price_low")}
+            >
+              Price ↑
+            </button>
+            <button
+              className={`btn ${sortBy === "price_high" ? "primary" : ""}`}
+              onClick={() => setSortBy("price_high")}
+            >
+              Price ↓
+            </button>
           </div>
         </div>
       ) : null}
 
-      <div className="card">
-        {loading ? (
-          <div className="empty">Loading…</div>
-        ) : err ? (
-          <div className="empty">Error: {err}</div>
-        ) : sorted.length === 0 ? (
-          <div className="empty">No results yet.</div>
-        ) : (
-          <>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ fontWeight: 800 }}>{sorted.length} results</div>
+      {err ? <div className="flash bad">{err}</div> : null}
 
-              <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="muted">Sort</span>
-                <select
-                  className="input"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                >
-                  <option value="newest">Newest</option>
-                  <option value="price_low">Price: Low → High</option>
-                  <option value="price_high">Price: High → Low</option>
-                </select>
-              </label>
-            </div>
+      {loading ? (
+        <div className="card">Loading…</div>
+      ) : count === 0 ? (
+        <div className="card empty">No stored results yet. Try refreshing/dispatch from Alerts.</div>
+      ) : (
+        <>
+          <div className="resultsGrid">
+            {sorted.map((r, idx) => {
+              const key = resultKey(r);
+              if (hiddenKeys.includes(key)) return null;
+              const isNew = isRecent(r.found_at || r.created_at, 48);
 
-            <div className="resultsGrid">
-              {sorted.map((r, idx) => {
-                const key = (r.id ?? r.external_id ?? idx) as any;
-                const mp = (r.marketplace || "").toLowerCase();
-                const mpLabel = r.marketplace ? r.marketplace.toUpperCase() : "SOURCE";
-                const priceLabel = fmtPrice(r.price_num ?? r.price, r.currency);
-                const p = numPrice(r);
+              const mp = (r.marketplace || "").toLowerCase();
+              const mpLabel = r.marketplace ? r.marketplace.toUpperCase() : "SOURCE";
+              const priceLabel = fmtPrice(r.price_num ?? r.price, r.currency);
+              const p = numPrice(r);
 
-                const isBest = priceStats && p != null && p === priceStats.min;
-                const underMax =
-                  priceStats && p != null && priceStats.maxPrice != null && p <= priceStats.maxPrice;
+              const isBest = priceStats && p != null && p === priceStats.min;
+              const underMax =
+                priceStats && p != null && priceStats.maxPrice != null && p <= priceStats.maxPrice;
 
-                const when = fmtWhen(r.found_at || r.created_at);
-                const hasImg = !!r.image_url;
+              const when = fmtWhen(r.found_at || r.created_at);
+              const hasImg = !!r.image_url;
 
-                return (
-                  <div className="resultCard" key={key}>
-                    <div className="resultMedia">
-                      {hasImg ? (
-                        <img
-                          src={r.image_url as string}
-                          alt={r.title || "Result image"}
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="resultMediaFallback">
-                          <span>no image</span>
-                        </div>
-                      )}
+              return (
+                <div className={`resultCard ${isNew ? "newCard" : ""}`} key={key}>
+                  <div className="resultMedia">
+                    {hasImg ? (
+                      <img
+                        src={r.image_url as string}
+                        alt={r.title || "Result image"}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="resultMediaFallback">
+                        <span>no image</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="resultBody">
+                    <div className="resultTop">
+                      <span className={pillClass(mp === "ebay" ? "ok" : "neutral")}>{mpLabel}</span>
+                      {isNew ? (
+                        <span className="pill bad pillNew" title="New result">
+                          NEW
+                        </span>
+                      ) : null}
+                      {isBest ? <span className={`${pillClass("ok")} pillBest`}>🏷️ BEST PRICE</span> : null}
+                      {underMax ? <span className={`${pillClass("warn")} pillUnder`}>UNDER MAX</span> : null}
+                      {r.condition ? <span className={pillClass("neutral")}>{r.condition}</span> : null}
+                      {r.location ? <span className={pillClass("neutral")}>{r.location}</span> : null}
                     </div>
 
-                    <div className="resultBody">
-                      <div className="resultTop">
-                        <span className={pillClass(mp === "ebay" ? "ok" : "neutral")}>{mpLabel}</span>
-                        {isBest ? <span className={pillClass("ok")}>BEST PRICE</span> : null}
-                        {underMax ? <span className={pillClass("warn")}>UNDER MAX</span> : null}
-                        {r.condition ? <span className={pillClass("neutral")}>{r.condition}</span> : null}
-                        {r.location ? <span className={pillClass("neutral")}>{r.location}</span> : null}
-                      </div>
+                    <div className="resultTitle">{r.title || "Untitled listing"}</div>
 
-                      <div className="resultTitle">{r.title || "Untitled listing"}</div>
+                    <div className="resultMeta">
+                      <div className="resultPrice">{priceLabel}</div>
+                      <div className="muted">{when}</div>
+                    </div>
 
-                      <div className="resultMeta">
-                        <div className="resultPrice">{priceLabel}</div>
-                        <div className="muted">{when}</div>
-                      </div>
-
-                      <div className="resultActions">
-                        {r.listing_url ? (
-                          <a className="btn primary" href={r.listing_url as string} target="_blank" rel="noreferrer">
-                            Open listing
-                          </a>
-                        ) : null}
-                      </div>
+                    <div className="resultActions">
+                      {r.listing_url ? (
+                        <a className="btn primary" href={r.listing_url as string} target="_blank" rel="noreferrer">
+                          Open listing
+                        </a>
+                      ) : null}
+                      <button className="btn danger" type="button" onClick={() => hideResult(key)}>
+                        Delete
+                      </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       <style jsx>{`
         .page {
@@ -308,9 +378,10 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         }
         .card {
           padding: 14px;
-          border-radius: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(0, 0, 0, 0.12);
+          border-radius: var(--radius);
+          border: 1px solid var(--panel-border);
+          background: var(--panel);
+          box-shadow: 0 10px 22px rgba(0, 0, 0, 0.07);
         }
         .empty {
           padding: 18px;
@@ -322,12 +393,46 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         }
         .resultCard {
-          border-radius: 14px;
+          border-radius: var(--radius-sm);
           overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(0, 0, 0, 0.10);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.55);
           display: grid;
           grid-template-rows: 160px auto;
+          transition: transform 140ms ease, box-shadow 140ms ease;
+        }
+        .resultCard:hover {
+          transform: translateY(-2px);
+          box-shadow: var(--shadow);
+        }
+
+        .newCard {
+          border-color: rgba(193, 18, 31, 0.35);
+          background: rgba(255, 232, 235, 0.6);
+        }
+
+        .pillNew {
+          background: rgba(193, 18, 31, 0.22);
+          border-color: rgba(193, 18, 31, 0.6);
+          color: rgba(255, 255, 255, 0.95);
+          letter-spacing: 0.08em;
+        }
+
+        .btn.danger {
+          border-color: rgba(193, 18, 31, 0.45);
+          background: rgba(193, 18, 31, 0.12);
+        }
+
+        .btn.danger:hover {
+          background: rgba(193, 18, 31, 0.18);
+        }
+
+        .pillBest {
+          letter-spacing: 0.06em;
+        }
+
+        .pillUnder {
+          letter-spacing: 0.04em;
         }
         .resultMedia {
           background: rgba(255, 255, 255, 0.04);
@@ -374,31 +479,6 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
-        }
-        .pill {
-          display: inline-flex;
-          align-items: center;
-          padding: 2px 8px;
-          border-radius: 999px;
-          font-size: 11px;
-          font-weight: 800;
-          border: 1px solid rgba(255, 255, 255, 0.10);
-          background: rgba(255, 255, 255, 0.06);
-        }
-        .pill-neutral {
-          background: rgba(255, 255, 255, 0.06);
-        }
-        .pill-ok {
-          background: rgba(46, 204, 113, 0.18);
-          border-color: rgba(46, 204, 113, 0.45);
-        }
-        .pill-warn {
-          background: rgba(255, 179, 71, 0.18);
-          border-color: rgba(255, 179, 71, 0.45);
-        }
-        .pill-bad {
-          background: rgba(231, 76, 60, 0.18);
-          border-color: rgba(231, 76, 60, 0.45);
         }
       `}</style>
     </main>

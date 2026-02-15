@@ -99,7 +99,7 @@ export default function AlertsPage({ params }: { params: { id: string } }) {
   async function sendNow() {
     setBusySend(true);
     try {
-      await api.dispatchAlertsDev(id, 25);
+      await api.sendNow(id, 25);
       await load();
     } catch (e: any) {
       alert(e?.message || "Send now failed");
