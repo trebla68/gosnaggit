@@ -81,6 +81,12 @@ export const api = {
   deleteSearch: (id: number) =>
     apiFetch<{ ok: boolean }>(`/api/searches/${id}`, { method: "DELETE" }),
 
+  restoreSearch: (id: number) =>
+    apiFetch<{ ok: boolean; search?: any }>(`/api/searches/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "active" }),
+    }),
+
   duplicateSearch: (id: number) =>
     apiFetch<{ ok: boolean; id: number }>(`/api/searches/${id}/duplicate`, { method: "POST" }),
 
