@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, type AlertSummary, type SearchRow } from "../../lib/api";
 import { useRouter } from "next/navigation";
 
@@ -19,6 +19,128 @@ function hasNewResults(last_found_at: string | null | undefined, hours = 24) {
   const ageMs = Date.now() - t;
   return ageMs >= 0 && ageMs <= hours * 60 * 60 * 1000;
 }
+
+function MarketplacePill({
+  searchId,
+  marketplace,
+  marketplaces,
+}: {
+  searchId: number;
+  marketplace?: string | null;
+  marketplaces?: Record<string, boolean> | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLSpanElement | null>(null);
+
+  const label = (marketplace || "Marketplaces").toString();
+
+  const KNOWN_MARKETS: Array<{ key: string; label: string; comingSoon?: boolean }> = [
+    { key: "ebay", label: "eBay" },
+    { key: "facebook", label: "Facebook Marketplace" },
+    { key: "craigslist", label: "Craigslist" },
+    { key: "etsy", label: "Etsy", comingSoon: true },
+  ];
+
+  const items = useMemo(() => {
+    const map = marketplaces && typeof marketplaces === "object" ? marketplaces : {};
+    const knownKeys = new Set(KNOWN_MARKETS.map((m) => m.key));
+
+    const base = KNOWN_MARKETS.map((m) => ({
+      key: m.key,
+      label: m.label,
+      comingSoon: !!m.comingSoon,
+      enabled: !!(map as any)[m.key],
+    }));
+
+    const extras = Object.keys(map)
+      .filter((k) => !knownKeys.has(k))
+      .sort()
+      .map((k) => ({
+        key: k,
+        label: k,
+        comingSoon: false,
+        enabled: !!(map as any)[k],
+      }));
+
+    return [...base, ...extras];
+  }, [marketplaces]);
+
+
+  useEffect(() => {
+    function onDocMouseDown(e: MouseEvent) {
+      if (!open) return;
+      const el = wrapRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) setOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (!open) return;
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <span ref={wrapRef} style={{ position: "relative", display: "inline-block" }}>
+      <button
+        type="button"
+        className="pill neutral"
+        onClick={() => setOpen((v) => !v)}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        title="View marketplaces"
+        style={{ cursor: "pointer" }}
+      >
+        {label}
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 2px)",
+            left: 0,
+            zIndex: 50,
+            minWidth: 220,
+            padding: 12,
+            borderRadius: 12,
+            border: "1px solid rgba(0,0,0,0.12)",
+            background: "white",
+            boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
+          }}
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>Markets</div>
+
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {items.map((m) => (
+              <li key={m.key} style={{ marginBottom: 6 }}>
+                <span style={{ fontWeight: 600 }}>{m.label}</span>{" "}
+                <span style={{ opacity: 0.7 }}>
+                  {m.comingSoon ? "— Coming soon" : m.enabled ? "— On" : "— Off"}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+
+          <div style={{ marginTop: 10 }}>
+            <a href={`/saved-searches/${searchId}`} style={{ fontWeight: 600 }}>
+              Edit marketplaces →
+            </a>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+}
+
 
 export default function SavedSearchesPage() {
   const router = useRouter();
@@ -105,8 +227,19 @@ export default function SavedSearchesPage() {
           <div className="card" style={{ marginTop: 14 }}>
             Loading…
           </div>
+        ) : active.length === 0 ? (
+          <div className="card" style={{ marginTop: 14, padding: 16 }}>
+            <h3 style={{ marginTop: 0 }}>No saved searches yet</h3>
+            <p className="muted" style={{ marginBottom: 12 }}>
+              Create a search and GoSnaggit will keep checking for new results.
+            </p>
+            <a className="btn primary" href="/new-search">
+              Create first search
+            </a>
+          </div>
         ) : (
           <>
+
             <div className="grid" style={{ marginTop: 14 }}>
               {active.map((s) => {
                 const sum = summaries[String(s.id)];
@@ -142,8 +275,15 @@ export default function SavedSearchesPage() {
                           </div>
                         ) : null}
 
-                        <span className={pillClass(s.status)}>{(s.status || "—").toUpperCase()}</span>
-                        <span className="pill neutral">{(s.marketplace || "All").toString()}</span>
+                        <span className={pillClass(s.status)}>
+                          {(s.status || "—").toUpperCase()}
+                        </span>
+
+                        <MarketplacePill
+                          searchId={s.id}
+                          marketplace={s.marketplace}
+                          marketplaces={(s as any).marketplaces}
+                        />
                       </div>
 
                       <div className="rowBtns">

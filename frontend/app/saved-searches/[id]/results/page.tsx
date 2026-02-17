@@ -274,8 +274,22 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
       {loading ? (
         <div className="card">Loading…</div>
       ) : count === 0 ? (
-        <div className="card empty">No stored results yet. Try refreshing/dispatch from Alerts.</div>
+        <div className="card empty">
+          <div style={{ fontWeight: 800, marginBottom: 6 }}>No results yet</div>
+          <div className="muted" style={{ marginBottom: 12 }}>
+            Once your search runs, results will appear here. You can also trigger a refresh from Alerts.
+          </div>
+          <div className="ctaRow">
+            <a className="btn primary" href={`/saved-searches/${id}/alerts`}>
+              Go to Alerts
+            </a>
+            <a className="btn" href={`/saved-searches/${id}`}>
+              Back to Details
+            </a>
+          </div>
+        </div>
       ) : (
+
         <>
           <div className="resultsGrid">
             {sorted.map((r, idx) => {
