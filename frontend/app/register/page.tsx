@@ -41,7 +41,7 @@ export default function Register() {
         <div className="section" style={{ maxWidth: 720 }}>
             <h1>Register for Beta</h1>
             <p className="muted">
-                For now, registrations are sent to the admin email. Later, this will become full user accounts + payments.
+                For now, registrations are sent to info@gosnaggit.com. Later, this will become full user accounts + payments.
             </p>
 
             <form onSubmit={onSubmit} className="card" style={{ padding: 18, marginTop: 14 }}>
