@@ -1560,7 +1560,11 @@ app.post('/api/registrations', async (req, res) => {
     const to = process.env.SIGNUP_TO_EMAIL || process.env.INFO_TO_EMAIL || process.env.ALERTS_SMTP_USER || '';
     if (!to) return res.status(500).json({ ok: false, error: 'Missing SIGNUP_TO_EMAIL (or INFO_TO_EMAIL)' });
 
-    const notice = buildNewSignupNoticeEmail({ customerEmail: emailNorm });
+    const notice = buildNewSignupNoticeEmail({
+      customerEmail: emailNorm,
+      customerName: safeName,
+      notes: safeNotes,
+    });
     const subject = notice.subject;
     const text = notice.text;
 

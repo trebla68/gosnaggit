@@ -139,17 +139,26 @@ function buildSignupConfirmationEmail({ supportEmail }) {
 /**
  * Build the internal new-signup notification email.
  */
-function buildNewSignupNoticeEmail({ customerEmail }) {
+function buildNewSignupNoticeEmail({ customerEmail, customerName, notes }) {
   const subject = "New GoSnaggit signup";
 
   const lines = [];
   lines.push("New signup received:");
-  lines.push(`Email: ${customerEmail || '—'}`);
+  lines.push(`Name: ${customerName || "—"}`);
+  lines.push(`Email: ${customerEmail || "—"}`);
+
+  if (notes && String(notes).trim()) {
+    lines.push("");
+    lines.push("Notes:");
+    lines.push(String(notes).trim());
+  }
+
   lines.push("");
   lines.push("— GoSnaggit");
 
-  return { subject, text: lines.join('\n') };
+  return { subject, text: lines.join("\n") };
 }
+
 
 module.exports = {
   sendEmail,
