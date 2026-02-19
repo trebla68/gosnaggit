@@ -158,7 +158,7 @@ export default function SavedSearchesPage() {
 
     (async () => {
       try {
-        const list = await api.listSearches({ limit: 200 });
+        const list = await api.listSearches(200);
         if (!alive) return;
 
         setRows(list || []);
@@ -168,7 +168,7 @@ export default function SavedSearchesPage() {
         await Promise.all(
           (list || []).map(async (s) => {
             try {
-              const sum = await api.getAlertsSummary(Number(s.id));
+              const sum = await api.getAlertSummary(Number(s.id));
               next[String(s.id)] = sum;
             } catch {
               // ignore per-row errors
@@ -281,8 +281,7 @@ export default function SavedSearchesPage() {
 
                         <MarketplacePill
                           searchId={s.id}
-                          marketplace={s.marketplace}
-                          marketplaces={(s as any).marketplaces}
+                          marketplaces={s.marketplaces}
                         />
                       </div>
 

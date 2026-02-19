@@ -24,92 +24,18 @@ const { dispatchPendingAlertsForSearch, requeueStuckSendingAlerts } = require('.
 const { setTierAndReschedule } = require('./services/schedule');   // ← add this line
 const { normalizeTier, maxSearchesForTier } = require('./services/tiers');
 
+const {
+  getAlertSettingsForSearchId,
+  setAlertSettingsForSearchId,
+  markDigestSentForSearchId,
+  hasDigestBeenSentToday,
+} = require('./services/alertSettingsStore');
 
 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-// ---- Local alert settings (server-side) ----
-// Stored on disk so settings persist regardless of localhost vs 127.0.0.1 origin.
-const ALERT_SETTINGS_DIR = path.join(__dirname, 'data');
-const ALERT_SETTINGS_FILE = path.join(ALERT_SETTINGS_DIR, 'alert_settings.json');
 
-function ensureAlertSettingsStore() {
-  try { fs.mkdirSync(ALERT_SETTINGS_DIR, { recursive: true }); } catch (e) { }
-  try {
-    if (!fs.existsSync(ALERT_SETTINGS_FILE)) fs.writeFileSync(ALERT_SETTINGS_FILE, JSON.stringify({}), 'utf8');
-  } catch (e) { }
-}
-
-function readAlertSettingsStore() {
-  ensureAlertSettingsStore();
-  try {
-    const raw = fs.readFileSync(ALERT_SETTINGS_FILE, 'utf8');
-    return raw ? JSON.parse(raw) : {};
-  } catch (e) {
-    return {};
-  }
-}
-
-function writeAlertSettingsStore(store) {
-  ensureAlertSettingsStore();
-  try {
-    fs.writeFileSync(ALERT_SETTINGS_FILE, JSON.stringify(store, null, 2), 'utf8');
-    return true;
-  } catch (e) {
-    console.error('Failed to write alert settings store:', e);
-    return false;
-  }
-}
-
-function normalizeAlertSettings(input) {
-  const d = { enabled: true, mode: 'immediate', maxPerEmail: 25, lastDigestSentAt: null };
-  const s = Object.assign({}, d, (input || {}));
-  s.enabled = !!s.enabled;
-  s.mode = (s.mode === 'daily') ? 'daily' : 'immediate';
-  const mpe = Number(s.maxPerEmail);
-  s.maxPerEmail = Number.isFinite(mpe) && mpe > 0 ? Math.min(200, Math.max(1, Math.floor(mpe))) : 25;
-  const lds = s.lastDigestSentAt;
-  s.lastDigestSentAt = (typeof lds === 'string' && lds.trim()) ? lds.trim() : null;
-  return s;
-}
-
-
-function getAlertSettingsForSearchId(searchId) {
-  const id = String(searchId || '').trim();
-  if (!id) return normalizeAlertSettings(null);
-  const store = readAlertSettingsStore();
-  return normalizeAlertSettings(store[id]);
-}
-
-
-
-function setAlertSettingsForSearchId(searchId, nextSettings) {
-  const id = String(searchId || '').trim();
-  if (!id) return false;
-  const store = readAlertSettingsStore();
-  store[id] = normalizeAlertSettings(nextSettings);
-  return writeAlertSettingsStore(store);
-}
-
-function markDigestSentForSearchId(searchId, whenIso) {
-  const cur = getAlertSettingsForSearchId(searchId);
-  cur.lastDigestSentAt = whenIso || new Date().toISOString();
-  return setAlertSettingsForSearchId(searchId, cur);
-}
-
-function hasDigestBeenSentToday(settings) {
-  try {
-    const iso = settings && settings.lastDigestSentAt ? String(settings.lastDigestSentAt) : '';
-    if (!iso) return false;
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return false;
-    const now = new Date();
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-  } catch (e) {
-    return false;
-  }
-}
 
 // --------------------
 // Alert settings (enabled / mode / maxPerEmail) API
@@ -143,17 +69,17 @@ app.use(express.json());
 // Alert settings routes (support BOTH /searches and /api/searches)
 // --------------------
 
-function alertSettingsHandlerGET(req, res) {
+async function alertSettingsHandlerGET(req, res) {
   try {
     const id = String(req.params.id || "").trim();
-    const settings = getAlertSettingsForSearchId(id);
+    const settings = await getAlertSettingsForSearchId(pool, id);
     return res.json({ ok: true, search_id: Number(id) || id, settings });
   } catch (e) {
     return res.status(500).json({ ok: false, error: "Failed to load alert settings" });
   }
 }
 
-function alertSettingsHandlerWRITE(req, res) {
+async function alertSettingsHandlerWRITE(req, res) {
   try {
     const id = String(req.params.id || "").trim();
 
@@ -162,17 +88,19 @@ function alertSettingsHandlerWRITE(req, res) {
       ? (req.body.settings && typeof req.body.settings === "object" ? req.body.settings : req.body)
       : {};
 
-    const current = getAlertSettingsForSearchId(id);
+    const current = await getAlertSettingsForSearchId(pool, id);
     const next = Object.assign({}, current, incoming);
 
-    const ok = setAlertSettingsForSearchId(id, next);
+    const ok = await setAlertSettingsForSearchId(pool, id, next);
     if (!ok) return res.status(400).json({ ok: false, error: "Invalid search id" });
 
-    return res.json({ ok: true, search_id: Number(id) || id, settings: getAlertSettingsForSearchId(id) });
+    const settings = await getAlertSettingsForSearchId(pool, id);
+    return res.json({ ok: true, search_id: Number(id) || id, settings });
   } catch (e) {
     return res.status(500).json({ ok: false, error: "Failed to save alert settings" });
   }
 }
+
 
 // canonical backend paths (what your Next proxy is calling)
 app.get("/searches/:id/alert-settings", alertSettingsHandlerGET);
@@ -1118,7 +1046,7 @@ if (process.env.NODE_ENV !== 'production') {
 
       // Respect per-search alert settings (server-backed)
       const force = String(req.query.force || '').toLowerCase();
-      const settings = getAlertSettingsForSearchId(searchId);
+      const settings = await getAlertSettingsForSearchId(pool, searchId);
       // Daily digest guard: only allow ONE send per local day (unless force)
       if (settings.mode === 'daily' && hasDigestBeenSentToday(settings) && force !== '1' && force !== 'true' && force !== 'yes') {
         return res.json({
@@ -1177,7 +1105,7 @@ if (process.env.NODE_ENV !== 'production') {
       // If this search is in daily digest mode and we actually sent an email,
       // record that we sent the digest today so we don't send again until tomorrow.
       if (settings && settings.mode === 'daily' && result && Number(result.sent || 0) > 0) {
-        markDigestSentForSearchId(searchId, new Date().toISOString());
+        await markDigestSentForSearchId(pool, searchId, new Date().toISOString());
       }
 
       return res.json({ ok: true, ...result });
