@@ -115,7 +115,12 @@ app.put("/api/searches/:id/alert-settings", alertSettingsHandlerWRITE);
 
 // ---- Alert settings API ----
 
-app.use(express.static(path.join(__dirname, 'public')));
+const SERVE_LEGACY_UI = String(process.env.SERVE_LEGACY_UI || "").toLowerCase() === "true";
+
+if (SERVE_LEGACY_UI) {
+  app.use(express.static(path.join(__dirname, "..", "legacy", "backend-public")));
+}
+
 
 app.use(helmet({
   // Full CSP would break your current inline scripts/styles unless configured carefully.
