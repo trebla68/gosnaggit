@@ -1,5 +1,3 @@
-"use client";
-
 export type SearchRow = {
   id: number;
   search_item: string;
@@ -46,8 +44,34 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const txt = await res.text().catch(() => "");
     throw new Error(`API ${res.status}: ${txt || res.statusText}`);
   }
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as T;
 }
+
+export type ResultRow = {
+  id: number;
+  search_id: number;
+  marketplace: string | null;
+  external_id: string | null;
+
+  title: string | null;
+  price: string | null;
+  currency: string | null;
+
+  price_num: number | null;
+  shipping_num: number | null;
+  total_price: number | null;
+
+  listing_url: string | null;
+  image_url: string | null;
+
+  location: string | null;
+  condition: string | null;
+  seller_username: string | null;
+
+  found_at: string | null;
+  created_at: string | null;
+};
 
 export const api = {
   listSearches: (limit = 100) =>
@@ -91,7 +115,7 @@ export const api = {
     apiFetch<{ ok: boolean; id: number }>(`/api/searches/${id}/duplicate`, { method: "POST" }),
 
   getResults: (id: number, limit = 50, offset = 0) =>
-    apiFetch<any[]>(`/api/searches/${id}/results?limit=${limit}&offset=${offset}`),
+    apiFetch<ResultRow[]>(`/api/searches/${id}/results?limit=${limit}&offset=${offset}`),
 
   getAlertSummary: async (id: number) => {
     const raw = await apiFetch<any>(`/api/searches/${id}/alerts/summary`);
