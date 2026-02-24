@@ -4,6 +4,9 @@
   "description": "GoSnaggit – hard-to-find item continual search app",
   "main": "index.js",
   "type": "commonjs",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "start": "node app.js",
     "worker": "node worker/worker.js"
