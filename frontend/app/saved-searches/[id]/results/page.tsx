@@ -2,31 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { api, type SearchRow } from "../../../../lib/api";
+import { api, type SearchRow, type ResultRow } from "../../../../lib/api";
 
-type ResultRow = {
-  id?: string | number;
-  search_id?: string | number;
-  marketplace?: string | null;
-  external_id?: string | null;
 
-  title?: string | null;
-  price?: string | number | null;
-  currency?: string | null;
-
-  listing_url?: string | null;
-  image_url?: string | null;
-
-  location?: string | null;
-  condition?: string | null;
-  seller_username?: string | null;
-
-  found_at?: string | null;
-  created_at?: string | null;
-
-  // Neon numeric column (you added)
-  price_num?: number | null;
-};
 
 function numPrice(r: any) {
   // Prefer indexed numeric column
@@ -132,8 +110,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         const [s, r] = await Promise.all([api.getSearch(id), api.getResults(id, 200, 0)]);
         if (!alive) return;
         setSearch(s || null);
-        const nextRows = Array.isArray(r) ? r : (r?.rows ?? []);
-        setRows(nextRows);
+        setRows(r);
         setLoading(false);
       } catch (e: any) {
         if (!alive) return;
