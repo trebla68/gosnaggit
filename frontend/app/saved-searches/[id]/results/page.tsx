@@ -132,7 +132,8 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         const [s, r] = await Promise.all([api.getSearch(id), api.getResults(id, 200, 0)]);
         if (!alive) return;
         setSearch(s || null);
-        setRows(r?.rows || r || []);
+        const nextRows = Array.isArray(r) ? r : (r?.rows ?? []);
+        setRows(nextRows);
         setLoading(false);
       } catch (e: any) {
         if (!alive) return;
