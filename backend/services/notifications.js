@@ -47,7 +47,7 @@ async function sendEmail({ to, subject, text, kind = "alerts" }) {
 
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 465);
-  const secure = String(process.env.SMTP_SECURE || 'true') === 'true';
+  const secure = envBool(process.env.SMTP_SECURE, true);
 
   const user = isSignup
     ? process.env.SIGNUP_SMTP_USER
