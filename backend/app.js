@@ -1063,42 +1063,54 @@ if (process.env.NODE_ENV !== 'production') {
         });
       }
 
-      if (!settings.enabled && force !== '1' && force !== 'true' && force !== 'yes') {
+      // Pull email notification settings for this search (single source of truth)
+      const { rows } = await pool.query(
+        `
+  SELECT destination, is_enabled
+  FROM notification_settings
+  WHERE search_id = $1
+    AND channel = 'email'
+  LIMIT 1
+  `,
+        [searchId]
+      );
+
+      const emailSetting = rows?.[0] || null;
+
+      // If no row exists yet, treat as "not configured" (not "disabled")
+      if (!emailSetting) {
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: 'no_email_configured',
+          search_id: searchId,
+          message: 'No email notification destination configured for this search yet.',
+        });
+      }
+
+      // Explicitly disabled
+      if (!emailSetting.is_enabled && force !== '1' && force !== 'true' && force !== 'yes') {
         return res.json({
           ok: true,
           skipped: true,
           reason: 'alerts_disabled',
           search_id: searchId,
-          settings,
+          message: 'Email notifications are disabled for this search.',
         });
       }
 
-
-      // Pull enabled email destination for this search
-      const { rows } = await pool.query(
-        `
-        SELECT destination
-        FROM notification_settings
-        WHERE search_id = $1
-          AND channel = 'email'
-          AND is_enabled = TRUE
-          AND destination IS NOT NULL
-        LIMIT 1
-        `,
-        [searchId]
-      );
-
-      if (!rows || rows.length === 0) {
+      // Enabled but missing destination
+      if (!emailSetting.destination) {
         return res.json({
           ok: true,
           skipped: true,
-          reason: 'no_email_enabled',
+          reason: 'missing_email_destination',
           search_id: searchId,
-          message: 'Email notifications are not enabled for this search. Enable an email destination in Search Detail → Alerts.',
+          message: 'Email notifications are enabled but no destination email is set.',
         });
       }
 
-      const toEmail = rows[0].destination;
+      const toEmail = emailSetting.destination;
 
       const result = await dispatchPendingAlertsForSearch({
         pool,
@@ -1135,11 +1147,17 @@ if (process.env.NODE_ENV !== 'production') {
       const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 25, 200));
 
 
-      // Respect per-search alert settings (server-backed)
-      const force = String(req.query.force || '').toLowerCase();
-      const settings = getAlertSettingsForSearchId(searchId);
+      // Respect per-search alert schedule settings (server-backed)
+      const forceRaw = String(req.query.force || '').toLowerCase();
+      const isForce = (forceRaw === '1' || forceRaw === 'true' || forceRaw === 'yes');
+
+      // NOTE: getAlertSettingsForSearchId is used ONLY for schedule/mode (daily vs immediate),
+      // NOT for enabled/disabled (that comes from notification_settings DB table).
+      const settings = getAlertSettingsForSearchId(searchId) || {};
+      const mode = String(settings.mode || 'immediate');
+
       // Daily digest guard: only allow ONE send per local day (unless force)
-      if (settings.mode === 'daily' && hasDigestBeenSentToday(settings) && force !== '1' && force !== 'true' && force !== 'yes') {
+      if (mode === 'daily' && hasDigestBeenSentToday(settings) && !isForce) {
         return res.json({
           ok: true,
           skipped: true,
@@ -1149,42 +1167,54 @@ if (process.env.NODE_ENV !== 'production') {
         });
       }
 
-      if (!settings.enabled && force !== '1' && force !== 'true' && force !== 'yes') {
-        return res.json({
-          ok: true,
-          skipped: true,
-          reason: 'alerts_disabled',
-          search_id: searchId,
-          settings,
-        });
-      }
-
-
-      // Pull enabled email destination for this search
+      // SINGLE SOURCE OF TRUTH: email notification settings come from DB
       const { rows } = await pool.query(
         `
-        SELECT destination
+        SELECT destination, is_enabled
         FROM notification_settings
         WHERE search_id = $1
           AND channel = 'email'
-          AND is_enabled = TRUE
-          AND destination IS NOT NULL
         LIMIT 1
         `,
         [searchId]
       );
 
-      if (!rows || rows.length === 0) {
+      const emailSetting = (rows && rows.length > 0) ? rows[0] : null;
+
+      // No settings row yet => not configured (not "disabled")
+      if (!emailSetting) {
         return res.json({
           ok: true,
           skipped: true,
-          reason: 'no_email_enabled',
+          reason: 'no_email_configured',
           search_id: searchId,
-          message: 'Email notifications are not enabled for this search. Enable an email destination in Search Detail → Alerts.',
+          message: 'No email notification destination configured for this search yet. Set an email destination in Search Detail → Alerts.',
         });
       }
 
-      const toEmail = rows[0].destination;
+      // Explicitly disabled
+      if (!emailSetting.is_enabled && !isForce) {
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: 'alerts_disabled',
+          search_id: searchId,
+          message: 'Email notifications are disabled for this search.',
+        });
+      }
+
+      // Enabled but missing destination
+      if (!emailSetting.destination) {
+        return res.json({
+          ok: true,
+          skipped: true,
+          reason: 'missing_email_destination',
+          search_id: searchId,
+          message: 'Email notifications are enabled but no destination email is set for this search.',
+        });
+      }
+
+      const toEmail = emailSetting.destination;
 
       const result = await dispatchPendingAlertsForSearch({
         pool,
@@ -1196,7 +1226,7 @@ if (process.env.NODE_ENV !== 'production') {
 
       // If this search is in daily digest mode and we actually sent an email,
       // record that we sent the digest today so we don't send again until tomorrow.
-      if (settings && settings.mode === 'daily' && result && Number(result.sent || 0) > 0) {
+      if (mode === 'daily' && result && Number(result.sent || 0) > 0) {
         markDigestSentForSearchId(searchId, new Date().toISOString());
       }
 
@@ -1340,16 +1370,17 @@ async function sendNowHandler(req, res) {
 
     const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 25, 200));
 
-    // Respect per-search alert settings (server-backed)
-    const force = String(req.query.force || '').toLowerCase();
-    const settings = getAlertSettingsForSearchId(searchId);
+    // Respect per-search alert schedule settings (server-backed)
+    const forceRaw = String(req.query.force || '').toLowerCase();
+    const isForce = (forceRaw === '1' || forceRaw === 'true' || forceRaw === 'yes');
+
+    // NOTE: getAlertSettingsForSearchId is used ONLY for schedule/mode (daily vs immediate),
+    // NOT for enabled/disabled (that comes from notification_settings DB table).
+    const settings = getAlertSettingsForSearchId(searchId) || {};
+    const mode = String(settings.mode || 'immediate');
 
     // Daily digest guard: only allow ONE send per local day (unless force)
-    if (
-      settings.mode === 'daily' &&
-      hasDigestBeenSentToday(settings) &&
-      force !== '1' && force !== 'true' && force !== 'yes'
-    ) {
+    if (mode === 'daily' && hasDigestBeenSentToday(settings) && !isForce) {
       return res.json({
         ok: true,
         skipped: true,
@@ -1359,41 +1390,54 @@ async function sendNowHandler(req, res) {
       });
     }
 
-    if (!settings.enabled && force !== '1' && force !== 'true' && force !== 'yes') {
-      return res.json({
-        ok: true,
-        skipped: true,
-        reason: 'alerts_disabled',
-        search_id: searchId,
-        settings,
-      });
-    }
-
-    // Pull enabled email destination for this search
+    // SINGLE SOURCE OF TRUTH: email notification settings come from DB
     const { rows } = await pool.query(
       `
-      SELECT destination
+      SELECT destination, is_enabled
       FROM notification_settings
       WHERE search_id = $1
         AND channel = 'email'
-        AND is_enabled = TRUE
-        AND destination IS NOT NULL
       LIMIT 1
       `,
       [searchId]
     );
 
-    if (!rows || rows.length === 0) {
+    const emailSetting = (rows && rows.length > 0) ? rows[0] : null;
+
+    // No settings row yet => not configured (not "disabled")
+    if (!emailSetting) {
       return res.json({
         ok: true,
         skipped: true,
-        reason: 'no_email_enabled',
+        reason: 'no_email_configured',
         search_id: searchId,
-        message: 'Email notifications are not enabled for this search. Enable an email destination in Search Detail → Alerts.',
+        message: 'No email notification destination configured for this search yet. Set an email destination in Search Detail → Alerts.',
       });
     }
 
-    const toEmail = rows[0].destination;
+    // Explicitly disabled
+    if (!emailSetting.is_enabled && !isForce) {
+      return res.json({
+        ok: true,
+        skipped: true,
+        reason: 'alerts_disabled',
+        search_id: searchId,
+        message: 'Email notifications are disabled for this search.',
+      });
+    }
+
+    // Enabled but missing destination
+    if (!emailSetting.destination) {
+      return res.json({
+        ok: true,
+        skipped: true,
+        reason: 'missing_email_destination',
+        search_id: searchId,
+        message: 'Email notifications are enabled but no destination email is set for this search.',
+      });
+    }
+
+    const toEmail = emailSetting.destination;
 
     const result = await dispatchPendingAlertsForSearch({
       pool,
@@ -1404,7 +1448,7 @@ async function sendNowHandler(req, res) {
 
     // If this search is in daily digest mode and we actually sent an email,
     // record that we sent the digest today so we don't send again until tomorrow.
-    if (settings && settings.mode === 'daily' && result && Number(result.sent || 0) > 0) {
+    if (mode === 'daily' && result && Number(result.sent || 0) > 0) {
       markDigestSentForSearchId(searchId, new Date().toISOString());
     }
 
@@ -1446,11 +1490,17 @@ async function patchAlertStatus(req, res) {
 
     const { rows } = await pool.query(
       `
-      UPDATE alert_events
-      SET status = $1
-      WHERE id = $2
-      RETURNING id AS alert_id, search_id, status, created_at
-      `,
+  UPDATE alert_events
+  SET
+    status = $1,
+    sent_at = CASE WHEN $1 = 'pending' THEN NULL ELSE sent_at END,
+    error_message = CASE WHEN $1 = 'pending' THEN NULL ELSE error_message END,
+    last_attempt_at = CASE WHEN $1 = 'pending' THEN NULL ELSE last_attempt_at END,
+    attempt_count = CASE WHEN $1 = 'pending' THEN 0 ELSE attempt_count END,
+    next_attempt_at = CASE WHEN $1 = 'pending' THEN NULL ELSE next_attempt_at END
+  WHERE id = $2
+  RETURNING id AS alert_id, search_id, status, created_at
+  `,
       [status, alertId]
     );
 
