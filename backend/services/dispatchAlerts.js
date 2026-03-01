@@ -3,7 +3,27 @@
 const { sendEmail, buildAlertEmail } = require('./notifications');
 console.log("### dispatchAlerts.js LOADED from:", __filename);
 
+function addEbayCampid(url) {
+    try {
+        if (!url) return url;
 
+        const campid = process.env.EBAY_CAMPAIGN_ID;
+        if (!campid) return url;
+
+        const u = new URL(url);
+
+        // Only tag eBay links
+        if (!u.hostname.toLowerCase().includes("ebay.")) return url;
+
+        // If already tagged, leave it alone
+        if (u.searchParams.get("campid")) return u.toString();
+
+        u.searchParams.set("campid", campid);
+        return u.toString();
+    } catch {
+        return url;
+    }
+}
 
 
 
@@ -191,7 +211,12 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit, 
         );
 
         // Build ONE email and send it
-        const email = buildAlertEmail({ searchId, alerts: pending });
+        const pendingTagged = (pending || []).map((a) => ({
+            ...a,
+            listing_url: addEbayCampid(a.listing_url),
+        }));
+
+        const email = buildAlertEmail({ searchId, alerts: pendingTagged });
 
         try {
             await sendEmail({ to: toEmail, subject: email.subject, text: email.text, kind: "alerts" });
