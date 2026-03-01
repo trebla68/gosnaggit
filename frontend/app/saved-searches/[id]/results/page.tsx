@@ -327,7 +327,19 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
                     <div className="resultActions">
                       {r.listing_url ? (
-                        <a className="btn primary" href={r.listing_url as string} target="_blank" rel="noreferrer">
+                        <a
+                          className="btn primary"
+                          href={
+                            r.listing_url.includes("ebay.")
+                              ? r.listing_url +
+                              (r.listing_url.includes("?") ? "&" : "?") +
+                              "campid=" +
+                              process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID
+                              : r.listing_url
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           Open listing
                         </a>
                       ) : null}
