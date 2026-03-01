@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api, type SearchRow, type ResultRow } from "../../../../lib/api";
 
-
 function numPrice(r: any) {
   // Prefer indexed numeric column
   const n1 = Number(r?.price_num);
@@ -28,7 +27,12 @@ function isRecent(iso?: string | null, hours = 48) {
 }
 
 function resultKey(r: ResultRow): string {
-  return String(r.id ?? r.external_id ?? r.listing_url ?? `${r.marketplace ?? "m"}:${r.title ?? "t"}`);
+  return String(
+    r.id ??
+    r.external_id ??
+    r.listing_url ??
+    `${r.marketplace ?? "m"}:${r.title ?? "t"}`,
+  );
 }
 
 function fmtPrice(price: any, currency?: string | null) {
@@ -36,7 +40,10 @@ function fmtPrice(price: any, currency?: string | null) {
   if (!Number.isFinite(n) || n <= 0) return "—";
   const cur = (currency || "USD").toUpperCase();
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(n);
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: cur,
+    }).format(n);
   } catch {
     return `$${n.toFixed(2)}`;
   }
@@ -59,7 +66,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
   const [rows, setRows] = useState<ResultRow[]>([]);
   const [search, setSearch] = useState<SearchRow | null>(null);
-  const [sortBy, setSortBy] = useState<"newest" | "price_low" | "price_high">("newest");
+  const [sortBy, setSortBy] = useState<"newest" | "price_low" | "price_high">(
+    "newest",
+  );
 
   const searchParams = useSearchParams();
   const focusNew = (searchParams.get("focus") || "").toLowerCase() === "new";
@@ -119,7 +128,6 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         setLoading(false);
       }
     })();
-
 
     return () => {
       alive = false;
@@ -232,10 +240,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             <button className={`btn ${sortBy === "newest" ? "primary" : ""}`} onClick={() => setSortBy("newest")}>
               Newest
             </button>
-            <button
-              className={`btn ${sortBy === "price_low" ? "primary" : ""}`}
-              onClick={() => setSortBy("price_low")}
-            >
+            <button className={`btn ${sortBy === "price_low" ? "primary" : ""}`} onClick={() => setSortBy("price_low")}>
               Price ↑
             </button>
             <button
@@ -268,10 +273,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       ) : (
-
         <>
           <div className="resultsGrid">
-            {sorted.map((r, idx) => {
+            {sorted.map((r) => {
               const key = resultKey(r);
               if (hiddenKeys.includes(key)) return null;
               const isNew = isRecent(r.found_at || r.created_at, 48);
@@ -282,8 +286,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
               const p = numPrice(r);
 
               const isBest = priceStats && p != null && p === priceStats.min;
-              const underMax =
-                priceStats && p != null && priceStats.maxPrice != null && p <= priceStats.maxPrice;
+              const underMax = priceStats && p != null && priceStats.maxPrice != null && p <= priceStats.maxPrice;
 
               const when = fmtWhen(r.found_at || r.created_at);
               const hasImg = !!r.image_url;
@@ -331,11 +334,13 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
                         <a
                           className="btn primary"
                           href={
-                            r.listing_url.includes("ebay.")
+                            r.listing_url.includes("ebay.") && process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID
                               ? r.listing_url +
                               (r.listing_url.includes("?") ? "&" : "?") +
                               "campid=" +
-                              process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID
+                              process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID +
+                              "&customid=search-" +
+                              String(params.id)
                               : r.listing_url
                           }
                           target="_blank"
