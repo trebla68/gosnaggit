@@ -58,6 +58,7 @@ export default function NewSearch() {
       const res = await api.createSearch(payload);
       const id = res?.search?.id;
       router.push(id ? `/saved-searches/${id}/results` : "/saved-searches");
+      router.refresh();
     } catch (e: any) {
       alert(e?.message || "Failed to create search");
     } finally {

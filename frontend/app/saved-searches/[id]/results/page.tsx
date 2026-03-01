@@ -1,9 +1,10 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api, type SearchRow, type ResultRow } from "../../../../lib/api";
-
 
 
 function numPrice(r: any) {
