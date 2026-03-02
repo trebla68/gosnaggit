@@ -194,6 +194,7 @@ async function dispatchPendingAlertsForSearch({ pool, searchId, toEmail, limit, 
       SELECT
         ae.id AS alert_id,
             ae.search_id,
+            ae.result_id AS result_id,
             ae.status,
             ae.created_at AS alert_created_at,
             r.title,

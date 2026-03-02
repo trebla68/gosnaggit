@@ -20,6 +20,28 @@ function envBool(v, def = false) {
   return s === '1' || s === 'true' || s === 'yes' || s === 'on';
 }
 
+function withClickTracking(url, { searchId, resultId, marketplace, customid }) {
+  try {
+    if (!url) return url;
+
+    const base = String(process.env.PUBLIC_BACKEND_URL || "")
+      .trim()
+      .replace(/\/+$/, "");
+    if (!base) return url;
+
+    const qs =
+      "url=" + encodeURIComponent(url) +
+      "&search_id=" + encodeURIComponent(String(searchId || "")) +
+      "&result_id=" + encodeURIComponent(String(resultId || "")) +
+      "&marketplace=" + encodeURIComponent(String(marketplace || "")) +
+      "&customid=" + encodeURIComponent(String(customid || ""));
+
+    return `${base}/api/click?${qs}`;
+  } catch {
+    return url;
+  }
+}
+
 /**
  * sendEmail({
  *   to,
@@ -108,7 +130,14 @@ function buildAlertEmail({ searchId, alerts }) {
     lines.push(`${idx + 1}) ${a.title || '—'}`);
     lines.push(`   Price: ${a.price ? `${a.price} ${a.currency || ''}` : '—'}`);
     lines.push(`   Marketplace: ${a.marketplace || '—'}`);
-    lines.push(`   Link: ${a.listing_url || '—'}`);
+    const customid = `search-${searchId}`;
+    const tracked = withClickTracking(a.listing_url, {
+      searchId,
+      resultId: a.result_id,
+      marketplace: a.marketplace,
+      customid,
+    });
+    lines.push(`   Link: ${tracked || '—'}`);
     lines.push(`   Alert ID: ${a.alert_id}`);
     lines.push('');
   });
