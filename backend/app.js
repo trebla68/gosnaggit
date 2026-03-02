@@ -1601,6 +1601,49 @@ app.all('/searches/:id/notifications/email', methodNotAllowed(['POST']));
 app.all('/api/searches/:id/notifications/email', methodNotAllowed(['POST']));
 
 // --------------------
+// Click tracking (log then redirect)
+// --------------------
+app.get("/api/click", async (req, res) => {
+  try {
+    const url = String(req.query.url || "").trim();
+    if (!url) return res.status(400).json({ ok: false, error: "Missing url" });
+
+    // Safety: only allow http/https
+    if (!/^https?:\/\/.+/i.test(url)) {
+      return res.status(400).json({ ok: false, error: "Invalid url" });
+    }
+
+    const searchId = req.query.search_id ? Number(req.query.search_id) : null;
+    const resultId = req.query.result_id ? Number(req.query.result_id) : null;
+
+    const marketplace = req.query.marketplace ? String(req.query.marketplace) : null;
+    const customid = req.query.customid ? String(req.query.customid) : null;
+
+    const referrer = req.get("referer") || null;
+    const userAgent = req.get("user-agent") || null;
+
+    const search_id = Number.isFinite(searchId) ? searchId : null;
+    const result_id = Number.isFinite(resultId) ? resultId : null;
+
+    await pool.query(
+      `
+      INSERT INTO click_events (search_id, result_id, marketplace, destination_url, customid, referrer, user_agent)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `,
+      [search_id, result_id, marketplace, url, customid, referrer, userAgent]
+    );
+
+    return res.redirect(302, url);
+  } catch (err) {
+    console.error("GET /api/click failed:", err);
+    return res.status(500).json({ ok: false, error: "Click tracking failed" });
+  }
+});
+
+// Guards
+app.all("/api/click", methodNotAllowed(["GET"]));
+
+// --------------------
 // Registration (MVP) — emails admin + optional confirmation
 // --------------------
 app.post('/api/registrations', async (req, res) => {
