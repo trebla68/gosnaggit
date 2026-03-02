@@ -185,7 +185,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
       return copy.sort((a, b) => {
         const p = cmpNewFirst(a, b);
         if (p !== 0) return p;
-        return (numPrice(b) ?? -Infinity) - (numPrice(a) ?? Infinity);
+        return (numPrice(b) ?? -Infinity) - (numPrice(a) ?? -Infinity);
       });
     }
 
