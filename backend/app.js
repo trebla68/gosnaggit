@@ -8,6 +8,8 @@ const fs = require('fs');
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const pool = require('./db');
 const { getEbayAppToken } = require('./services/ebayAuth');
@@ -64,6 +66,114 @@ if (typeof fetch !== 'function') {
 // Middleware
 // --------------------
 app.use(express.json());
+
+// --------------------
+// Auth + Trial access helpers
+// --------------------
+function normalizeEmailAuth(value) {
+  if (value === undefined || value === null) return null;
+  const s = String(value).trim();
+  if (s === "") return null;
+  if (s.length > 254) return null;
+
+  const at = s.indexOf("@");
+  if (at <= 0) return null;
+  if (s.indexOf(".", at) === -1) return null;
+  if (s.includes(" ")) return null;
+
+  return s.toLowerCase();
+}
+
+function getJwtSecret() {
+  const s = String(process.env.AUTH_JWT_SECRET || "").trim();
+  if (!s) throw new Error("Missing AUTH_JWT_SECRET");
+  return s;
+}
+
+function signAuthToken(user) {
+  const payload = { typ: "auth", uid: user.id, email: user.email };
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: "30d" });
+}
+
+function signTrialToken(searchIds) {
+  const ttlHours = Number(process.env.TRIAL_TOKEN_TTL_HOURS || 24);
+  const payload = { typ: "trial", search_ids: searchIds.map(Number).filter(Boolean) };
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: `${ttlHours}h` });
+}
+
+function readBearer(req) {
+  const h = req.headers.authorization || "";
+  const m = /^Bearer\s+(.+)$/i.exec(String(h));
+  return m ? m[1] : null;
+}
+
+function readTrialHeader(req) {
+  // Set by Next proxy from httpOnly cookie gs_trial
+  const t = req.headers["x-gs-trial"];
+  return typeof t === "string" ? t : null;
+}
+
+function getAuthUser(req) {
+  const token = readBearer(req);
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, getJwtSecret());
+    if (!decoded || decoded.typ !== "auth" || !decoded.uid) return null;
+    return { id: Number(decoded.uid), email: String(decoded.email || "") };
+  } catch {
+    return null;
+  }
+}
+
+function getTrialSearchIds(req) {
+  const token = readTrialHeader(req);
+  if (!token) return [];
+  try {
+    const decoded = jwt.verify(token, getJwtSecret());
+    if (!decoded || decoded.typ !== "trial") return [];
+    const ids = Array.isArray(decoded.search_ids) ? decoded.search_ids : [];
+    return ids.map(Number).filter((n) => Number.isFinite(n) && n > 0);
+  } catch {
+    return [];
+  }
+}
+
+function requireAuth(req, res, next) {
+  const u = getAuthUser(req);
+  if (!u) return res.status(401).json({ ok: false, error: "Unauthorized" });
+  req.user = u;
+  next();
+}
+
+async function requireSearchAccess(req, res, next) {
+  const searchId = Number(req.params.id);
+  if (!Number.isFinite(searchId) || searchId <= 0) {
+    return res.status(400).json({ ok: false, error: "Invalid search id" });
+  }
+
+  const { rows } = await pool.query(
+    `SELECT id, user_id FROM searches WHERE id = $1`,
+    [searchId]
+  );
+  if (!rows.length) return res.status(404).json({ ok: false, error: "Search not found" });
+
+  const row = rows[0];
+  const user = getAuthUser(req);
+  const trialIds = getTrialSearchIds(req);
+
+  const ownedByUser = user && row.user_id && Number(row.user_id) === Number(user.id);
+  const allowedTrial = (!row.user_id) && trialIds.includes(searchId);
+
+  if (!ownedByUser && !allowedTrial) {
+    return res.status(401).json({ ok: false, error: "Unauthorized" });
+  }
+
+  req.user = user || null;
+  next();
+}
+
+app.use("/searches/:id", requireSearchAccess);
+app.use("/api/searches/:id", requireSearchAccess);
 
 // --------------------
 // Alert settings routes (support BOTH /searches and /api/searches)
@@ -400,6 +510,70 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // --------------------
+// Auth (register/login)
+// --------------------
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const emailNorm = normalizeEmailAuth(email);
+    const pass = String(password || "");
+
+    if (!emailNorm) return res.status(400).json({ ok: false, error: "Valid email is required" });
+    if (pass.length < 8) return res.status(400).json({ ok: false, error: "Password must be at least 8 characters" });
+
+    const hash = await bcrypt.hash(pass, 12);
+
+    const { rows } = await pool.query(
+      `INSERT INTO users (email, password_hash)
+       VALUES ($1, $2)
+       RETURNING id, email, created_at`,
+      [emailNorm, hash]
+    );
+
+    const user = rows[0];
+    const token = signAuthToken(user);
+    return res.json({ ok: true, user, token });
+  } catch (err) {
+    if (String(err?.code) === "23505") {
+      return res.status(409).json({ ok: false, error: "Email already registered" });
+    }
+    console.error("POST /api/auth/register failed:", err);
+    return res.status(500).json({ ok: false, error: "Registration failed" });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const emailNorm = normalizeEmailAuth(email);
+    const pass = String(password || "");
+
+    if (!emailNorm) return res.status(400).json({ ok: false, error: "Valid email is required" });
+
+    const { rows } = await pool.query(
+      `SELECT id, email, password_hash FROM users WHERE email = $1 LIMIT 1`,
+      [emailNorm]
+    );
+    if (!rows.length) return res.status(401).json({ ok: false, error: "Invalid credentials" });
+
+    const u = rows[0];
+    const ok = await bcrypt.compare(pass, u.password_hash);
+    if (!ok) return res.status(401).json({ ok: false, error: "Invalid credentials" });
+
+    const user = { id: u.id, email: u.email };
+    const token = signAuthToken(user);
+    return res.json({ ok: true, user, token });
+  } catch (err) {
+    console.error("POST /api/auth/login failed:", err);
+    return res.status(500).json({ ok: false, error: "Login failed" });
+  }
+});
+
+app.get("/api/auth/me", requireAuth, async (req, res) => {
+  return res.json({ ok: true, user: req.user });
+});
+
+// --------------------
 // Searches CRUD
 // --------------------
 async function createSearch(req, res) {
@@ -415,11 +589,12 @@ async function createSearch(req, res) {
     const finalTier = normalizeTier(plan_tier ?? tier ?? 'free');
 
     const marketplaces = normalizeMarketplaces(req.body.marketplaces);
+    const user = getAuthUser(req);
 
     const result = await pool.query(
       `
-  INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces)
-  VALUES ($1, $2, $3, $4, $5, $6, $7)
+  INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces, user_id)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   RETURNING *
   `,
       [
@@ -429,11 +604,16 @@ async function createSearch(req, res) {
         maxPriceNum,
         finalStatus,
         finalTier,
-        marketplaces
+        marketplaces,
+        user ? user.id : null
       ]
 
     );
 
+    if (!user) {
+      const trial = signTrialToken([result.rows[0].id]);
+      res.setHeader("x-gs-trial-token", trial);
+    }
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -560,10 +740,13 @@ async function getSearches(req, res) {
         FROM notification_settings
         GROUP BY search_id
       ) n ON n.search_id = s.id
-      WHERE s.status IS NULL OR s.status <> 'deleted'
+      WHERE (s.status IS NULL OR s.status <> 'deleted')
+      AND s.user_id = $1
       ORDER BY r.last_found_at DESC NULLS LAST, s.created_at DESC
-      `
+      `,
+      [req.user.id]
     );
+
     res.json(result.rows);
   } catch (err) {
     console.error('GET /searches failed:', err);
@@ -573,8 +756,8 @@ async function getSearches(req, res) {
 
 
 
-app.get('/api/searches', getSearches);
-app.get('/searches', getSearches); // keep old working for now
+app.get('/api/searches', requireAuth, getSearches);
+app.get('/searches', requireAuth, getSearches); // keep old working for now
 
 
 app.get('/searches/deleted', async (req, res) => {
@@ -869,18 +1052,28 @@ async function duplicateSearch(req, res) {
   try {
     const { id } = req.params;
 
+    const user = getAuthUser(req);
+
     const result = await pool.query(
       `
-  INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces)
-  SELECT search_item, location, category, max_price, status, plan_tier, marketplaces
-  FROM searches
-  WHERE id = $1
-  RETURNING *;
-  `,
-      [id]
+      INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces, user_id)
+      SELECT search_item, location, category, max_price, status, plan_tier, marketplaces, $2
+      FROM searches
+      WHERE id = $1
+      RETURNING *;
+      `,
+      [id, user ? user.id : null]
     );
 
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Search not found' });
+    }
+
+    // If this was a trial (not logged in), issue trial token
+    if (!user) {
+      const trial = signTrialToken([result.rows[0].id]);
+      res.setHeader("x-gs-trial-token", trial);
+    }
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
