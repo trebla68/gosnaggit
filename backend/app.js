@@ -212,15 +212,13 @@ async function alertSettingsHandlerWRITE(req, res) {
 }
 
 
-// canonical backend paths (what your Next proxy is calling)
-app.get("/searches/:id/alert-settings", alertSettingsHandlerGET);
-app.post("/searches/:id/alert-settings", alertSettingsHandlerWRITE);
-app.put("/searches/:id/alert-settings", alertSettingsHandlerWRITE);
+app.get("/searches/:id/alert-settings", requireAuth, alertSettingsHandlerGET);
+app.post("/searches/:id/alert-settings", requireAuth, alertSettingsHandlerWRITE);
+app.put("/searches/:id/alert-settings", requireAuth, alertSettingsHandlerWRITE);
 
-// ALSO allow /api/searches (in case anything still calls it)
-app.get("/api/searches/:id/alert-settings", alertSettingsHandlerGET);
-app.post("/api/searches/:id/alert-settings", alertSettingsHandlerWRITE);
-app.put("/api/searches/:id/alert-settings", alertSettingsHandlerWRITE);
+app.get("/api/searches/:id/alert-settings", requireAuth, alertSettingsHandlerGET);
+app.post("/api/searches/:id/alert-settings", requireAuth, alertSettingsHandlerWRITE);
+app.put("/api/searches/:id/alert-settings", requireAuth, alertSettingsHandlerWRITE);
 
 
 // ---- Alert settings API ----
@@ -1742,8 +1740,8 @@ async function getSearchAlertsSummary(req, res) {
   }
 }
 
-app.get('/api/searches/:id/alerts/summary', getSearchAlertsSummary);
-app.get('/searches/:id/alerts/summary', getSearchAlertsSummary);
+app.get('/api/searches/:id/alerts/summary', requireAuth, getSearchAlertsSummary);
+app.get('/searches/:id/alerts/summary', requireAuth, getSearchAlertsSummary);
 app.all('/api/searches/:id/alerts/summary', methodNotAllowed(['GET']));
 app.all('/searches/:id/alerts/summary', methodNotAllowed(['GET']));
 
@@ -1784,11 +1782,8 @@ async function notificationsEmailHandler(req, res) {
   }
 }
 
-// Existing route (keep)
-app.post('/searches/:id/notifications/email', notificationsEmailHandler);
-
-// NEW: API mirror route (add)
-app.post('/api/searches/:id/notifications/email', notificationsEmailHandler);
+app.post('/searches/:id/notifications/email', requireAuth, notificationsEmailHandler);
+app.post('/api/searches/:id/notifications/email', requireAuth, notificationsEmailHandler);
 
 // Guards MUST come after the real handlers
 app.all('/searches/:id/notifications/email', methodNotAllowed(['POST']));

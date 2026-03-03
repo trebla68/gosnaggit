@@ -149,12 +149,14 @@ export default function SavedSearchesPage() {
   const [summaries, setSummaries] = useState<Record<string, AlertSummary>>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [needsLogin, setNeedsLogin] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
     setErr(null);
+    setNeedsLogin(false);
 
     (async () => {
       try {
@@ -181,7 +183,18 @@ export default function SavedSearchesPage() {
         setLoading(false);
       } catch (e: any) {
         if (!alive) return;
-        setErr(String(e?.message || e));
+
+        const msg = String(e?.message || e);
+
+        // If unauthorized, show friendly signup gate instead of scary error text
+        if (msg.startsWith("API 401")) {
+          setNeedsLogin(true);
+          setErr(null);
+        } else {
+          setNeedsLogin(false);
+          setErr(msg);
+        }
+
         setLoading(false);
       }
     })();
@@ -221,7 +234,24 @@ export default function SavedSearchesPage() {
           </a>
         </div>
 
-        {err ? <div className="flash bad">{err}</div> : null}
+        {needsLogin ? (
+          <div className="card" style={{ marginTop: 14, padding: 16 }}>
+            <h3 style={{ marginTop: 0 }}>Save searches & enable alerts</h3>
+            <p className="muted" style={{ marginBottom: 12 }}>
+              Create an account (or log in) to view saved searches and turn on email alerts.
+            </p>
+            <div className="rowActions" style={{ gap: 10 }}>
+              <a className="btn primary" href="/signup">
+                Create account
+              </a>
+              <a className="btn" href="/login">
+                Log in
+              </a>
+            </div>
+          </div>
+        ) : err ? (
+          <div className="flash bad">{err}</div>
+        ) : null}
 
         {loading ? (
           <div className="card" style={{ marginTop: 14 }}>
