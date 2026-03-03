@@ -1,13 +1,10 @@
+import { NextRequest } from "next/server";
 import { proxy } from "../../_proxy/proxy";
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  return proxy(request, `/api/searches/${params.id}`);
-}
-
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  return proxy(request, `/api/searches/${params.id}`);
-}
-
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  return proxy(request, `/api/searches/${params.id}`);
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+  return proxy(request, `/api/searches/${id}`);
 }
