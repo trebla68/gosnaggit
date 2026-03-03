@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { api } from "../../lib/api";
+import { api, guestFreeUsed, isAuthedClient, markGuestFreeUsed } from "../../lib/api";
 import { useRouter } from "next/navigation";
 
 type Mk = "ebay" | "etsy" | "facebook" | "craigslist";
@@ -37,6 +37,20 @@ export default function NewSearch() {
       return;
     }
 
+    // Tighten UX: if guest already used the free search, open login modal immediately
+    // (no backend call, no 401 flash).
+    if (!isAuthedClient() && guestFreeUsed()) {
+      window.dispatchEvent(
+        new CustomEvent("gs-auth-required", {
+          detail: {
+            reason:
+              "You’ve used your 1 free search. Log in to create more searches or set alerts.",
+          },
+        })
+      );
+      return;
+    }
+
     try {
       setBusy(true);
 
@@ -56,11 +70,21 @@ export default function NewSearch() {
       };
 
       const res = await api.createSearch(payload);
+
+      // If the visitor is still a guest, mark that they used their one free search.
+      if (!isAuthedClient()) {
+        markGuestFreeUsed();
+      }
       const id = res?.search?.id;
       router.push(id ? `/saved-searches/${id}/results` : "/saved-searches");
       router.refresh();
     } catch (e: any) {
-      alert(e?.message || "Failed to create search");
+      const msg = String(e?.message || "");
+      if (msg.includes("API 401")) {
+        window.dispatchEvent(new CustomEvent("gs-auth-required", { detail: { reason: "You’ve used your 1 free search. Log in to create more searches or set alerts." } }));
+        return;
+      }
+      alert(msg || "Failed to create search");
     } finally {
       setBusy(false);
     }

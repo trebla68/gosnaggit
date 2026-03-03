@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { api, type SearchRow, type ResultRow } from "../../../../lib/api";
+import { api, isAuthedClient, type SearchRow, type ResultRow } from "../../../../lib/api";
 
 function numPrice(r: any) {
   // Prefer indexed numeric column
@@ -239,9 +239,23 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           <a className="btn" href={`/saved-searches/${id}`}>
             Details
           </a>
-          <a className="btn" href={`/saved-searches/${id}/alerts`}>
+          <button
+            className="btn"
+            type="button"
+            onClick={() => {
+              if (!isAuthedClient()) {
+                window.dispatchEvent(
+                  new CustomEvent("gs-auth-required", {
+                    detail: { reason: "Log in to manage alerts for this search." },
+                  })
+                );
+                return;
+              }
+              window.location.href = `/saved-searches/${id}/alerts`;
+            }}
+          >
             Alerts
-          </a>
+          </button>
         </div>
       </div>
 

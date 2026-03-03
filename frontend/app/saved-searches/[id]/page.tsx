@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { api, type AlertSummary, type SearchRow } from "../../../lib/api";
+import { api, isAuthedClient, type AlertSummary, type SearchRow } from "../../../lib/api";
 import Link from "next/link";
 
 function num(x: any) {
@@ -99,7 +99,14 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
       const sumRaw = await api.getAlertSummary(id);
       setSummary(normalizeSummary(sumRaw));
     } catch (e: any) {
-      setErr(e?.message || "Failed to load search");
+      const msg = String(e?.message || e);
+      if (msg.includes("API 401")) {
+        window.dispatchEvent(new CustomEvent("gs-auth-required", { detail: { reason: "Please log in to view/edit this search." } }));
+        setErr(null);
+        setLoading(false);
+        return;
+      }
+      setErr(msg || "Failed to load search");
     } finally {
       setLoading(false);
     }
@@ -135,6 +142,14 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
   }
 
   async function saveAlertSettings() {
+    if (!isAuthedClient()) {
+      window.dispatchEvent(
+        new CustomEvent("gs-auth-required", {
+          detail: { reason: "Log in to change alert settings." },
+        })
+      );
+      return;
+    }
     setAlertSaving(true);
     try {
       await api.saveAlertSettings(id, {
@@ -143,13 +158,26 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
         maxPerEmail: Math.max(1, Number(maxPerEmail) || 25),
       });
     } catch (e: any) {
-      alert(e?.message || "Failed to save alert settings");
+      const msg = String(e?.message || e);
+      if (msg.includes("API 401")) {
+        window.dispatchEvent(new CustomEvent("gs-auth-required", { detail: { reason: "Please log in to change alert settings." } }));
+        return;
+      }
+      alert(msg || "Failed to save alert settings");
     } finally {
       setAlertSaving(false);
     }
   }
 
   async function saveEmail() {
+    if (!isAuthedClient()) {
+      window.dispatchEvent(
+        new CustomEvent("gs-auth-required", {
+          detail: { reason: "Log in to set up email alerts." },
+        })
+      );
+      return;
+    }
     if (!emailDestination.trim()) {
       alert("Please enter an email address.");
       return;
@@ -165,6 +193,14 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
   }
 
   async function saveMarketplaces() {
+    if (!isAuthedClient()) {
+      window.dispatchEvent(
+        new CustomEvent("gs-auth-required", {
+          detail: { reason: "Log in to change marketplaces for a saved search." },
+        })
+      );
+      return;
+    }
     setMkSaving(true);
     try {
       await api.patchSearch(id, { marketplaces: { ...marketplaces, etsy: false } });
@@ -181,8 +217,16 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (!Number.isFinite(id) || id <= 0) return;
     load();
-    loadAlertSettings();
-    loadNotificationStatus();
+
+    // Tighten UX: don't even call auth-protected settings endpoints unless logged in.
+    if (isAuthedClient()) {
+      loadAlertSettings();
+      loadNotificationStatus();
+    } else {
+      setAlertLoading(false);
+      setEmailEnabled(false);
+      setEmailDestination("");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -218,8 +262,41 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
 
         <div className="row" style={{ gap: 10 }}>
           <Link className="btn" href={`/saved-searches/${id}/results`}>View results</Link>
-          <Link className="btn" href={`/saved-searches/${id}/alerts`}>Manage alerts</Link>
-          <Link className="btn" href={`/saved-searches/${id}/edit`}>Edit</Link>
+          <button
+            className="btn"
+            type="button"
+            onClick={() => {
+              if (!isAuthedClient()) {
+                window.dispatchEvent(
+                  new CustomEvent("gs-auth-required", {
+                    detail: { reason: "Log in to manage alerts for this search." },
+                  })
+                );
+                return;
+              }
+              window.location.href = `/saved-searches/${id}/alerts`;
+            }}
+          >
+            Manage alerts
+          </button>
+
+          <button
+            className="btn"
+            type="button"
+            onClick={() => {
+              if (!isAuthedClient()) {
+                window.dispatchEvent(
+                  new CustomEvent("gs-auth-required", {
+                    detail: { reason: "Log in to edit a saved search." },
+                  })
+                );
+                return;
+              }
+              window.location.href = `/saved-searches/${id}/edit`;
+            }}
+          >
+            Edit
+          </button>
         </div>
       </div>
 

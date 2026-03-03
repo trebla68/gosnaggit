@@ -1,5 +1,5 @@
 import { proxy } from "../../_proxy/proxy";
 
 export async function POST(request: Request) {
-  return proxy(request, "/api/auth/logout");
+  return proxy(request, "/api/auth/signup");
 }

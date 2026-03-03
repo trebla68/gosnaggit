@@ -23,12 +23,10 @@
   },
   "homepage": "https://github.com/trebla68/gosnaggit#readme",
   "dependencies": {
-    "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.3",
     "nodemailer": "^7.0.13",
     "pg": "^8.16.3"
   }

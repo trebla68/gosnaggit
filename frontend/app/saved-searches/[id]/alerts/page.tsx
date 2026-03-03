@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { api, type AlertRow, type AlertSummary } from "../../../../lib/api";
+import { api, isAuthedClient, type AlertRow, type AlertSummary } from "../../../../lib/api";
 
 function num(x: any) {
   const n = Number(x);
@@ -69,6 +69,15 @@ export default function AlertsPage({ params }: { params: { id: string } }) {
   }, [summary]);
 
   async function load() {
+    if (!isAuthedClient()) {
+      window.dispatchEvent(
+        new CustomEvent("gs-auth-required", {
+          detail: { reason: "Log in to view and send alerts." },
+        })
+      );
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const sumRaw = await api.getAlertSummary(id);

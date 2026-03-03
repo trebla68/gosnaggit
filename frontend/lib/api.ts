@@ -34,6 +34,7 @@ export type AlertRow = {
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
+    credentials: "include",
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -42,6 +43,25 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
+
+    // Global auth interceptor: if any API call returns 401, open the auth modal.
+    // Pages can still provide more specific reasons, but this prevents raw 401 errors
+    // from flashing in the UI.
+    if (res.status === 401 && typeof window !== "undefined") {
+      try {
+        window.dispatchEvent(
+          new CustomEvent("gs-auth-required", {
+            detail: {
+              reason:
+                "Please log in to continue. (You may have used your 1 free search, or your session expired.)",
+            },
+          })
+        );
+      } catch {
+        // ignore
+      }
+    }
+
     throw new Error(`API ${res.status}: ${txt || res.statusText}`);
   }
   const text = await res.text();
@@ -178,4 +198,44 @@ export const api = {
   listDeleted: (limit = 100) =>
     apiFetch<SearchRow[]>(`/api/searches/deleted?limit=${encodeURIComponent(String(limit))}`),
 
+  // Auth
+  me: () => apiFetch<any>(`/api/auth/me`),
+  login: (email: string, password: string) =>
+    apiFetch<any>(`/api/auth/login`, { method: "POST", body: JSON.stringify({ email, password }) }),
+  signup: (email: string, password: string) =>
+    apiFetch<any>(`/api/auth/signup`, { method: "POST", body: JSON.stringify({ email, password }) }),
+  logout: () => apiFetch<any>(`/api/auth/logout`, { method: "POST" }),
+
 };
+
+export function isAuthRequiredError(err: any) {
+  const msg = String(err?.message || "");
+  return msg.includes("API 401");
+}
+
+export function isAuthedClient(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem("gs-authed") === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function guestFreeUsed(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem("gs-free-used") === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markGuestFreeUsed() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem("gs-free-used", "1");
+  } catch {
+    // ignore
+  }
+}

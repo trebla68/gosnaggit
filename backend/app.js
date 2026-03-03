@@ -5,11 +5,10 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 
 const pool = require('./db');
 const { getEbayAppToken } = require('./services/ebayAuth');
@@ -68,112 +67,229 @@ if (typeof fetch !== 'function') {
 app.use(express.json());
 
 // --------------------
-// Auth + Trial access helpers
+// Simple auth (MVP): users + sessions + 1 free guest search
 // --------------------
-function normalizeEmailAuth(value) {
-  if (value === undefined || value === null) return null;
-  const s = String(value).trim();
-  if (s === "") return null;
-  if (s.length > 254) return null;
 
-  const at = s.indexOf("@");
-  if (at <= 0) return null;
-  if (s.indexOf(".", at) === -1) return null;
-  if (s.includes(" ")) return null;
-
-  return s.toLowerCase();
+function parseCookies(req) {
+  const header = req.headers && req.headers.cookie ? String(req.headers.cookie) : "";
+  const out = {};
+  header.split(";").forEach((part) => {
+    const i = part.indexOf("=");
+    if (i === -1) return;
+    const k = part.slice(0, i).trim();
+    const v = part.slice(i + 1).trim();
+    if (!k) return;
+    out[k] = decodeURIComponent(v);
+  });
+  return out;
 }
 
-function getJwtSecret() {
-  const s = String(process.env.AUTH_JWT_SECRET || "").trim();
-  if (!s) throw new Error("Missing AUTH_JWT_SECRET");
-  return s;
+function setCookie(res, name, value, opts = {}) {
+  const parts = [`${name}=${encodeURIComponent(String(value))}`];
+  parts.push(`Path=${opts.path || "/"}`);
+  if (opts.httpOnly !== false) parts.push("HttpOnly");
+  parts.push(`SameSite=${opts.sameSite || "Lax"}`);
+  if (opts.secure || process.env.NODE_ENV === "production") parts.push("Secure");
+  if (opts.maxAge != null) parts.push(`Max-Age=${Number(opts.maxAge)}`);
+  if (opts.expires) parts.push(`Expires=${opts.expires.toUTCString()}`);
+
+  const existing = res.getHeader("Set-Cookie");
+  if (!existing) {
+    res.setHeader("Set-Cookie", parts.join("; "));
+  } else if (Array.isArray(existing)) {
+    res.setHeader("Set-Cookie", [...existing, parts.join("; ")]);
+  } else {
+    res.setHeader("Set-Cookie", [existing, parts.join("; ")]);
+  }
 }
 
-function signAuthToken(user) {
-  const payload = { typ: "auth", uid: user.id, email: user.email };
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: "30d" });
+function clearCookie(res, name) {
+  setCookie(res, name, "", { maxAge: 0 });
 }
 
-function signTrialToken(searchIds) {
-  const ttlHours = Number(process.env.TRIAL_TOKEN_TTL_HOURS || 24);
-  const payload = { typ: "trial", search_ids: searchIds.map(Number).filter(Boolean) };
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: `${ttlHours}h` });
+function uuid() {
+  return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 }
 
-function readBearer(req) {
-  const h = req.headers.authorization || "";
-  const m = /^Bearer\s+(.+)$/i.exec(String(h));
-  return m ? m[1] : null;
+// Password hashing (built-in, no extra deps)
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  const key = crypto.scryptSync(String(password), salt, 64);
+  return `scrypt$${salt.toString("hex")}$${key.toString("hex")}`;
 }
 
-function readTrialHeader(req) {
-  // Set by Next proxy from httpOnly cookie gs_trial
-  const t = req.headers["x-gs-trial"];
-  return typeof t === "string" ? t : null;
-}
-
-function getAuthUser(req) {
-  const token = readBearer(req);
-  if (!token) return null;
+function verifyPassword(password, stored) {
   try {
-    const decoded = jwt.verify(token, getJwtSecret());
-    if (!decoded || decoded.typ !== "auth" || !decoded.uid) return null;
-    return { id: Number(decoded.uid), email: String(decoded.email || "") };
+    const s = String(stored || "");
+    if (!s.startsWith("scrypt$")) return false;
+    const parts = s.split("$");
+    const saltHex = parts[1];
+    const hashHex = parts[2];
+    const salt = Buffer.from(saltHex, "hex");
+    const key = crypto.scryptSync(String(password), salt, 64);
+    return crypto.timingSafeEqual(Buffer.from(hashHex, "hex"), key);
   } catch {
+    return false;
+  }
+}
+
+async function ensureAuthTables() {
+  // NOTE: This runs on startup and creates missing tables in Neon/Postgres.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id UUID PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      expires_at TIMESTAMPTZ NOT NULL
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS guest_sessions (
+      id UUID PRIMARY KEY,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      free_search_used BOOLEAN NOT NULL DEFAULT FALSE,
+      search_id INTEGER NULL
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS search_ownership (
+      search_id INTEGER PRIMARY KEY,
+      owner_user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL,
+      guest_id UUID NULL REFERENCES guest_sessions(id) ON DELETE SET NULL
+    );
+  `);
+
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_search_ownership_owner ON search_ownership(owner_user_id);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_search_ownership_guest ON search_ownership(guest_id);`);
+
+  // Optional admin bootstrap: set ADMIN_EMAIL + ADMIN_PASSWORD in env to enable admin.
+  const adminEmail = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+  const adminPass = String(process.env.ADMIN_PASSWORD || "");
+  if (adminEmail && adminPass) {
+    const existing = await pool.query(`SELECT id, password_hash, is_admin FROM users WHERE email=$1`, [adminEmail]);
+    if (existing.rows.length === 0) {
+      await pool.query(
+        `INSERT INTO users (email, password_hash, is_admin) VALUES ($1, $2, TRUE)`,
+        [adminEmail, hashPassword(adminPass)]
+      );
+      console.log("[auth] bootstrapped admin user:", adminEmail);
+    } else if (!existing.rows[0].is_admin) {
+      await pool.query(`UPDATE users SET is_admin=TRUE WHERE email=$1`, [adminEmail]);
+      console.log("[auth] promoted admin user:", adminEmail);
+    }
+  }
+}
+
+async function loadSession(req) {
+  const cookies = parseCookies(req);
+  const sid = cookies.gs_session;
+  if (!sid) return null;
+
+  const r = await pool.query(
+    `
+    SELECT s.id as session_id, s.expires_at, u.id as user_id, u.email, u.is_admin
+    FROM sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.id = $1
+    `,
+    [sid]
+  );
+
+  if (!r.rows.length) return null;
+
+  const row = r.rows[0];
+  const exp = row.expires_at ? new Date(row.expires_at) : null;
+  if (!exp || exp.getTime() < Date.now()) {
+    // expired; best-effort cleanup
+    await pool.query(`DELETE FROM sessions WHERE id=$1`, [sid]).catch(() => {});
     return null;
   }
+
+  return {
+    session_id: row.session_id,
+    user_id: row.user_id,
+    email: row.email,
+    is_admin: !!row.is_admin,
+  };
 }
 
-function getTrialSearchIds(req) {
-  const token = readTrialHeader(req);
-  if (!token) return [];
+async function ensureGuest(req, res) {
+  const cookies = parseCookies(req);
+  let gid = cookies.gs_guest;
+
+  if (gid) {
+    // ensure row exists
+    const r = await pool.query(`SELECT id FROM guest_sessions WHERE id=$1`, [gid]).catch(() => ({ rows: [] }));
+    if (r.rows && r.rows.length) return String(gid);
+  }
+
+  gid = uuid();
+  await pool.query(`INSERT INTO guest_sessions (id) VALUES ($1) ON CONFLICT (id) DO NOTHING`, [gid]);
+  setCookie(res, "gs_guest", gid, { httpOnly: true, sameSite: "Lax", maxAge: 60 * 60 * 24 * 365 });
+  return String(gid);
+}
+
+async function getGuestRow(gid) {
+  if (!gid) return null;
+  const r = await pool.query(`SELECT id, free_search_used, search_id FROM guest_sessions WHERE id=$1`, [gid]);
+  return r.rows[0] || null;
+}
+
+async function getOwnership(searchId) {
+  const r = await pool.query(`SELECT search_id, owner_user_id, guest_id FROM search_ownership WHERE search_id=$1`, [searchId]);
+  return r.rows[0] || null;
+}
+
+async function canAccessSearch(req, searchId) {
+  const me = req.user || null;
+  if (me && me.is_admin) return true;
+
+  const own = await getOwnership(searchId);
+  if (!own) return false;
+
+  if (me && own.owner_user_id && Number(own.owner_user_id) === Number(me.user_id)) return true;
+  if (req.guest_id && own.guest_id && String(own.guest_id) === String(req.guest_id)) return true;
+
+  return false;
+}
+
+function requireUser(req, res, next) {
+  if (req.user) return next();
+  return res.status(401).json({ ok: false, error: "Unauthorized", code: "AUTH_REQUIRED" });
+}
+
+function requireAdmin(req, res, next) {
+  if (req.user && req.user.is_admin) return next();
+  return res.status(403).json({ ok: false, error: "Forbidden", code: "ADMIN_REQUIRED" });
+}
+
+// Attach req.user and req.guest_id
+app.use(async (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, getJwtSecret());
-    if (!decoded || decoded.typ !== "trial") return [];
-    const ids = Array.isArray(decoded.search_ids) ? decoded.search_ids : [];
-    return ids.map(Number).filter((n) => Number.isFinite(n) && n > 0);
-  } catch {
-    return [];
+    req.user = await loadSession(req);
+    const cookies = parseCookies(req);
+    req.guest_id = cookies.gs_guest || null;
+  } catch (e) {
+    // don't block requests on auth errors
+    req.user = null;
+    req.guest_id = null;
   }
-}
-
-function requireAuth(req, res, next) {
-  const u = getAuthUser(req);
-  if (!u) return res.status(401).json({ ok: false, error: "Unauthorized" });
-  req.user = u;
   next();
-}
+});
 
-async function requireSearchAccess(req, res, next) {
-  const searchId = Number(req.params.id);
-  if (!Number.isFinite(searchId) || searchId <= 0) {
-    return res.status(400).json({ ok: false, error: "Invalid search id" });
-  }
 
-  const { rows } = await pool.query(
-    `SELECT id, user_id FROM searches WHERE id = $1`,
-    [searchId]
-  );
-  if (!rows.length) return res.status(404).json({ ok: false, error: "Search not found" });
-
-  const row = rows[0];
-  const user = getAuthUser(req);
-  const trialIds = getTrialSearchIds(req);
-
-  const ownedByUser = user && row.user_id && Number(row.user_id) === Number(user.id);
-  const allowedTrial = (!row.user_id) && trialIds.includes(searchId);
-
-  if (!ownedByUser && !allowedTrial) {
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
-  }
-
-  req.user = user || null;
-  next();
-}
-
-app.use("/searches/:id", requireSearchAccess);
-app.use("/api/searches/:id", requireSearchAccess);
 
 // --------------------
 // Alert settings routes (support BOTH /searches and /api/searches)
@@ -182,6 +298,14 @@ app.use("/api/searches/:id", requireSearchAccess);
 async function alertSettingsHandlerGET(req, res) {
   try {
     const id = String(req.params.id || "").trim();
+
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(id)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+
     const settings = await getAlertSettingsForSearchId(pool, id);
     return res.json({ ok: true, search_id: Number(id) || id, settings });
   } catch (e) {
@@ -192,6 +316,13 @@ async function alertSettingsHandlerGET(req, res) {
 async function alertSettingsHandlerWRITE(req, res) {
   try {
     const id = String(req.params.id || "").trim();
+
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(id)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
 
     // accept either {settings:{...}} or direct fields
     const incoming = (req.body && typeof req.body === "object")
@@ -212,13 +343,15 @@ async function alertSettingsHandlerWRITE(req, res) {
 }
 
 
-app.get("/searches/:id/alert-settings", requireAuth, alertSettingsHandlerGET);
-app.post("/searches/:id/alert-settings", requireAuth, alertSettingsHandlerWRITE);
-app.put("/searches/:id/alert-settings", requireAuth, alertSettingsHandlerWRITE);
+// canonical backend paths (what your Next proxy is calling)
+app.get("/searches/:id/alert-settings", alertSettingsHandlerGET);
+app.post("/searches/:id/alert-settings", alertSettingsHandlerWRITE);
+app.put("/searches/:id/alert-settings", alertSettingsHandlerWRITE);
 
-app.get("/api/searches/:id/alert-settings", requireAuth, alertSettingsHandlerGET);
-app.post("/api/searches/:id/alert-settings", requireAuth, alertSettingsHandlerWRITE);
-app.put("/api/searches/:id/alert-settings", requireAuth, alertSettingsHandlerWRITE);
+// ALSO allow /api/searches (in case anything still calls it)
+app.get("/api/searches/:id/alert-settings", alertSettingsHandlerGET);
+app.post("/api/searches/:id/alert-settings", alertSettingsHandlerWRITE);
+app.put("/api/searches/:id/alert-settings", alertSettingsHandlerWRITE);
 
 
 // ---- Alert settings API ----
@@ -332,6 +465,93 @@ function methodNotAllowed(allowed) {
     });
   };
 }
+
+
+// --------------------
+// Auth endpoints (MVP)
+// --------------------
+app.get("/api/auth/me", async (req, res) => {
+  if (!req.user) return res.json({ ok: true, user: null });
+  return res.json({
+    ok: true,
+    user: {
+      id: req.user.user_id,
+      email: req.user.email,
+      is_admin: !!req.user.is_admin,
+    },
+  });
+});
+
+app.post("/api/auth/signup", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
+    if (!email || !email.includes("@")) return res.status(400).json({ ok: false, error: "Valid email is required" });
+    if (!password || password.length < 6) return res.status(400).json({ ok: false, error: "Password must be at least 6 characters" });
+
+    const exists = await pool.query(`SELECT id FROM users WHERE email=$1`, [email]);
+    if (exists.rows.length) return res.status(400).json({ ok: false, error: "Account already exists. Please log in." });
+
+    const r = await pool.query(
+      `INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, is_admin`,
+      [email, hashPassword(password)]
+    );
+
+    // create session
+    const sid = uuid();
+    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30d
+    await pool.query(`INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)`, [sid, r.rows[0].id, expires]);
+
+    setCookie(res, "gs_session", sid, { httpOnly: true, sameSite: "Lax", maxAge: 60 * 60 * 24 * 30 });
+    return res.json({ ok: true, user: r.rows[0] });
+  } catch (e) {
+    console.error("POST /api/auth/signup failed:", e);
+    return res.status(500).json({ ok: false, error: "Signup failed" });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
+    if (!email || !password) return res.status(400).json({ ok: false, error: "Email + password required" });
+
+    const r = await pool.query(`SELECT id, email, password_hash, is_admin FROM users WHERE email=$1`, [email]);
+    if (!r.rows.length) return res.status(401).json({ ok: false, error: "Invalid credentials" });
+
+    const u = r.rows[0];
+    if (!verifyPassword(password, u.password_hash)) return res.status(401).json({ ok: false, error: "Invalid credentials" });
+
+    const sid = uuid();
+    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30d
+    await pool.query(`INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, $3)`, [sid, u.id, expires]);
+
+    setCookie(res, "gs_session", sid, { httpOnly: true, sameSite: "Lax", maxAge: 60 * 60 * 24 * 30 });
+    return res.json({ ok: true, user: { id: u.id, email: u.email, is_admin: !!u.is_admin } });
+  } catch (e) {
+    console.error("POST /api/auth/login failed:", e);
+    return res.status(500).json({ ok: false, error: "Login failed" });
+  }
+});
+
+app.post("/api/auth/logout", async (req, res) => {
+  try {
+    const cookies = parseCookies(req);
+    const sid = cookies.gs_session;
+    if (sid) await pool.query(`DELETE FROM sessions WHERE id=$1`, [sid]).catch(() => {});
+    clearCookie(res, "gs_session");
+    return res.json({ ok: true });
+  } catch (e) {
+    clearCookie(res, "gs_session");
+    return res.json({ ok: true });
+  }
+});
+
+app.all("/api/auth/me", methodNotAllowed(["GET"]));
+app.all("/api/auth/signup", methodNotAllowed(["POST"]));
+app.all("/api/auth/login", methodNotAllowed(["POST"]));
+app.all("/api/auth/logout", methodNotAllowed(["POST"]));
+
 
 // --------------------
 // Health
@@ -508,76 +728,32 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // --------------------
-// Auth (register/login)
-// --------------------
-app.post("/api/auth/register", async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    const emailNorm = normalizeEmailAuth(email);
-    const pass = String(password || "");
-
-    if (!emailNorm) return res.status(400).json({ ok: false, error: "Valid email is required" });
-    if (pass.length < 8) return res.status(400).json({ ok: false, error: "Password must be at least 8 characters" });
-
-    const hash = await bcrypt.hash(pass, 12);
-
-    const { rows } = await pool.query(
-      `INSERT INTO users (email, password_hash)
-       VALUES ($1, $2)
-       RETURNING id, email, created_at`,
-      [emailNorm, hash]
-    );
-
-    const user = rows[0];
-    const token = signAuthToken(user);
-    return res.json({ ok: true, user, token });
-  } catch (err) {
-    if (String(err?.code) === "23505") {
-      return res.status(409).json({ ok: false, error: "Email already registered" });
-    }
-    console.error("POST /api/auth/register failed:", err);
-    return res.status(500).json({ ok: false, error: "Registration failed" });
-  }
-});
-
-app.post("/api/auth/login", async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    const emailNorm = normalizeEmailAuth(email);
-    const pass = String(password || "");
-
-    if (!emailNorm) return res.status(400).json({ ok: false, error: "Valid email is required" });
-
-    const { rows } = await pool.query(
-      `SELECT id, email, password_hash FROM users WHERE email = $1 LIMIT 1`,
-      [emailNorm]
-    );
-    if (!rows.length) return res.status(401).json({ ok: false, error: "Invalid credentials" });
-
-    const u = rows[0];
-    const ok = await bcrypt.compare(pass, u.password_hash);
-    if (!ok) return res.status(401).json({ ok: false, error: "Invalid credentials" });
-
-    const user = { id: u.id, email: u.email };
-    const token = signAuthToken(user);
-    return res.json({ ok: true, user, token });
-  } catch (err) {
-    console.error("POST /api/auth/login failed:", err);
-    return res.status(500).json({ ok: false, error: "Login failed" });
-  }
-});
-
-app.get("/api/auth/me", requireAuth, async (req, res) => {
-  return res.json({ ok: true, user: req.user });
-});
-
-// --------------------
 // Searches CRUD
 // --------------------
 async function createSearch(req, res) {
   try {
     const { search_item, location, category, max_price, status, plan_tier, tier } = req.body || {};
     const maxPriceNum = parseMoneyToNumber(max_price);
+
+    // Auth / free-search gating:
+    // - Logged-in users can create searches (owned by user)
+    // - Guests get exactly 1 free search (owned by guest session)
+    const me = req.user || null;
+    let guestId = req.guest_id || null;
+    if (!me) {
+      guestId = await ensureGuest(req, res);
+      req.guest_id = guestId;
+      const g = await getGuestRow(guestId);
+      if (g && g.free_search_used) {
+        return res.status(401).json({
+          ok: false,
+          error: "Unauthorized",
+          code: "FREE_LIMIT_REACHED",
+          message: "You have used your 1 free search. Please log in to create more searches.",
+        });
+      }
+    }
+
 
     if (!search_item || String(search_item).trim() === '') {
       return res.status(400).json({ error: 'search_item is required' });
@@ -587,12 +763,11 @@ async function createSearch(req, res) {
     const finalTier = normalizeTier(plan_tier ?? tier ?? 'free');
 
     const marketplaces = normalizeMarketplaces(req.body.marketplaces);
-    const user = getAuthUser(req);
 
     const result = await pool.query(
       `
-  INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces, user_id)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces)
+  VALUES ($1, $2, $3, $4, $5, $6, $7)
   RETURNING *
   `,
       [
@@ -602,18 +777,35 @@ async function createSearch(req, res) {
         maxPriceNum,
         finalStatus,
         finalTier,
-        marketplaces,
-        user ? user.id : null
+        marketplaces
       ]
 
     );
 
-    if (!user) {
-      const trial = signTrialToken([result.rows[0].id]);
-      res.setHeader("x-gs-trial-token", trial);
+
+    const created = result.rows[0];
+
+    // Ownership mapping
+    try {
+      if (me) {
+        await pool.query(
+          `INSERT INTO search_ownership (search_id, owner_user_id) VALUES ($1, $2)
+           ON CONFLICT (search_id) DO UPDATE SET owner_user_id=EXCLUDED.owner_user_id, guest_id=NULL`,
+          [created.id, me.user_id]
+        );
+      } else if (guestId) {
+        await pool.query(
+          `INSERT INTO search_ownership (search_id, guest_id) VALUES ($1, $2)
+           ON CONFLICT (search_id) DO UPDATE SET guest_id=EXCLUDED.guest_id, owner_user_id=NULL`,
+          [created.id, guestId]
+        );
+        await pool.query(`UPDATE guest_sessions SET free_search_used=TRUE, search_id=$1 WHERE id=$2`, [created.id, guestId]);
+      }
+    } catch (e) {
+      console.error("[auth] failed to set ownership:", e);
     }
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(created);
   } catch (err) {
     console.error('POST /searches failed:', err);
     res.status(500).json({ error: 'Failed to create search' });
@@ -628,6 +820,13 @@ async function patchSearch(req, res) {
   try {
     const { id } = req.params;
     const body = req.body || {};
+
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(id)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
 
     // Build a partial update: only fields that exist in the request get updated.
     const sets = [];
@@ -717,35 +916,96 @@ app.patch('/api/searches/:id', patchSearch);
 
 async function getSearches(req, res) {
   try {
-    const result = await pool.query(
-      `
-      SELECT
-        s.*,
-        r.last_found_at,
-        COALESCE(n.email_enabled, FALSE) AS email_enabled,
-        n.email_destination
-      FROM searches s
-      LEFT JOIN (
-        SELECT search_id, MAX(found_at) AS last_found_at
-        FROM results
-        GROUP BY search_id
-      ) r ON r.search_id = s.id
-      LEFT JOIN (
-        SELECT
-          search_id,
-          BOOL_OR(is_enabled) FILTER (WHERE channel = 'email' AND destination IS NOT NULL) AS email_enabled,
-          MAX(destination) FILTER (WHERE channel = 'email' AND is_enabled = TRUE AND destination IS NOT NULL) AS email_destination
-        FROM notification_settings
-        GROUP BY search_id
-      ) n ON n.search_id = s.id
-      WHERE (s.status IS NULL OR s.status <> 'deleted')
-      AND s.user_id = $1
-      ORDER BY r.last_found_at DESC NULLS LAST, s.created_at DESC
-      `,
-      [req.user.id]
-    );
+    const me = req.user || null;
+    const guestId = req.guest_id || null;
 
-    res.json(result.rows);
+    // Admin sees all
+    if (me && me.is_admin) {
+      const result = await pool.query(
+        `
+        SELECT
+          s.*,
+          r.last_found_at,
+          COALESCE(n.email_enabled, FALSE) AS email_enabled,
+          n.email_destination
+        FROM searches s
+        LEFT JOIN (
+          SELECT search_id, MAX(found_at) AS last_found_at
+          FROM results
+          GROUP BY search_id
+        ) r ON r.search_id = s.id
+        LEFT JOIN (
+          SELECT
+            search_id,
+            BOOL_OR(is_enabled) FILTER (WHERE channel = 'email' AND destination IS NOT NULL) AS email_enabled,
+            MAX(destination) FILTER (WHERE channel = 'email' AND is_enabled = TRUE AND destination IS NOT NULL) AS email_destination
+          FROM notification_settings
+          GROUP BY search_id
+        ) n ON n.search_id = s.id
+        WHERE s.status IS NULL OR s.status <> 'deleted'
+        ORDER BY r.last_found_at DESC NULLS LAST, s.created_at DESC
+        `
+      );
+      return res.json(result.rows);
+    }
+
+    // Logged-in: only own searches
+    if (me) {
+      const result = await pool.query(
+        `
+        SELECT
+          s.*,
+          r.last_found_at,
+          COALESCE(n.email_enabled, FALSE) AS email_enabled,
+          n.email_destination
+        FROM searches s
+        JOIN search_ownership o ON o.search_id = s.id
+        LEFT JOIN (
+          SELECT search_id, MAX(found_at) AS last_found_at
+          FROM results
+          GROUP BY search_id
+        ) r ON r.search_id = s.id
+        LEFT JOIN (
+          SELECT
+            search_id,
+            BOOL_OR(is_enabled) FILTER (WHERE channel = 'email' AND destination IS NOT NULL) AS email_enabled,
+            MAX(destination) FILTER (WHERE channel = 'email' AND is_enabled = TRUE AND destination IS NOT NULL) AS email_destination
+          FROM notification_settings
+          GROUP BY search_id
+        ) n ON n.search_id = s.id
+        WHERE (s.status IS NULL OR s.status <> 'deleted')
+          AND o.owner_user_id = $1
+        ORDER BY r.last_found_at DESC NULLS LAST, s.created_at DESC
+        `,
+        [me.user_id]
+      );
+      return res.json(result.rows);
+    }
+
+    // Guest: only their single (if any)
+    if (guestId) {
+      const result = await pool.query(
+        `
+        SELECT
+          s.*,
+          r.last_found_at
+        FROM searches s
+        JOIN search_ownership o ON o.search_id = s.id
+        LEFT JOIN (
+          SELECT search_id, MAX(found_at) AS last_found_at
+          FROM results
+          GROUP BY search_id
+        ) r ON r.search_id = s.id
+        WHERE (s.status IS NULL OR s.status <> 'deleted')
+          AND o.guest_id = $1
+        ORDER BY r.last_found_at DESC NULLS LAST, s.created_at DESC
+        `,
+        [guestId]
+      );
+      return res.json(result.rows);
+    }
+
+    return res.json([]);
   } catch (err) {
     console.error('GET /searches failed:', err);
     res.status(500).json({ error: 'Failed to fetch searches' });
@@ -754,9 +1014,26 @@ async function getSearches(req, res) {
 
 
 
-app.get('/api/searches', requireAuth, getSearches);
-app.get('/searches', requireAuth, getSearches); // keep old working for now
+app.get('/api/searches', getSearches);
+app.get('/searches', getSearches); // keep old working for now
 
+
+
+// --------------------
+// Admin
+// --------------------
+app.get('/api/admin/searches', requireAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM searches ORDER BY created_at DESC`
+    );
+    res.json({ ok: true, rows });
+  } catch (e) {
+    console.error('GET /api/admin/searches failed:', e);
+    res.status(500).json({ ok: false, error: 'Failed to fetch admin searches' });
+  }
+});
+app.all('/api/admin/searches', methodNotAllowed(['GET']));
 
 app.get('/searches/deleted', async (req, res) => {
   try {
@@ -799,6 +1076,13 @@ app.get('/api/searches/:id/notification-status', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'invalid search id' });
     }
 
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(searchId)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+
     const { rows } = await pool.query(
       `
       SELECT
@@ -827,6 +1111,9 @@ app.get('/api/searches/:id/notification-status', async (req, res) => {
 app.get('/searches/:id', async (req, res) => {
   try {
     const id = req.params.id;
+    if (!(await canAccessSearch(req, Number(id)))) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
     const result = await pool.query('SELECT * FROM searches WHERE id = $1', [id]);
 
     if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
@@ -841,6 +1128,9 @@ app.get('/searches/:id', async (req, res) => {
 app.get('/api/searches/:id', async (req, res) => {
   try {
     const id = req.params.id;
+    if (!(await canAccessSearch(req, Number(id)))) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
     const result = await pool.query('SELECT * FROM searches WHERE id = $1', [id]);
 
     if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
@@ -856,6 +1146,13 @@ app.patch('/searches/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body || {};
+
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(id)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
 
     const allowed = ['active', 'paused', 'completed', 'cancelled', 'deleted'];
     if (!status || !allowed.includes(status)) {
@@ -879,6 +1176,13 @@ app.patch('/api/searches/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body || {};
+
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(id)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
 
     const allowed = ['active', 'paused', 'completed', 'cancelled', 'deleted'];
     if (!status || !allowed.includes(status)) {
@@ -906,6 +1210,13 @@ app.patch('/api/searches/:id/tier', async (req, res) => {
     const searchId = toInt(req.params.id);
     if (searchId === null) {
       return res.status(400).json({ ok: false, error: 'Invalid search id' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(searchId)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
     }
 
     const tierRaw = req.body?.tier;
@@ -1050,28 +1361,18 @@ async function duplicateSearch(req, res) {
   try {
     const { id } = req.params;
 
-    const user = getAuthUser(req);
-
     const result = await pool.query(
       `
-      INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces, user_id)
-      SELECT search_item, location, category, max_price, status, plan_tier, marketplaces, $2
-      FROM searches
-      WHERE id = $1
-      RETURNING *;
-      `,
-      [id, user ? user.id : null]
+  INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces)
+  SELECT search_item, location, category, max_price, status, plan_tier, marketplaces
+  FROM searches
+  WHERE id = $1
+  RETURNING *;
+  `,
+      [id]
     );
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Search not found' });
-    }
-
-    // If this was a trial (not logged in), issue trial token
-    if (!user) {
-      const trial = signTrialToken([result.rows[0].id]);
-      res.setHeader("x-gs-trial-token", trial);
-    }
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Search not found' });
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -1092,6 +1393,10 @@ async function getSearchResults(req, res) {
     const searchId = toInt(req.params.id);
     if (searchId === null) {
       return res.status(400).json({ error: 'Invalid search id' });
+    }
+
+    if (!(await canAccessSearch(req, Number(searchId)))) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
     }
 
     const limitNum = clampInt(req.query.limit, { min: 1, max: 200, fallback: 50 });
@@ -1159,6 +1464,13 @@ async function getSearchPricingSummary(req, res) {
   try {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
+
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(searchId)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
 
     const sql = `
       SELECT
@@ -1513,6 +1825,13 @@ async function getSearchAlerts(req, res) {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
 
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(searchId)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+
     const limitNum = clampInt(req.query.limit, { min: 1, max: 200, fallback: 50 });
     const offsetNum = clampInt(req.query.offset, { min: 0, max: 1_000_000, fallback: 0 });
 
@@ -1559,6 +1878,13 @@ async function sendNowHandler(req, res) {
   try {
     const searchId = parseInt(req.params.id, 10);
     if (Number.isNaN(searchId)) return res.status(400).json({ error: 'Invalid search id' });
+
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(searchId)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
 
     const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 25, 200));
 
@@ -1717,6 +2043,13 @@ async function getSearchAlertsSummary(req, res) {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ error: 'Invalid search id' });
 
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(searchId)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+
     const { rows } = await pool.query(
       `
       SELECT status, COUNT(*)::int AS count
@@ -1740,8 +2073,8 @@ async function getSearchAlertsSummary(req, res) {
   }
 }
 
-app.get('/api/searches/:id/alerts/summary', requireAuth, getSearchAlertsSummary);
-app.get('/searches/:id/alerts/summary', requireAuth, getSearchAlertsSummary);
+app.get('/api/searches/:id/alerts/summary', getSearchAlertsSummary);
+app.get('/searches/:id/alerts/summary', getSearchAlertsSummary);
 app.all('/api/searches/:id/alerts/summary', methodNotAllowed(['GET']));
 app.all('/searches/:id/alerts/summary', methodNotAllowed(['GET']));
 
@@ -1753,6 +2086,13 @@ async function notificationsEmailHandler(req, res) {
   try {
     const searchId = toInt(req.params.id);
     if (searchId === null) return res.status(400).json({ ok: false, error: 'Invalid search id' });
+
+    if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+    }
+    if (!(await canAccessSearch(req, Number(searchId)))) {
+      return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
 
     const { email, enabled } = req.body || {};
     const emailNorm = normalizeEmail(email);
@@ -1782,8 +2122,11 @@ async function notificationsEmailHandler(req, res) {
   }
 }
 
-app.post('/searches/:id/notifications/email', requireAuth, notificationsEmailHandler);
-app.post('/api/searches/:id/notifications/email', requireAuth, notificationsEmailHandler);
+// Existing route (keep)
+app.post('/searches/:id/notifications/email', notificationsEmailHandler);
+
+// NEW: API mirror route (add)
+app.post('/api/searches/:id/notifications/email', notificationsEmailHandler);
 
 // Guards MUST come after the real handlers
 app.all('/searches/:id/notifications/email', methodNotAllowed(['POST']));
@@ -1908,6 +2251,14 @@ app.use((err, req, res, next) => {
 // --------------------
 // Start server (keep truly last)
 // --------------------
-app.listen(PORT, () => {
-  console.log(`GoSnaggit server is running on http://localhost:${PORT}`);
-});
+(async () => {
+  try {
+    await ensureAuthTables();
+  } catch (e) {
+    console.error("[auth] ensureAuthTables failed:", e);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`GoSnaggit server is running on http://localhost:${PORT}`);
+  });
+})();
