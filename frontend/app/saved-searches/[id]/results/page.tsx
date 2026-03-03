@@ -24,12 +24,12 @@ function isRecent(iso?: string | null, hours = 48) {
   return age >= 0 && age <= hours * 60 * 60 * 1000;
 }
 
-function resultKey(r: ResultRow): string {
+function resultKey(r: any): string {
   return String(
-    (r as any).id ??
-      (r as any).external_id ??
-      (r as any).listing_url ??
-      `${(r as any).marketplace ?? "m"}:${(r as any).title ?? "t"}`,
+    r?.id ??
+    r?.external_id ??
+    r?.listing_url ??
+    `${r?.marketplace ?? "m"}:${r?.title ?? "t"}`,
   );
 }
 
@@ -38,10 +38,7 @@ function fmtPrice(price: any, currency?: string | null) {
   if (!Number.isFinite(n) || n <= 0) return "—";
   const cur = (currency || "USD").toUpperCase();
   try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency: cur,
-    }).format(n);
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(n);
   } catch {
     return `$${n.toFixed(2)}`;
   }
@@ -51,8 +48,7 @@ function fmtWhen(iso?: string | null) {
   if (!iso) return "";
   const t = Date.parse(iso);
   if (!Number.isFinite(t)) return "";
-  const d = new Date(t);
-  return d.toLocaleString();
+  return new Date(t).toLocaleString();
 }
 
 function pillClass(kind: "ok" | "warn" | "bad" | "neutral" = "neutral") {
@@ -64,9 +60,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
   const [rows, setRows] = useState<ResultRow[]>([]);
   const [search, setSearch] = useState<SearchRow | null>(null);
-  const [sortBy, setSortBy] = useState<"newest" | "price_low" | "price_high">(
-    "newest",
-  );
+  const [sortBy, setSortBy] = useState<"newest" | "price_low" | "price_high">("newest");
 
   const searchParams = useSearchParams();
   const focusNew = (searchParams.get("focus") || "").toLowerCase() === "new";
@@ -87,8 +81,8 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
   const count = rows?.length ?? 0;
 
+  // Load hidden keys
   useEffect(() => {
-    // Load per-search hidden (dismissed) results
     try {
       const raw = localStorage.getItem(storageKey);
       const arr = raw ? (JSON.parse(raw) as string[]) : [];
@@ -99,34 +93,33 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
+  // Persist hidden keys
   useEffect(() => {
-    let alive = true;
-
-    (async () => {
-      try {
-        const res = await fetch("/api/auth/status", { cache: "no-store" });
-        const data = await res.json().catch(() => null);
-        if (!alive) return;
-        setLoggedIn(Boolean(data?.loggedIn));
-      } catch {
-        if (!alive) return;
-        setLoggedIn(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    // Persist hidden keys
     try {
       localStorage.setItem(storageKey, JSON.stringify(hiddenKeys));
     } catch {
       // ignore
     }
   }, [storageKey, hiddenKeys]);
+
+  // Auth status
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/status", { cache: "no-store" });
+        const data = await res.json().catch(() => null);
+        if (!alive) return;
+        setLoggedIn(Boolean((data as any)?.loggedIn));
+      } catch {
+        if (!alive) return;
+        setLoggedIn(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   function hideResult(k: string) {
     setHiddenKeys((prev) => (prev.includes(k) ? prev : [...prev, k]));
@@ -136,6 +129,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     setHiddenKeys([]);
   }
 
+  // Fetch results (with polling)
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -148,7 +142,6 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
         setSearch(s || null);
 
-        // If results aren't ready yet, poll a few times
         let r = r0;
         if ((!r || r.length === 0) && alive) {
           const attempts = 10;
@@ -179,9 +172,34 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     };
   }, [id]);
 
+  // Sort results
+  const sorted = useMemo(() => {
+    const base = (rows || []).slice();
+
+    base.sort((a: any, b: any) => {
+      const aNew = isRecent(a?.found_at || a?.created_at, 48);
+      const bNew = isRecent(b?.found_at || b?.created_at, 48);
+      if (focusNew && aNew !== bNew) return aNew ? -1 : 1;
+
+      if (sortBy === "newest") {
+        const at = Date.parse(a?.found_at || a?.created_at || "") || 0;
+        const bt = Date.parse(b?.found_at || b?.created_at || "") || 0;
+        return bt - at;
+      }
+
+      const ap = numPrice(a) ?? Number.POSITIVE_INFINITY;
+      const bp = numPrice(b) ?? Number.POSITIVE_INFINITY;
+      if (sortBy === "price_low") return ap - bp;
+      return bp - ap;
+    });
+
+    return base;
+  }, [rows, sortBy, focusNew]);
+
+  // Price stats (from rows)
   const priceStats = useMemo(() => {
     const nums = (rows || [])
-      .map((r) => numPrice(r))
+      .map((r: any) => numPrice(r))
       .filter((n): n is number => typeof n === "number" && Number.isFinite(n) && n > 0)
       .sort((a, b) => a - b);
 
@@ -192,7 +210,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     const median = nums[Math.floor(nums.length / 2)];
 
     const maxPrice =
-      search && (search as any).max_price != null && Number((search as any).max_price) > 0
+      (search as any)?.max_price != null && Number((search as any).max_price) > 0
         ? Number((search as any).max_price)
         : null;
 
@@ -201,34 +219,8 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     return { min, max, median, maxPrice, underMax };
   }, [rows, search]);
 
-  const sorted = useMemo(() => {
-    const base = (rows || []).slice();
-
-    base.sort((a: any, b: any) => {
-      const aNew = isRecent(a.found_at || a.created_at, 48);
-      const bNew = isRecent(b.found_at || b.created_at, 48);
-
-      if (focusNew && aNew !== bNew) return aNew ? -1 : 1;
-
-      if (sortBy === "newest") {
-        const at = Date.parse(a.found_at || a.created_at || "") || 0;
-        const bt = Date.parse(b.found_at || b.created_at || "") || 0;
-        return bt - at;
-      }
-
-      const ap = numPrice(a) ?? Number.POSITIVE_INFINITY;
-      const bp = numPrice(b) ?? Number.POSITIVE_INFINITY;
-
-      if (sortBy === "price_low") return ap - bp;
-      return bp - ap;
-    });
-
-    return base;
-  }, [rows, sortBy, focusNew]);
-
   return (
     <main className="page">
-      {/* HEADER ONLY */}
       <div className="pageHead">
         <div>
           <h1 className="h1">Results for #{id}</h1>
@@ -263,16 +255,10 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* BODY */}
       {hiddenKeys.length ? (
         <div className="flash warn" style={{ marginBottom: 12 }}>
           You hid {hiddenKeys.length} result{hiddenKeys.length === 1 ? "" : "s"}.
-          <button
-            className="btn"
-            style={{ marginLeft: 10 }}
-            type="button"
-            onClick={undoHide}
-          >
+          <button className="btn" style={{ marginLeft: 10 }} type="button" onClick={undoHide}>
             Undo
           </button>
         </div>
@@ -326,8 +312,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         <div className="card empty">
           <div style={{ fontWeight: 800, marginBottom: 6 }}>No results yet</div>
           <div className="muted" style={{ marginBottom: 12 }}>
-            Once your search runs, results will appear here. You can also trigger a refresh
-            from Alerts.
+            Once your search runs, results will appear here. You can also trigger a refresh from Alerts.
           </div>
           <div className="ctaRow">
             <a
@@ -353,212 +338,119 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       ) : (
-        <>
-          <div className="resultsGrid">
-            {sorted.map((r) => {
-              const key = resultKey(r);
-              if (hiddenKeys.includes(key)) return null;
+        <div className="resultsGrid">
+          {sorted.map((r: any) => {
+            const key = resultKey(r);
+            if (hiddenKeys.includes(key)) return null;
 
-              const isNew = isRecent((r as any).found_at || (r as any).created_at, 48);
-              const mp = String((r as any).marketplace || "").toLowerCase();
-              const mpLabel = (r as any).marketplace
-                ? String((r as any).marketplace).toUpperCase()
-                : "SOURCE";
+            const isNew = isRecent(r?.found_at || r?.created_at, 48);
+            const mp = String(r?.marketplace || "").toLowerCase();
+            const mpLabel = r?.marketplace ? String(r.marketplace).toUpperCase() : "SOURCE";
 
-              const priceLabel = fmtPrice((r as any).price_num ?? (r as any).price, (r as any).currency);
-              const p = numPrice(r);
-              const isBest = priceStats && p != null && p === priceStats.min;
-              const underMax =
-                priceStats &&
-                p != null &&
-                priceStats.maxPrice != null &&
-                p <= priceStats.maxPrice;
+            const priceLabel = fmtPrice(r?.price_num ?? r?.price, r?.currency);
+            const p = numPrice(r);
+            const isBest = priceStats && p != null && p === priceStats.min;
+            const underMax =
+              priceStats && p != null && priceStats.maxPrice != null && p <= priceStats.maxPrice;
 
-              const when = fmtWhen((r as any).found_at || (r as any).created_at);
+            const when = fmtWhen(r?.found_at || r?.created_at);
+            const hasImg = Boolean(r?.image_url);
+            const listingUrl = String(r?.listing_url || "");
 
-              const hasImg = Boolean((r as any).image_url);
-              const listingUrl = String((r as any).listing_url || "");
+            const destUrl =
+              listingUrl && listingUrl.includes("ebay.")
+                ? listingUrl +
+                (listingUrl.includes("?") ? "&" : "?") +
+                "campid=" +
+                String(process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID || "") +
+                "&customid=search-" +
+                String(params.id)
+                : listingUrl;
 
-              const destUrl =
-                listingUrl && listingUrl.includes("ebay.")
-                  ? listingUrl +
-                    (listingUrl.includes("?") ? "&" : "?") +
-                    "campid=" +
-                    String(process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID || "") +
-                    "&customid=search-" +
-                    String(params.id)
-                  : listingUrl;
+            const trackUrl =
+              backendBase && destUrl
+                ? `${backendBase}/api/click?url=${encodeURIComponent(destUrl)}` +
+                `&search_id=${encodeURIComponent(String(params.id))}` +
+                `&result_id=${encodeURIComponent(String(r?.id ?? ""))}` +
+                `&marketplace=${encodeURIComponent(String(r?.marketplace ?? ""))}` +
+                `&customid=${encodeURIComponent("search-" + String(params.id))}`
+                : destUrl;
 
-              const trackUrl =
-                backendBase && destUrl
-                  ? `${backendBase}/api/click?url=${encodeURIComponent(destUrl)}` +
-                    `&search_id=${encodeURIComponent(String(params.id))}` +
-                    `&result_id=${encodeURIComponent(String((r as any).id ?? ""))}` +
-                    `&marketplace=${encodeURIComponent(String((r as any).marketplace ?? ""))}` +
-                    `&customid=${encodeURIComponent("search-" + String(params.id))}`
-                  : destUrl;
+            return (
+              <div className={`resultCard ${isNew ? "newCard" : ""}`} key={key}>
+                <div className="resultMedia">
+                  {hasImg ? (
+                    <img
+                      src={String(r.image_url)}
+                      alt={String(r?.title || "Result image")}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="resultMediaFallback">
+                      <span>no image</span>
+                    </div>
+                  )}
+                </div>
 
-              return (
-                <div className={`resultCard ${isNew ? "newCard" : ""}`} key={key}>
-                  <div className="resultMedia">
-                    {hasImg ? (
-                      <img
-                        src={(r as any).image_url as string}
-                        alt={(r as any).title || "Result image"}
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="resultMediaFallback">
-                        <span>no image</span>
-                      </div>
-                    )}
+                <div className="resultBody">
+                  <div className="resultTop">
+                    <span className={pillClass(mp === "ebay" ? "ok" : "neutral")}>{mpLabel}</span>
+                    {isNew ? (
+                      <span className="pill bad pillNew" title="New result">
+                        NEW
+                      </span>
+                    ) : null}
+                    {isBest ? <span className={`${pillClass("ok")} pillBest`}>🏷️ BEST PRICE</span> : null}
+                    {underMax ? (
+                      <span className={`${pillClass("warn")} pillUnder`}>UNDER MAX</span>
+                    ) : null}
+                    {r?.condition ? <span className={pillClass("neutral")}>{String(r.condition)}</span> : null}
+                    {r?.location ? <span className={pillClass("neutral")}>{String(r.location)}</span> : null}
                   </div>
 
-                  <div className="resultBody">
-                    <div className="resultTop">
-                      <span className={pillClass(mp === "ebay" ? "ok" : "neutral")}>
-                        {mpLabel}
-                      </span>
-                      {isNew ? (
-                        <span className="pill bad pillNew" title="New result">
-                          NEW
-                        </span>
-                      ) : null}
-                      {isBest ? (
-                        <span className={`${pillClass("ok")} pillBest`}>🏷️ BEST PRICE</span>
-                      ) : null}
-                      {underMax ? (
-                        <span className={`${pillClass("warn")} pillUnder`}>UNDER MAX</span>
-                      ) : null}
-                      {(r as any).condition ? (
-                        <span className={pillClass("neutral")}>{String((r as any).condition)}</span>
-                      ) : null}
-                      {(r as any).location ? (
-                        <span className={pillClass("neutral")}>{String((r as any).location)}</span>
-                      ) : null}
-                    </div>
+                  <div className="resultTitle">{String(r?.title || "Untitled listing")}</div>
 
-                    <div className="resultTitle">{(r as any).title || "Untitled listing"}</div>
+                  <div className="resultMeta">
+                    <div className="resultPrice">{priceLabel}</div>
+                    <div className="muted">{when}</div>
+                  </div>
 
-                    <div className="resultMeta">
-                      <div className="resultPrice">{priceLabel}</div>
-                      <div className="muted">{when}</div>
-                    </div>
-
-                    <div className="resultActions">
-                      {listingUrl ? (
-                        <a className="btn primary" href={trackUrl} target="_blank" rel="noreferrer">
-                          Open listing
-                        </a>
-                      ) : null}
-                      <button
-                        className="btn danger"
-                        type="button"
-                        onClick={() => hideResult(key)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                  <div className="resultActions">
+                    {listingUrl ? (
+                      <a className="btn primary" href={trackUrl} target="_blank" rel="noreferrer">
+                        Open listing
+                      </a>
+                    ) : null}
+                    <button className="btn danger" type="button" onClick={() => hideResult(key)}>
+                      Delete
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       <style jsx>{`
-        .page {
-          padding: 18px;
-        }
-        .pageHead {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 14px;
-          margin-bottom: 14px;
-        }
-        .h1 {
-          margin: 0 0 6px 0;
-          font-size: 22px;
-        }
-        .muted {
-          opacity: 0.8;
-        }
-        .ctaRow {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: flex-end;
-        }
-        .resultsGrid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 12px;
-        }
-        .resultCard {
-          display: grid;
-          grid-template-columns: 120px 1fr;
-          gap: 12px;
-          padding: 12px;
-          border-radius: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(0, 0, 0, 0.25);
-        }
-        .newCard {
-          outline: 2px solid rgba(255, 220, 80, 0.3);
-        }
-        .resultMedia {
-          width: 120px;
-          height: 120px;
-          border-radius: 12px;
-          overflow: hidden;
-          background: rgba(255, 255, 255, 0.06);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .resultMedia img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-        .resultMediaFallback {
-          font-size: 12px;
-          opacity: 0.7;
-        }
-        .resultBody {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .resultTop {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          align-items: center;
-        }
-        .resultTitle {
-          font-weight: 800;
-          line-height: 1.2;
-        }
-        .resultMeta {
-          display: flex;
-          justify-content: space-between;
-          gap: 10px;
-          align-items: baseline;
-        }
-        .resultPrice {
-          font-weight: 900;
-        }
-        .resultActions {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
+        .page { padding: 18px; }
+        .pageHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+        .h1 { margin: 0 0 6px 0; font-size: 22px; }
+        .muted { opacity: 0.8; }
+        .ctaRow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+        .resultsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+        .resultCard { display: grid; grid-template-columns: 120px 1fr; gap: 12px; padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.25); }
+        .newCard { outline: 2px solid rgba(255,220,80,0.3); }
+        .resultMedia { width: 120px; height: 120px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; }
+        .resultMedia img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .resultMediaFallback { font-size: 12px; opacity: 0.7; }
+        .resultBody { display: flex; flex-direction: column; gap: 8px; }
+        .resultTop { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .resultTitle { font-weight: 800; line-height: 1.2; }
+        .resultMeta { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+        .resultPrice { font-weight: 900; }
+        .resultActions { display: flex; gap: 8px; flex-wrap: wrap; }
       `}</style>
     </main>
   );
