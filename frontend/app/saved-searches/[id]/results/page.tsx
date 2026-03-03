@@ -71,12 +71,6 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
   );
 
   const searchParams = useSearchParams();
-  const backendBase = (
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    ""
-  ).replace(/\/+$/, "");
   const focusNew = (searchParams.get("focus") || "").toLowerCase() === "new";
 
   const storageKey = `gosnaggit:hiddenResults:${id}`;
@@ -340,31 +334,6 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
               const when = fmtWhen(r.found_at || r.created_at);
               const hasImg = !!r.image_url;
-              const destUrl =
-                r.listing_url && r.listing_url.includes("ebay.")
-                  ? r.listing_url +
-                  (r.listing_url.includes("?") ? "&" : "?") +
-                  "campid=" +
-                  (process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID || "") +
-                  "&customid=search-" +
-                  String(params.id)
-                  : (r.listing_url || "");
-
-              const backendBase = (
-                process.env.NEXT_PUBLIC_BACKEND_URL ||
-                process.env.NEXT_PUBLIC_API_URL ||
-                process.env.NEXT_PUBLIC_API_BASE_URL ||
-                ""
-              ).replace(/\/+$/, "");
-
-              const trackUrl =
-                backendBase && destUrl
-                  ? `${backendBase}/api/click?url=${encodeURIComponent(destUrl)}` +
-                  `&search_id=${encodeURIComponent(String(params.id))}` +
-                  `&result_id=${encodeURIComponent(String(r.id ?? ""))}` +
-                  `&marketplace=${encodeURIComponent(String(r.marketplace ?? ""))}` +
-                  `&customid=${encodeURIComponent("search-" + String(params.id))}`
-                  : destUrl;
 
               return (
                 <div className={`resultCard ${isNew ? "newCard" : ""}`} key={key}>
@@ -414,7 +383,16 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
                       {r.listing_url ? (
                         <a
                           className="btn primary"
-                          href={trackUrl}
+                          href={
+                            r.listing_url.includes("ebay.")
+                              ? r.listing_url +
+                              (r.listing_url.includes("?") ? "&" : "?") +
+                              "campid=" +
+                              (process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID || "") +
+                              "&customid=search-" +
+                              String(params.id)
+                              : r.listing_url
+                          }
                           target="_blank"
                           rel="noreferrer"
                         >
