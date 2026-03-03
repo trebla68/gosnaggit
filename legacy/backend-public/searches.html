@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>GoSnaggit – Saved Searches</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --brand: var(--accent);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text: var(--text-main);
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    /* --- Accessibility: consistent keyboard focus --- */
+    :focus {
+      outline: none;
+    }
+
+    :focus-visible {
+      outline: 2px solid rgba(255, 179, 71, 0.85);
+      outline-offset: 2px;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible {
+      border-radius: 10px;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    /* --- Accessibility: consistent keyboard focus --- */
+    :focus {
+      outline: none;
+    }
+
+    :focus-visible {
+      outline: 2px solid rgba(255, 179, 71, 0.85);
+      outline-offset: 2px;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible {
+      border-radius: 10px;
+    }
+
+    /* --- Micro-interactions: subtle transitions --- */
+    a,
+    button,
+    select {
+      transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms ease;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+
+    .shell {
+      width: 100%;
+      max-width: 1120px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 22px 22px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1b1206;
+      font-weight: 800;
+      font-size: 1rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-text span:first-child {
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .logo-text span:last-child {
+      font-size: 0.98rem;
+      font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 179, 71, 0.35);
+      background-color: rgba(255, 179, 71, 0.10);
+    }
+
+    .title-block h1 {
+      margin: 0 0 0.3rem;
+      font-size: clamp(1.4rem, 1.9vw + 0.9rem, 1.9rem);
+    }
+
+    .title-block p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 800px) {
+      .summary-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .summary-card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, #151827, #050712 70%);
+      border: 1px solid rgba(80, 97, 183, 0.6);
+      padding: 8px 10px;
+      font-size: 0.82rem;
+    }
+
+    .summary-label {
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+
+    .summary-value {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .summary-note {
+      grid-column: 1 / -1;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .summary-highlight {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .table-card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, #151827, #050712 70%);
+      border: 1px solid rgba(80, 97, 183, 0.6);
+      padding: 12px 14px 12px;
+    }
+
+    .table-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .table-header-row h2 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .table-header-row small {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state {
+      padding: 18px 10px;
+      color: var(--text-muted);
+    }
+
+    .empty-state strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .empty-state a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .empty-state a:hover {
+      text-decoration: underline;
+    }
+
+    @keyframes rowPulse {
+      0% {
+        outline: 2px solid rgba(255, 179, 71, 0.0);
+      }
+
+      30% {
+        outline: 2px solid rgba(255, 179, 71, 0.9);
+      }
+
+      100% {
+        outline: 2px solid rgba(255, 179, 71, 0.0);
+      }
+    }
+
+    @keyframes miniSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .mini-spinner {
+      display: inline-block;
+      width: 0.85em;
+      height: 0.85em;
+      margin-left: 6px;
+      vertical-align: -0.12em;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: rgba(255, 255, 255, 0);
+      animation: miniSpin 1.8s linear infinite;
+    }
+
+    .row-pulse {
+      outline-offset: -2px;
+    }
+
+    @keyframes rowFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-2px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .row-fade-in {
+      animation: rowFadeIn 0.55s ease-out;
+    }
+
+    .row-fade-in.row-pulse {
+      animation: rowFadeIn 0.55s ease-out, rowPulse 1.2s ease-out;
+      animation-delay: 0s, 0.2s;
+    }
+
+    @keyframes fadeInText {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .action-working {
+      animation: fadeInText 0.2s ease-out;
+    }
+
+    @keyframes flashFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .flash.fade-in {
+      animation: flashFadeIn 0.6s ease-out;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+
+    th,
+    td {
+      padding: 7px 8px;
+      border-bottom: 1px solid rgba(54, 63, 122, 0.9);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background-color: rgba(10, 14, 34, 0.9);
+    }
+
+    tbody tr:nth-child(odd) {
+      background-color: rgba(7, 10, 26, 0.85);
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: rgba(9, 12, 30, 0.9);
+    }
+
+    tbody tr:hover {
+      background-color: rgba(22, 30, 68, 0.9);
+    }
+
+
+    .cell-main {
+      line-height: 1.2;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      border: 1px solid transparent;
+    }
+
+    .status-active {
+      background-color: rgba(22, 163, 74, 0.2);
+      border-color: rgba(34, 197, 94, 0.6);
+      color: #bbf7d0;
+    }
+
+    .status-paused {
+      background-color: rgba(253, 224, 71, 0.15);
+      border-color: rgba(250, 204, 21, 0.7);
+      color: #fef9c3;
+    }
+
+    .status-cancelled,
+    .status-completed {
+      background-color: rgba(248, 113, 113, 0.15);
+      border-color: rgba(248, 113, 113, 0.8);
+      color: #fecaca;
+    }
+
+    /* --- Micro UI accents --- */
+    .badge-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      vertical-align: middle;
+      color: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 179, 71, 0.18);
+      border: 1px solid rgba(255, 179, 71, 0.55);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
+    }
+
+    .email-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .email-badge .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 99px;
+      opacity: 0.85;
+    }
+
+    .email-badge.on {
+      border-color: rgba(51, 209, 122, 0.35);
+      background: rgba(51, 209, 122, 0.08);
+      color: #d8ffe9;
+    }
+
+    .email-badge.on .dot {
+      background: rgba(51, 209, 122, 0.95);
+    }
+
+    .email-badge.off {
+      border-color: rgba(255, 179, 71, 0.35);
+      background: rgba(255, 179, 71, 0.08);
+      color: #ffe9c9;
+    }
+
+    .email-badge.off .dot {
+      background: rgba(255, 179, 71, 0.95);
+    }
+
+
+    /* Actions: use the global button system, just smaller */
+    .actions-cell {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .actions-cell a {
+      margin-right: 0;
+      text-decoration: none;
+    }
+
+    .btn.btn-mini,
+    a.btn.btn-mini {
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      line-height: 1;
+      border-radius: 999px;
+    }
+
+    .pagination {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(54, 63, 122, 0.9);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pagination-buttons {
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .pagination button {
+      border-radius: 999px;
+      padding: 3px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background-color: rgba(6, 8, 22, 0.95);
+      color: #e2e8f0;
+      font-size: 0.78rem;
+      cursor: pointer;
+      min-width: 80px;
+    }
+
+    .pagination button:hover:not(:disabled) {
+      background-color: rgba(31, 41, 85, 0.95);
+    }
+
+    .pagination button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .page-size-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    #page-size {
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background-color: rgba(6, 8, 22, 0.95);
+      color: #e2e8f0;
+      font-size: 0.78rem;
+    }
+
+    .flash {
+      margin-top: 6px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      min-height: 1em;
+    }
+
+    .flash.success {
+      color: #bbf7d0;
+    }
+
+    .flash.error {
+      color: #fecaca;
+    }
+
+    tr.busy {
+      opacity: 0.85;
+      filter: saturate(0.9);
+      box-shadow: inset 0 0 0 1px rgba(255, 179, 71, 0.35);
+    }
+
+    footer {
+      margin-top: 4px;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      opacity: 0.9;
+    }
+
+    @media (max-width: 700px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .nav-links {
+        align-self: flex-start;
+      }
+    }
+
+    /* --- Tier controls (NEW) --- */
+    .tier-select {
+      border-radius: 999px;
+      padding: 3px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background-color: rgba(6, 8, 22, 0.95);
+      color: #e2e8f0;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .tier-select:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .tier-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(162, 167, 196, 0.9);
+    }
+
+    .tier-free .tier-dot {
+      background: rgba(162, 167, 196, 0.9);
+    }
+
+    .tier-pro .tier-dot {
+      background: rgba(255, 179, 71, 0.95);
+    }
+
+    .tier-power .tier-dot {
+      background: rgba(51, 209, 122, 0.95);
+    }
+
+    .last-result-link {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      border-radius: 12px;
+      padding: 6px 8px;
+    }
+
+    .last-result-link:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .last-result-link:focus-visible {
+      outline: 2px solid rgba(255, 193, 92, 0.7);
+      outline-offset: 2px;
+    }
+  </style>
+  <link href="/app.css" rel="stylesheet" />
+  <script defer="True" src="/ui.js"></script>
+</head>
+
+<body>
+  <header class="app-header" id="gs-header"></header>
+  <main class="gs-page">
+    <section class="page-hero">
+      <h1>Saved searches</h1>
+      <p class="subtitle">Your current hunts at a glance. This MVP view shows sample data for all active, paused, and
+        completed searches.</p>
+    </section>
+    <div class="shell">
+      <div class="inner">
+        <div class="summary-row">
+          <div class="summary-card">
+            <div class="summary-label">Total saved searches</div>
+            <div class="summary-value" id="summary-total">0</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Currently active</div>
+            <div class="summary-value" id="summary-active">0</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Completed / cancelled</div>
+            <div class="summary-value" id="summary-completed">0</div>
+          </div>
+          <div class="summary-note">
+            This panel can later evolve into a <span class="summary-highlight">search health overview</span> with
+            trends, alerts, and anomaly detection.
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-header-row">
+            <div>
+              <h2>Saved searches (MVP data table)</h2>
+              <small><span id="table-count">0</span> searches</small>
+            </div>
+            <button class="btn btn-primary" id="new-search-btn">
+              <span class="icon">＋</span>
+              <span>Add a new search</span>
+            </button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Item</th>
+                <th>Location / Category</th>
+                <th>Max price</th>
+                <th>Tier</th>
+                <th>Status</th>
+                <th>Last result</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="searches-tbody"></tbody>
+          </table>
+          <div class="pagination" id="pagination">
+            <div class="range-text" id="range-text"></div>
+            <div class="pagination-buttons">
+              <label class="page-size-label" for="page-size">Rows per page:</label>
+              <select id="page-size">
+                <option selected="" value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+              </select>
+              <button id="prev-page">Previous</button>
+              <span id="page-info">Page 1 of 1</span>
+              <button id="next-page">Next</button>
+            </div>
+          </div>
+          <div class="flash" id="flash-message"></div>
+          <footer>
+            GoSnaggit – internal MVP prototype. Table, counts, and pagination are powered by your local database; search
+            engine and background alerts still in development.
+          </footer>
+        </div>
+      </div>
+    </div>
+    <script>
+      let pageSize = 5;
+      let allSearches = [];
+      let currentPage = 1;
+      let totalPages = 1;
+
+      const duplicateInFlight = new Set();
+      const deleteInFlight = new Set();
+      const tierInFlight = new Set();
+      let pulseSearchId = null;
+
+      // --- Alerts summary cache (for "Alerts (N)" badge) ---
+      // Cache promises so we only hit the API once per searchId per page load.
+      const alertsSummaryCache = new Map();
+
+      async function getAlertsSummary(searchId) {
+        const id = String(searchId);
+        if (alertsSummaryCache.has(id)) return alertsSummaryCache.get(id);
+
+        const p = fetch(`/api/searches/${encodeURIComponent(id)}/alerts/summary`)
+          .then((r) => r.json().catch(() => ({})))
+          .catch(() => ({}));
+
+        alertsSummaryCache.set(id, p);
+        return p;
+      }
+
+
+      const MIN_SPINNER_MS = 900;
+      const tbody = document.getElementById('searches-tbody');
+      const summaryTotal = document.getElementById('summary-total');
+      const summaryActive = document.getElementById('summary-active');
+      const summaryCompleted = document.getElementById('summary-completed');
+      const tableCount = document.getElementById('table-count');
+      const rangeTextEl = document.getElementById('range-text');
+      const pageInfoEl = document.getElementById('page-info');
+      const prevBtn = document.getElementById('prev-page');
+      const nextBtn = document.getElementById('next-page');
+      const newSearchBtn = document.getElementById('new-search-btn');
+      const pageSizeSelect = document.getElementById('page-size');
+      const flashEl = document.getElementById('flash-message');
+
+      function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+      }
+
+      function nextPaint() {
+        return new Promise(resolve => requestAnimationFrame(resolve));
+      }
+
+      function setFlash(text, type) {
+        flashEl.textContent = text || '';
+        flashEl.className = 'flash';
+        if (type) flashEl.classList.add(type);
+
+        if (text) {
+          flashEl.classList.remove('fade-in');
+          flashEl.style.opacity = '0';
+          void flashEl.offsetWidth;
+          flashEl.style.opacity = '';
+          flashEl.classList.add('fade-in');
+
+          setTimeout(() => {
+            flashEl.textContent = '';
+            flashEl.className = 'flash';
+            flashEl.style.opacity = '';
+          }, 4000);
+        }
+      }
+
+      function setRowBusy(actionsTd, busy) {
+        actionsTd.style.pointerEvents = busy ? 'none' : '';
+        actionsTd.style.opacity = busy ? '0.5' : '';
+      }
+
+      function beginAction(linkEl, actionsTd, workingText) {
+        const originalText = linkEl.textContent;
+        const originalTitle = linkEl.title;
+
+        setRowBusy(actionsTd, true);
+
+        const tr = actionsTd.closest('tr');
+        tr?.classList.add('busy');
+
+        linkEl.innerHTML = `<span class="action-working">${workingText}</span> <span class="mini-spinner" aria-hidden="true"></span>`;
+        linkEl.title = workingText;
+
+        const minWait = sleep(MIN_SPINNER_MS);
+
+        const stop = () => {
+          if (linkEl && linkEl.isConnected) {
+            linkEl.textContent = originalText;
+            linkEl.title = originalTitle;
+          }
+          tr?.classList.remove('busy');
+          setRowBusy(actionsTd, false);
+        };
+
+        return { minWait, stop };
+      }
+
+      // --- Tier helpers (NEW) ---
+      function normalizeTier(t) {
+        const v = String(t || 'free').toLowerCase();
+        if (v === 'power') return 'power';
+        if (v === 'pro') return 'pro';
+        return 'free';
+      }
+
+      function tierLabel(tier) {
+        const t = normalizeTier(tier);
+        if (t === 'power') return 'Power';
+        if (t === 'pro') return 'Pro';
+        return 'Free';
+      }
+
+      function tierBadgeHTML(tier) {
+        const t = normalizeTier(tier);
+        return `<span class="tier-badge tier-${t}"><span class="tier-dot" aria-hidden="true"></span>${tierLabel(t)}</span>`;
+      }
+
+      /* ---------- NEW helpers: "seen" tracking for NEW badge ---------- */
+
+      function getSeenKey(searchId) {
+        return `gosnaggit_seen_search_${searchId}`;
+      }
+
+      function getLastSeen(searchId) {
+        const v = localStorage.getItem(getSeenKey(searchId));
+        if (!v) return null;
+        const t = new Date(v).getTime();
+        return Number.isFinite(t) ? t : null;
+      }
+
+      function setLastSeen(searchId, isoString) {
+        if (!isoString) return;
+        localStorage.setItem(getSeenKey(searchId), isoString);
+      }
+
+      /* --------------------------------------------------------------- */
+
+      async function setSearchTier(searchId, tier) {
+        const res = await fetch(`/api/searches/${searchId}/tier`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tier })
+        });
+
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+        if (!res.ok || data?.ok === false) {
+          throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+        }
+        return data;
+      }
+
+
+      newSearchBtn.addEventListener('click', () => {
+        window.location.href = '/search.html';
+      });
+
+      pageSizeSelect.addEventListener('change', () => {
+        const newSize = parseInt(pageSizeSelect.value, 10);
+        pageSize = Number.isNaN(newSize) ? 5 : newSize;
+        currentPage = 1;
+        updatePagination();
+      });
+
+      function formatStatusPill(status) {
+        const span = document.createElement('span');
+        span.classList.add('status-pill');
+
+        if (status === 'active') span.classList.add('status-active');
+        else if (status === 'paused') span.classList.add('status-paused');
+        else if (status === 'cancelled' || status === 'completed' || status === 'deleted') span.classList.add('status-cancelled');
+
+        span.textContent = status || 'unknown';
+        return span;
+      }
+
+      function updateSummary(data) {
+        const total = data.length;
+        let active = 0;
+        let completedCancelled = 0;
+
+        data.forEach(s => {
+          if (s.status === 'active') active++;
+          else if (s.status === 'cancelled' || s.status === 'completed' || s.status === 'deleted') completedCancelled++;
+        });
+
+        summaryTotal.textContent = total;
+        summaryActive.textContent = active;
+        summaryCompleted.textContent = completedCancelled;
+        tableCount.textContent = total;
+      }
+
+      function renderTablePage(page) {
+        tbody.innerHTML = '';
+
+        if (allSearches.length === 0) {
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 9;
+          td.className = 'empty-state';
+          td.innerHTML = `
+          <strong>No saved searches yet.</strong><br>
+          Create your first hunt from <a href="/search.html">New search</a>.
+        `;
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+
+          rangeTextEl.textContent = 'Showing 0 of 0';
+          pageInfoEl.textContent = 'Page 1 of 1';
+          prevBtn.disabled = true;
+          nextBtn.disabled = true;
+          return;
+        }
+
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, allSearches.length);
+        const pageItems = allSearches.slice(startIndex, endIndex);
+
+        pageItems.forEach(search => {
+          const tr = document.createElement('tr');
+
+          if (pulseSearchId === search.id) {
+            tr.classList.add('row-fade-in');
+            tr.classList.add('row-pulse');
+            pulseSearchId = null;
+          }
+
+          const idTd = document.createElement('td');
+          idTd.textContent = search.id;
+          tr.appendChild(idTd);
+
+          const itemTd = document.createElement('td');
+          itemTd.textContent = search.search_item;
+          tr.appendChild(itemTd);
+
+          const locTd = document.createElement('td');
+          const loc = search.location || '—';
+          const cat = search.category || '—';
+          locTd.innerHTML = `${loc}<span class="cell-sub">${cat}</span>`;
+          tr.appendChild(locTd);
+
+          const priceTd = document.createElement('td');
+          priceTd.textContent = search.max_price ? `$${Number(search.max_price).toFixed(2)}` : '—';
+          tr.appendChild(priceTd);
+
+          // --- Tier column (NEW) ---
+          const tierTd = document.createElement('td');
+          const currentTier = normalizeTier(search.plan_tier || 'free');
+          tierTd.innerHTML = `
+          <select class="tier-select" data-search-id="${search.id}">
+            <option value="free" ${currentTier === 'free' ? 'selected' : ''}>Free</option>
+            <option value="pro" ${currentTier === 'pro' ? 'selected' : ''}>Pro</option>
+            <option value="power" ${currentTier === 'power' ? 'selected' : ''}>Power</option>
+          </select>
+          ${tierBadgeHTML(currentTier)}
+        `;
+          tr.appendChild(tierTd);
+
+          const statusTd = document.createElement('td');
+          statusTd.appendChild(formatStatusPill(search.status || 'unknown'));
+          tr.appendChild(statusTd);
+
+          // --- Last result column (clickable) ---
+          const lastTd = document.createElement('td');
+
+          const lastText = formatDateTime(search.last_found_at);
+          const lastLine = lastText ? `Last result: ${lastText}` : 'No results yet';
+          const newBadge = isRecent(search.last_found_at, 24)
+            ? `<span class="badge-new" title="New in last 24 hours">NEW</span>`
+            : '';
+
+          const resultsHref = `search-results.html?search_id=${encodeURIComponent(search.search_id || search.id)}`;
+
+          lastTd.innerHTML = `
+          <a class="last-result-link" href="${resultsHref}" title="Open results">
+          <div class="cell-meta">
+          <div class="cell-main">${escapeHtml(lastLine)} ${newBadge}</div>
+          </div>
+          </a>
+          `;
+
+          tr.appendChild(lastTd);
+
+
+
+          const createdTd = document.createElement('td');
+          const createdDate = search.created_at ? new Date(search.created_at) : null;
+          createdTd.textContent = createdDate ? createdDate.toLocaleString() : '—';
+          tr.appendChild(createdTd);
+
+          const actionsTd = document.createElement('td');
+          actionsTd.classList.add('actions-cell');
+
+          const detailsLink = document.createElement('a');
+          detailsLink.textContent = 'Details';
+          detailsLink.title = 'View search details and settings';
+          detailsLink.href = `search-detail.html?search_id=${search.id}`;
+          detailsLink.title = 'View search details';
+
+          detailsLink.className = 'btn btn-secondary btn-mini';
+
+          const resultsLink = document.createElement('a');
+          resultsLink.textContent = 'Results';
+          resultsLink.title = 'View latest results for this search';
+          resultsLink.href = `/search-results.html?search_id=${search.id}`;
+          resultsLink.title = 'View results found for this search';
+
+          resultsLink.className = 'btn btn-secondary btn-mini';
+          resultsLink.addEventListener('click', () => {
+            setLastSeen(search.id, search.last_found_at);
+          });
+
+          const alertsLink = document.createElement('a');
+          alertsLink.textContent = 'Alerts';
+          alertsLink.title = 'View alerts (pending, sent, dismissed)';
+          alertsLink.href = `/search-alerts.html?search_id=${search.id}`;
+          alertsLink.title = 'View alerts for this search (pending/sent/dismissed/error)';
+
+          alertsLink.className = 'btn btn-secondary btn-mini';
+
+          // Show a demo-friendly pending count: Alerts (N)
+          // Non-blocking: render immediately, then update when summary arrives.
+          getAlertsSummary(search.id).then((summary) => {
+            if (!alertsLink.isConnected) return;
+            const pending = summary?.counts?.pending;
+            if (Number.isFinite(pending) && pending > 0) {
+              alertsLink.textContent = `Alerts (${pending})`;
+              const c = summary.counts;
+              alertsLink.title = `Alerts: ${c.pending} pending, ${c.sent} sent, ${c.dismissed} dismissed, ${c.error} error`;
+            }
+          });
+
+
+          const emailBadge = document.createElement('span');
+          const emailOn = !!search.email_enabled;
+          emailBadge.className = `email-badge ${emailOn ? 'on' : 'off'}`;
+          emailBadge.innerHTML = `<span class="dot" aria-hidden="true"></span> Email: ${emailOn ? 'ON' : 'OFF'}`;
+          if (search.email_destination) {
+            emailBadge.title = `Email destination: ${search.email_destination}`;
+          } else {
+            emailBadge.title = 'Email destination not enabled';
+          }
+
+
+          const editLink = document.createElement('a');
+          editLink.textContent = 'Edit';
+          editLink.href = `/edit-search.html?id=${search.id}`;
+          editLink.title = 'Edit this search';
+
+          editLink.className = 'btn btn-secondary btn-mini';
+
+          const refreshLink = document.createElement('a');
+          refreshLink.textContent = 'Refresh results';
+          refreshLink.title = 'Fetch the latest listings for this search';
+          refreshLink.href = '#';
+          refreshLink.title = 'Refresh this search now';
+          refreshLink.classList.add('js-refresh');
+          refreshLink.dataset.id = search.id;
+
+          refreshLink.classList.add('btn', 'btn-secondary', 'btn-mini');
+
+          // --- NEW: Refresh & Send Alerts (demo flow) ---
+          const refreshSendLink = document.createElement('a');
+          refreshSendLink.textContent = 'Refresh & Send Alerts';
+          refreshSendLink.title = 'Refresh results and email any new alerts (demo)';
+          refreshSendLink.href = '#';
+          refreshSendLink.title = 'Refresh this search and send alerts now (demo)';
+          refreshSendLink.classList.add('js-refresh-send');
+          refreshSendLink.dataset.id = search.id;
+
+          refreshSendLink.classList.add('btn', 'btn-secondary', 'btn-mini');
+
+          const duplicateLink = document.createElement('a');
+          duplicateLink.textContent = 'Duplicate…';
+          duplicateLink.title = 'Make a copy of this search';
+          duplicateLink.title = 'Duplicate';
+          duplicateLink.href = '#';
+
+          duplicateLink.className = 'btn btn-secondary btn-mini';
+
+          duplicateLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            if (duplicateInFlight.has(search.id)) return;
+            duplicateInFlight.add(search.id);
+
+            const { minWait, stop } = beginAction(duplicateLink, actionsTd, 'Duplicating…');
+            setFlash('Duplicating search…');
+            await nextPaint();
+
+            try {
+              const res = await fetch(`/api/searches/${search.id}/duplicate`, { method: 'POST' });
+
+              if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error || 'Failed to duplicate search');
+              }
+
+              const created = await res.json().catch(() => null);
+              if (created && created.id) pulseSearchId = created.id;
+
+              await minWait;
+              await reloadSearches();
+              setFlash('Search duplicated.', 'success');
+            } catch (err) {
+              console.error(err);
+              setFlash('Error duplicating search: ' + err.message, 'error');
+            } finally {
+              stop();
+              duplicateInFlight.delete(search.id);
+            }
+          });
+
+          const deleteLink = document.createElement('a');
+          deleteLink.textContent = 'Delete…';
+          deleteLink.title = 'Delete this search (can be restored from Deleted searches)';
+          deleteLink.title = 'Delete';
+          deleteLink.href = '#';
+
+          deleteLink.className = 'btn btn-danger btn-mini';
+
+          deleteLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            if (deleteInFlight.has(search.id)) return;
+
+            const confirmed = window.confirm('Move this search to Deleted? It will no longer appear in this list.');
+            if (!confirmed) return;
+
+            deleteInFlight.add(search.id);
+
+            const { minWait, stop } = beginAction(deleteLink, actionsTd, 'Deleting…');
+            setFlash('Deleting search…');
+            await nextPaint();
+
+            try {
+              const res = await fetch(`/api/searches/${search.id}`, { method: 'DELETE' });
+
+              if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error || 'Failed to delete search');
+              }
+
+              await minWait;
+              await reloadSearches();
+              setFlash('Search moved to Deleted.', 'success');
+            } catch (err) {
+              console.error(err);
+              setFlash('Error deleting search: ' + err.message, 'error');
+            } finally {
+              stop();
+              deleteInFlight.delete(search.id);
+            }
+          });
+
+          actionsTd.appendChild(detailsLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(resultsLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(alertsLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(emailBadge);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(editLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(refreshLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(refreshSendLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(duplicateLink);
+          actionsTd.appendChild(document.createTextNode(' '));
+          actionsTd.appendChild(deleteLink);
+
+
+          tr.appendChild(actionsTd);
+          tbody.appendChild(tr);
+        });
+
+        rangeTextEl.textContent = `Showing ${startIndex + 1}–${endIndex} of ${allSearches.length}`;
+        pageInfoEl.textContent = `Page ${currentPage} of ${totalPages}`;
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+      }
+
+      function updatePagination() {
+        totalPages = Math.max(1, Math.ceil(allSearches.length / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+        renderTablePage(currentPage);
+      }
+
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTablePage(currentPage);
+        }
+      });
+
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderTablePage(currentPage);
+        }
+      });
+
+      // --- Tier dropdown handler (NEW) ---
+      document.addEventListener('change', async (e) => {
+        const sel = e.target.closest('.tier-select');
+        if (!sel) return;
+
+        const searchId = sel.getAttribute('data-search-id');
+        const tier = normalizeTier(sel.value);
+
+        if (!searchId) return;
+        if (tierInFlight.has(searchId)) return;
+        tierInFlight.add(searchId);
+
+        const prevValue = sel.value;
+        sel.disabled = true;
+        setFlash(`Updating tier → ${tierLabel(tier)}…`);
+
+        try {
+          await setSearchTier(searchId, tier);
+          await reloadSearches();
+          setFlash(`Tier updated → ${tierLabel(tier)}.`, 'success');
+        } catch (err) {
+          console.error(err);
+          sel.value = prevValue;
+          setFlash('Error updating tier: ' + (err.message || String(err)), 'error');
+        } finally {
+          sel.disabled = false;
+          tierInFlight.delete(searchId);
+        }
+      });
+
+      document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.js-refresh');
+        if (!btn) return;
+
+        e.preventDefault();
+
+        const id = btn.dataset.id;
+        if (!id) return;
+
+        const oldText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Refreshing…';
+
+        try {
+          const resp = await fetch(`/searches/${id}/refresh`, { method: 'POST' });
+          const data = await resp.json().catch(() => ({}));
+
+          if (!resp.ok || data.ok !== true) {
+            alert('Refresh failed');
+            console.error(data);
+            return;
+          }
+
+          alert(`Refresh complete. Inserted: ${data.inserted ?? 0}`);
+          location.reload();
+        } catch (err) {
+          console.error(err);
+          alert('Refresh failed');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = oldText;
+        }
+      });
+
+      document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.js-refresh-send');
+        if (!btn) return;
+
+        e.preventDefault();
+
+        const id = btn.dataset.id;
+        if (!id) return;
+
+        const oldText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Refresh & Send Alerts…';
+
+        try {
+          // 1) Refresh (dev route)
+          const r1 = await fetch(`/dev/searches/${id}/refresh`);
+          const d1 = await r1.json().catch(() => ({}));
+          if (!r1.ok || d1.ok !== true) {
+            alert('Refresh failed');
+            console.error(d1);
+            return;
+          }
+
+          // Wait up to ~10s for pending alerts to appear (worker timing varies)
+          let pending = 0;
+          for (let i = 0; i < 10; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            const s = await fetch(`/api/searches/${id}/alerts/summary`);
+            const sd = await s.json().catch(() => ({}));
+            pending = sd?.counts?.pending ?? 0;
+            if (Number.isFinite(pending) && pending > 0) break;
+          }
+
+          if (!Number.isFinite(pending) || pending <= 0) {
+            alert('Demo complete — no pending alerts to send (no new listings).');
+            location.reload();
+            return;
+          }
+
+
+          // 2) Dispatch now (ignore cooldown)
+          const r2 = await fetch(`/dev/searches/${id}/dispatch-alerts-now?limit=25`);
+          const d2 = await r2.json().catch(() => ({}));
+          if (!r2.ok || d2.ok !== true) {
+            alert('Dispatch failed');
+            console.error(d2);
+            return;
+          }
+
+          if (d2 && d2.skipped && d2.reason === 'alerts_disabled') {
+            alert('Alerts are disabled for this search — send skipped. (Enable alerts in Search Detail → Alerts.)');
+          } else if (d2 && d2.skipped && d2.reason === 'no_email_enabled') {
+            alert('Email is not enabled for this search — send skipped. (Enable email in Search Detail → Alerts.)');
+          } else {
+            const sent = d2.sent ?? 0;
+            alert(sent > 0 ? `Sent ${sent} alert(s).` : 'No pending alerts to send.');
+          }
+
+          location.reload();
+        } catch (err) {
+          console.error(err);
+          alert('Refresh & Send Alerts failed');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = oldText;
+        }
+      });
+
+
+      function formatDateTime(dt) {
+        if (!dt) return null;
+        const d = new Date(dt);
+        if (Number.isNaN(d.getTime())) return null;
+        return d.toLocaleString([], {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+      }
+
+      function isRecent(dt, hours = 24) {
+        if (!dt) return false;
+        const t = new Date(dt).getTime();
+        if (!Number.isFinite(t)) return false;
+        return (Date.now() - t) <= hours * 60 * 60 * 1000;
+      }
+
+      function escapeHtml(s) {
+        return String(s ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+
+      async function reloadSearches() {
+        try {
+          const res = await fetch('/api/searches');
+          if (!res.ok) throw new Error('Failed to fetch searches');
+
+          allSearches = await res.json();
+          updateSummary(allSearches);
+          updatePagination();
+        } catch (err) {
+          console.error(err);
+          tbody.innerHTML = '';
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 8;
+          td.textContent = 'Could not load searches right now. Please refresh.';
+
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+
+          rangeTextEl.textContent = '';
+          pageInfoEl.textContent = '';
+          prevBtn.disabled = true;
+          nextBtn.disabled = true;
+          setFlash('Error loading searches: ' + err.message, 'error');
+        }
+      }
+
+      async function init() {
+        const initialSize = parseInt(pageSizeSelect.value, 10);
+        pageSize = Number.isNaN(initialSize) ? 5 : initialSize;
+        currentPage = 1;
+        await reloadSearches();
+      }
+      document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.js-refresh-send');
+        if (!btn) return;
+
+        e.preventDefault();
+
+        const id = btn.dataset.id;
+        if (!id) return;
+
+        const oldText = btn.textContent;
+        btn.classList.add('is-busy');
+        btn.textContent = 'Refresh & Send Alerts…';
+
+        try {
+          // 1) Refresh (enqueue job)
+          const r1 = await fetch(`/dev/searches/${id}/refresh`);
+          const d1 = await r1.json().catch(() => ({}));
+          if (!r1.ok || d1.ok !== true) {
+            alert(`Refresh failed: ${d1.error || 'Unknown error'}`);
+            console.error(d1);
+            return;
+          }
+
+          // 2) Give worker a moment to process the job
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+
+          // 3) Dispatch now (ignore cooldown)
+          const r2 = await fetch(`/dev/searches/${id}/dispatch-alerts-now?limit=25`);
+          const d2 = await r2.json().catch(() => ({}));
+          if (!r2.ok || d2.ok !== true) {
+            alert(`Dispatch failed: ${d2.error || 'Unknown error'}`);
+            console.error(d2);
+            return;
+          }
+
+          const sent = d2.sent ?? 0;
+          alert(sent > 0 ? `Sent ${sent} alert(s).` : 'Demo complete — no pending alerts to send (no new listings).');
+
+          location.reload();
+        } catch (err) {
+          console.error(err);
+          alert('Refresh & Send Alerts failed');
+        } finally {
+          btn.classList.remove('is-busy');
+          btn.textContent = oldText;
+        }
+      });
+
+      document.addEventListener('DOMContentLoaded', init);
+    </script>
+  </main>
+</body>
+
+</html>

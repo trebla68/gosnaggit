@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>GoSnaggit – Contact</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --brand: var(--accent);
+      --accent-soft: rgba(255, 179, 71, 0.15);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text: var(--text-main);
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --ok: #22c55e;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1040px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 26px 24px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0c1120 60%);
+      border: 1px solid rgba(103, 120, 210, 0.4);
+      padding: 16px 16px 14px;
+    }
+
+    h1 {
+      margin: 0 0 0.4rem;
+      font-size: clamp(1.7rem, 2.0vw + 1.0rem, 2.4rem);
+      line-height: 1.15;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 860px;
+    }
+
+    .accent-underline {
+      position: relative;
+      display: inline-block;
+    }
+    .accent-underline::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 100%;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+      opacity: 0.9;
+    }
+
+    p {
+      margin: 0 0 0.8rem;
+      color: var(--text-main);
+      font-size: 0.93rem;
+      line-height: 1.55;
+    }
+
+    .muted { color: var(--text-muted); }
+
+    .contact-box {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 860px) {
+      .contact-box { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      border: 1px solid rgba(255, 179, 71, 0.35);
+      background: rgba(8, 10, 25, 0.85);
+      color: var(--text-muted);
+      width: fit-content;
+    }
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--ok);
+    }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    footer {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      opacity: 0.85;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    footer a { color: inherit; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+
+  <link href="/app.css" rel="stylesheet" />
+  <script defer="True" src="/ui.js"></script>
+</head>
+
+<body>
+  <header class="app-header" id="gs-header"></header>
+  <main class="gs-page">
+    <section class="page-hero">
+      <h1><span class="accent-underline">Contact</span></h1>
+      <p class="subtitle">
+        Questions, feedback, or marketplace/API verification? Reach us using the options below.
+      </p>
+    </section>
+
+    <div class="shell">
+      <div class="inner">
+        <div class="contact-box">
+          <section class="card">
+            <p>
+              The fastest way to reach GoSnaggit is email:
+            </p>
+            <div class="pill">
+              <span class="pill-dot"></span>
+              <span class="mono">support@gosnaggit.com</span>
+            </div>
+            <p class="muted" style="margin-top:0.9rem;">
+              (You can change this email to whichever inbox you want marketplaces to contact for verification.)
+            </p>
+          </section>
+
+          <section class="card">
+            <p><strong>For marketplace partners</strong></p>
+            <p class="muted">
+              If you are reviewing GoSnaggit for API access or partnership approval, please include:
+            </p>
+            <ul style="margin:0.4rem 0 0; padding-left:18px; color:var(--text-muted); line-height:1.55; font-size:0.9rem;">
+              <li>Your marketplace name</li>
+              <li>Requested API scope / access</li>
+              <li>Any verification steps needed</li>
+            </ul>
+          </section>
+        </div>
+
+        <footer>
+          <span>© GoSnaggit — Early Access</span>
+          <span style="display:flex; gap:12px; flex-wrap:wrap;">
+            <a href="/">Home</a>
+            <a href="/about.html">About</a>
+            <a href="/privacy.html">Privacy</a>
+          </span>
+        </footer>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

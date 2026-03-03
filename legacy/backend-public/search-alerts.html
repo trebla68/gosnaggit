@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>GoSnaggit – Alerts</title>
+    <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card-bg: #151a2b;
+            --accent: #ffb347;
+            --brand: var(--accent);
+            --accent-strong: #ff9f1c;
+            --text-main: #f7f7ff;
+            --text: var(--text-main);
+            --text-muted: #a2a7c4;
+            --border-subtle: #262b3f;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+            --danger: #ff4b5c;
+            --ok: #33d17a;
+            --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* --- Accessibility: consistent keyboard focus --- */
+        :focus {
+            outline: none;
+        }
+
+        :focus-visible {
+            outline: 2px solid rgba(255, 179, 71, 0.85);
+            outline-offset: 2px;
+        }
+
+        a:focus-visible,
+        button:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            border-radius: 10px;
+        }
+
+        /* --- Micro-interactions: subtle transitions --- */
+        a,
+        button,
+        .chip {
+            transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms ease;
+        }
+
+        button:active:not(:disabled),
+        .chip:active {
+            transform: translateY(1px);
+        }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            color: var(--text-main);
+            background:
+                radial-gradient(1200px 700px at 15% 10%, rgba(255, 179, 71, 0.18), transparent 55%),
+                radial-gradient(900px 600px at 80% 30%, rgba(255, 159, 28, 0.12), transparent 60%),
+                var(--bg);
+            min-height: 100vh;
+        }
+
+        .wrap {
+            /* The global UI system (app.css) already constrains width + adds padding via .gs-page.
+               Keep this wrapper only for vertical spacing, without changing layout. */
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .logo-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand {
+            font-weight: 800;
+            letter-spacing: 0.4px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand-badge {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--accent);
+            box-shadow: 0 0 0 5px rgba(255, 179, 71, 0.15);
+        }
+
+        .subhead {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: rgba(21, 26, 43, 0.92);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+        }
+
+        .card-tools {
+            padding: 12px 16px 10px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (max-width: 640px) {
+            .card-tools {
+                padding: 12px 14px 10px;
+            }
+        }
+
+        .btn-sm {
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        .card-h {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+
+        .alerts-summary {
+            margin: 0;
+        }
+
+        .alerts-summary-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .titleline {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 260px;
+        }
+
+        .h-title {
+            font-size: 16px;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .h-meta {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .flash {
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+            font-size: 13px;
+            display: none;
+        }
+
+        .flash.bad {
+            display: block;
+            border-color: rgba(255, 75, 92, 0.6);
+            background: rgba(255, 75, 92, 0.10);
+            color: #ffd7dd;
+        }
+
+
+        .flash.warn {
+            display: block;
+            border-color: rgba(255, 179, 71, 0.60);
+            background: rgba(255, 179, 71, 0.12);
+            color: #ffe9c9;
+        }
+
+        .flash.ok {
+            display: block;
+            border-color: rgba(51, 209, 122, 0.55);
+            background: rgba(51, 209, 122, 0.10);
+            color: #d8ffe9;
+        }
+
+
+
+        .subtle {
+            color: rgba(255, 255, 255, 0.68);
+            font-size: 13px;
+        }
+
+        .chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 0;
+            margin: 0;
+        }
+
+        .chip {
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+            font-size: 12px;
+            font-weight: 750;
+            padding: 7px 10px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            user-select: none;
+        }
+
+        .chip:hover {
+            border-color: rgba(255, 179, 71, 0.62);
+            background: rgba(255, 255, 255, 0.045);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+        }
+
+        .chip.active {
+            border-color: rgba(255, 179, 71, 0.82);
+            background: rgba(255, 179, 71, 0.14);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+        }
+
+        .chip .count {
+            font-variant-numeric: tabular-nums;
+            color: var(--text-muted);
+            font-weight: 800;
+        }
+
+        .table-wrap {
+            padding: 12px 16px 14px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            min-width: 940px;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        thead th {
+            text-align: left;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 800;
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        tbody td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(38, 43, 63, 0.7);
+            vertical-align: top;
+            font-size: 13px;
+            word-wrap: break-word;
+        }
+
+        tbody tr:hover td {
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .sub {
+            display: block;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--text-muted);
+            opacity: 0.95;
+        }
+
+        .pill.pending .dot {
+            background: var(--accent);
+        }
+
+        .pill.sent .dot {
+            background: var(--ok);
+        }
+
+        .pill.dismissed .dot {
+            background: rgba(162, 167, 196, 0.9);
+        }
+
+        .pill.error .dot {
+            background: var(--danger);
+        }
+
+        .mini {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .action-btn {
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+            padding: 7px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .action-btn:hover {
+            border-color: rgba(255, 179, 71, 0.55);
+        }
+
+        .action-btn.danger:hover {
+            border-color: rgba(255, 75, 92, 0.7);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .pager {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px 14px;
+            flex-wrap: wrap;
+        }
+
+        .pager .left,
+        .pager .right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pager .label {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .empty {
+            padding: 14px 16px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        /* Compact buttons used inside tables */
+        .btn.btn-sm {
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        .email-edit-hint {
+            margin-left: 10px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.55);
+            border: 1px dashed rgba(255, 255, 255, 0.25);
+            padding: 2px 8px;
+            border-radius: 999px;
+            cursor: not-allowed;
+        }
+
+        .email-edit-hint:hover {
+            color: rgba(255, 255, 255, 0.7);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+
+        /* Stats vs Filters differentiation */
+        .alerts-summary-row .pill {
+            background: rgba(255, 255, 255, 0.018);
+            border-color: rgba(38, 43, 63, 0.95);
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 750;
+            letter-spacing: 0.1px;
+        }
+
+        .alerts-summary-row .pill strong {
+            color: var(--text-main);
+            font-weight: 900;
+        }
+
+        .alerts-summary-row .pill .dot {
+            width: 7px;
+            height: 7px;
+            opacity: 0.70;
+        }
+    </style>
+    <link href="/app.css" rel="stylesheet" />
+    <script defer="True" src="/ui.js"></script>
+</head>
+
+<body>
+    <header class="app-header" id="gs-header"></header>
+    <main class="gs-page">
+        <section class="page-hero">
+            <h1>Search alerts</h1>
+            <p class="subtitle">Review and manage alerts for Search <span class="mono" id="searchIdHero">—</span>.</p>
+        </section>
+        <div class="page-actions">
+            <a class="btn btn-secondary" href="searches.html">← Saved Searches</a>
+            <a class="btn btn-primary" href="#" id="backToDetail">Search Detail</a>
+            <button class="btn btn-secondary" id="refreshBtn" type="button">Refresh</button>
+            <button class="btn btn-primary" id="sendNowBtn" type="button">Send now</button>
+        </div>
+        <div id="alerts-settings-banner" class="flash" style="display:none; margin:12px 0 0 0;"></div>
+        <div id="emailStatusLine" class="subtle" style="margin-top:8px;"></div>
+
+        <div class="wrap">
+            <div class="flash" id="flash" role="status" aria-live="polite"></div>
+            <div class="card">
+                <div class="card-h">
+                    <div class="titleline">
+                        <h2 class="h-title">Alerts for Search <span class="mono" id="searchId">—</span></h2>
+                        <div class="h-meta">
+                            <span id="summaryLine">Counts: —</span>
+                            <span class="mini" id="rangeLine">Showing —</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-tools">
+                    <div class="alerts-summary" id="alerts-summary">
+                        <div class="alerts-summary-row">
+                            <div class="pill pending"><span class="dot"></span> Pending: <strong
+                                    id="sum-pending">—</strong>
+                            </div>
+                            <div class="pill sent"><span class="dot"></span> Sent: <strong id="sum-sent">—</strong>
+                            </div>
+                            <div class="pill dismissed"><span class="dot"></span> Dismissed: <strong
+                                    id="sum-dismissed">—</strong></div>
+                            <div class="pill error"><span class="dot"></span> Error: <strong id="sum-error">—</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chips" id="chips">
+                        <!-- chips injected -->
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Status</th>
+                                <th>Title</th>
+                                <th>Price</th>
+                                <th>Listing</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody">
+                            <!-- rows injected -->
+                        </tbody>
+                    </table>
+                    <div class="empty" id="empty">No alerts found.</div>
+                </div>
+                <div class="pager">
+                    <div class="left">
+                        <button class="btn" id="prevBtn" type="button">← Prev</button>
+                        <button class="btn" id="nextBtn" type="button">Next →</button>
+                    </div>
+                    <div class="right">
+                        <span class="label" id="pageLabel">Page —</span>
+                        <span class="label">Per page: <span class="mono" id="limitLabel">5</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            // -----------------------------------------
+            // GoSnaggit Alerts UI Controller (TABLE + CHIPS)
+            // Works with your existing HTML structure.
+            // -----------------------------------------
+
+            const qs = new URLSearchParams(window.location.search);
+            const searchId = qs.get("search_id") || qs.get("searchId") || qs.get("id");
+
+
+            const sid = Number(searchId);
+            const backToDetail = document.getElementById('backToDetail');
+            if (backToDetail && Number.isFinite(sid) && sid > 0) {
+                backToDetail.href = `search-detail.html?search_id=${sid}`;
+            }
+
+            const bannerEl = document.getElementById('alerts-settings-banner');
+            const sendNowBtn = document.getElementById('sendNowBtn');
+
+            async function loadAlertSettings() {
+                if (!Number.isFinite(sid) || sid <= 0) return null;
+                try {
+                    const r = await fetch(`/api/searches/${sid}/alert-settings`, { cache: 'no-store' });
+                    if (!r.ok) return null;
+                    const j = await r.json();
+                    return j?.settings || null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+
+            async function loadNotificationStatus() {
+                if (!Number.isFinite(sid) || sid <= 0) return null;
+                try {
+                    const r = await fetch(`/api/searches/${sid}/notification-status`, { cache: 'no-store' });
+                    if (!r.ok) return null;
+                    return await r.json();
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function applyNotificationStatusUX(ns) {
+                const el = document.getElementById('emailStatusLine');
+                if (!el) return;
+                if (!ns || !ns.ok) {
+                    el.textContent = '';
+                    return;
+                }
+
+                let label;
+                if (ns.email_enabled && ns.email_destination) {
+                    label = `Email: ${ns.email_destination}`;
+                } else {
+                    label = `Email: not enabled`;
+                }
+
+                el.innerHTML = `
+    <span>${label}</span>
+    <span class="email-edit-hint" title="User accounts required to change email">
+      Change (coming soon)
+    </span>
+  `;
+            }
+
+            function applyAlertSettingsUX(settings) {
+                if (!searchId) return;
+
+                const enabled = settings ? !!settings.enabled : true;
+
+                if (bannerEl) {
+                    bannerEl.style.display = 'block';
+                    bannerEl.className = 'flash ' + (enabled ? 'ok' : 'warn');
+                    bannerEl.textContent = enabled
+                        ? 'Alerts are enabled for this search.'
+                        : 'Alerts are disabled for this search — Send now is unavailable.';
+                }
+
+                if (sendNowBtn) {
+                    sendNowBtn.disabled = !enabled;
+                    sendNowBtn.title = !enabled ? 'Alerts are disabled for this search' : '';
+                }
+            }
+
+            if (!searchId) {
+                if (bannerEl) {
+                    bannerEl.style.display = 'block';
+                    bannerEl.className = 'flash bad';
+                    bannerEl.textContent = 'No search selected. Please open this page from Saved Searches.';
+                }
+
+                // Disable controls that require a search id
+                const refreshBtn = document.getElementById('refreshBtn');
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+
+                if (sendNowBtn) sendNowBtn.disabled = true;
+                if (refreshBtn) refreshBtn.disabled = true;
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) nextBtn.disabled = true;
+
+                // Update hero text so it doesn't look broken
+                const sidHero = document.getElementById("searchIdHero");
+                const sid = document.getElementById("searchId");
+                if (sidHero) sidHero.textContent = "—";
+                if (sid) sid.textContent = "—";
+
+                const emailLine = document.getElementById("emailStatusLine");
+                if (emailLine) emailLine.textContent = "";
+            } else {
+                loadAlertSettings().then(s => applyAlertSettingsUX(s));
+                loadNotificationStatus().then(ns => applyNotificationStatusUX(ns));
+            }
+
+
+
+
+            function updateSummaryBar(counts) {
+                const p = counts?.pending ?? 0;
+                const s = counts?.sent ?? 0;
+                const d = counts?.dismissed ?? 0;
+                const e = counts?.error ?? 0;
+
+                const set = (id, v) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = String(v);
+                };
+
+                set('sum-pending', p);
+                set('sum-sent', s);
+                set('sum-dismissed', d);
+                set('sum-error', e);
+            }
+
+
+            // UI state
+            let currentStatus = "all"; // pending | sent | dismissed | error | all
+            let limit = 5;                 // match your UI label default
+            let offset = 0;                // pagination offset
+
+            // Helpers
+            function $(sel) { return document.querySelector(sel); }
+            function esc(s) {
+                return String(s ?? "")
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll('"', "&quot;")
+                    .replaceAll("'", "&#39;");
+            }
+
+            function formatDuration(totalSeconds) {
+                const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+                const mins = Math.floor(s / 60);
+                const secs = s % 60;
+                if (mins <= 0) return `${secs}s`;
+                if (secs === 0) return `${mins}m`;
+                return `${mins}m ${secs}s`;
+            }
+            function setSendNowCooldown(seconds) {
+                const btn = document.getElementById("sendNowBtn");
+                if (!btn) return;
+
+                const wasDisabledAlready = btn.disabled;
+
+                if (seconds > 0) {
+                    btn.disabled = true;
+                    btn.title = `Cooldown active — try again in ${formatDuration(seconds)}`;
+
+                    setTimeout(() => {
+                        // Only re-enable if we weren't disabled for another reason (like alerts disabled)
+                        if (!wasDisabledAlready) {
+                            btn.disabled = false;
+                            btn.title = "";
+                        }
+                    }, seconds * 1000);
+                } else {
+                    // Only enable if we weren't disabled for another reason
+                    if (!wasDisabledAlready) btn.disabled = false;
+                    btn.title = "";
+                }
+            }
+
+            
+            function formatDateTime(isoString) {
+                const iso = String(isoString || "");
+                if (!iso) return "—";
+                const d = new Date(iso);
+                if (Number.isNaN(d.getTime())) return iso;
+                return new Intl.DateTimeFormat(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "2-digit",
+                    hour: "numeric",
+                    minute: "2-digit"
+                }).format(d);
+            }
+
+
+
+            let __flashTimer = null;
+            function showFlash(kind, msg, autoHideMs) {
+                const el = $("#flash");
+                if (!el) return;
+
+                if (__flashTimer) {
+                    clearTimeout(__flashTimer);
+                    __flashTimer = null;
+                }
+
+                el.className = "flash" + (kind ? ` ${kind}` : "");
+                el.textContent = msg || "";
+                el.style.display = msg ? "block" : "none";
+
+                const shouldHide = !!msg && (autoHideMs != null ? autoHideMs : (kind === 'ok' ? 6000 : 0));
+                if (shouldHide) {
+                    __flashTimer = setTimeout(() => {
+                        el.textContent = "";
+                        el.className = "flash";
+                        el.style.display = "none";
+                    }, autoHideMs != null ? autoHideMs : 6000);
+                }
+            }
+
+            function setSubtitle() {
+                const sid = $("#searchId");
+                if (sid) sid.textContent = searchId;
+
+
+                const sidHero = $("#searchIdHero");
+                if (sidHero) sidHero.textContent = searchId;
+                const back = $("#backToDetail");
+                if (back) back.setAttribute("href", `search-detail.html?search_id=${encodeURIComponent(searchId)}`);
+            }
+
+            function buildAlertsUrl() {
+                const base = `/api/searches/${searchId}/alerts?limit=${limit}&offset=${offset}`;
+                if (currentStatus && currentStatus !== "all") return `${base}&status=${encodeURIComponent(currentStatus)}`;
+                return base;
+            }
+
+            async function fetchJSON(url, options) {
+                const res = await fetch(url, options);
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch { data = { raw: text }; }
+                if (!res.ok) {
+                    const msg = data?.error || data?.message || `HTTP ${res.status}`;
+                    throw new Error(msg);
+                }
+                return data;
+            }
+
+            // ----------------------------
+            // API calls
+            // ----------------------------
+            async function loadSummary() {
+                return fetchJSON(`/api/searches/${searchId}/alerts/summary`);
+            }
+
+            async function loadAlerts() {
+                const url = buildAlertsUrl();
+                return fetchJSON(url);
+            }
+
+            async function patchAlertStatus(alertId, status) {
+                return fetchJSON(`/api/alerts/${alertId}/status`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status })
+                });
+            }
+
+            async function sendNowProd(sendLimit = 25) {
+                // Preferred (non-dev) endpoint. Uses POST.
+                // If your backend doesn't have this yet, we'll fall back to the /dev endpoint automatically.
+                return fetchJSON(`/api/searches/${searchId}/alerts/send-now?limit=${sendLimit}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
+
+            async function dispatchAlertsDev(sendLimit = 25) {
+                // Legacy/dev endpoint (GET). Kept as a fallback.
+                return fetchJSON(`/dev/searches/${searchId}/dispatch-alerts?limit=${sendLimit}`);
+            }
+
+                        async function sendNowAuto(sendLimit = 25) {
+                try {
+                    return await sendNowProd(sendLimit);
+                } catch (e) {
+                    const msg = String(e?.message || "");
+                    // Only fall back when the prod route is missing / not allowed
+                    if (msg.includes("HTTP 404") || msg.includes("HTTP 405")) {
+                        return await dispatchAlertsDev(sendLimit);
+                    }
+                    throw e;
+                }
+            }
+
+
+            async function devRefreshSearch() {
+                return fetchJSON(`/dev/searches/${searchId}/refresh`);
+            }
+
+            // ----------------------------
+            // Render chips + table
+            // ----------------------------
+            function renderChips(counts) {
+                const chips = $("#chips");
+                if (!chips) return;
+
+                const pending = counts?.pending ?? 0;
+                const sent = counts?.sent ?? 0;
+                const dismissed = counts?.dismissed ?? 0;
+                const error = counts?.error ?? 0;
+                const total = counts?.total ?? (pending + sent + dismissed + error);
+
+                const items = [
+                    { key: "pending", label: "Pending", count: pending },
+                    { key: "sent", label: "Sent", count: sent },
+                    { key: "dismissed", label: "Dismissed", count: dismissed },
+                    { key: "error", label: "Error", count: error },
+                    { key: "all", label: "All", count: total },
+                ];
+
+                chips.innerHTML = items.map(it => `
+      <div class="chip ${it.key === currentStatus ? "active" : ""}" data-chip="${it.key}">
+        ${esc(it.label)} <span class="count">(${it.count})</span>
+      </div>
+    `).join("");
+            }
+
+            function renderSummaryLine(counts) {
+                const el = $("#summaryLine");
+                if (!el) return;
+
+                const p = counts?.pending ?? 0;
+                const s = counts?.sent ?? 0;
+                const d = counts?.dismissed ?? 0;
+                const e = counts?.error ?? 0;
+                const t = counts?.total ?? (p + s + d + e);
+
+                el.textContent = `Counts: pending ${p} • sent ${s} • dismissed ${d} • error ${e} • total ${t}`;
+            }
+
+            function renderPagerLabel() {
+                const pageLabel = $("#pageLabel");
+                const limitLabel = $("#limitLabel");
+                if (limitLabel) limitLabel.textContent = String(limit);
+
+                const page = Math.floor(offset / limit) + 1;
+                if (pageLabel) pageLabel.textContent = `Page ${page}`;
+            }
+
+            function pillClass(status) {
+                const s = String(status || "").toLowerCase();
+                if (s === "pending") return "pending";
+                if (s === "sent") return "sent";
+                if (s === "dismissed") return "dismissed";
+                if (s === "error") return "error";
+                return "";
+            }
+
+            function renderTable(rows) {
+                const tbody = $("#tbody");
+                const empty = $("#empty");
+                if (!tbody) return;
+
+                // Empty state
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    tbody.innerHTML = "";
+                    if (empty) empty.style.display = "block";
+                    const rl = $("#rangeLine");
+                    if (rl) rl.textContent = "Showing 0";
+                    return;
+                }
+
+                if (empty) empty.style.display = "none";
+                const rl = $("#rangeLine");
+                if (rl) rl.textContent = `Showing ${rows.length} (offset ${offset}, limit ${limit})`;
+
+                tbody.innerHTML = rows.map(a => {
+                    const id = esc(a.alert_id);
+                    const status = String(a.status || "").toLowerCase();
+                    const statusPill = `
+        <span class="pill ${pillClass(status)}">
+          <span class="dot" aria-hidden="true"></span>${esc(status)}
+        </span>
+      `;
+
+                    const title = esc(a.title);
+                    const marketplace = esc(a.marketplace);
+                    const ext = esc(a.external_id);
+                    const price = esc(a.price);
+                    const currency = esc(a.currency);
+                    const url = esc(a.listing_url);
+                    const createdIso = String(a.alert_created_at || "");
+                    const createdLabel = esc(formatDateTime(createdIso));
+                    const createdTitle = esc(createdIso);
+
+                    const toggleLabel = (status === "dismissed") ? "Undo dismiss" : "Dismiss";
+                    const nextStatus = (status === "dismissed") ? "pending" : "dismissed";
+
+                    return `
+        <tr data-alert-id="${id}">
+          <td class="mono">${id}</td>
+          <td>${statusPill}</td>
+          <td>
+            ${title}
+            <span class="sub">(${marketplace}) <span class="mono">${ext}</span></span>
+          </td>
+          <td class="mono">${currency} ${price}</td>
+          <td><a class="btn btn-secondary btn-sm" href="${url}" target="_blank" rel="noopener">Open</a></td>
+          <td class="mono" title="${createdTitle}">${createdLabel}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-secondary btn-sm" data-action="toggle" data-next="${esc(nextStatus)}">${toggleLabel}</button>
+            </div>
+          </td>
+        </tr>
+      `;
+                }).join("");
+            }
+
+            // ----------------------------
+            // Main refresh
+            // ----------------------------
+            async function refreshAll(opts = {}) {
+                const { keepFlash = false } = opts;
+                if (!keepFlash) showFlash("", "");
+                renderPagerLabel();
+
+                try {
+                    const summary = await loadSummary();
+                    const counts = summary?.counts || {};
+
+                    renderChips(counts);
+                    renderSummaryLine(counts);
+                    updateSummaryBar(counts);
+
+                    // Auto-switch if user is on Pending but there are no pending alerts.
+                    // This prevents the "empty table" confusion when Sent/All has data.
+                    if (currentStatus === "pending") {
+                        const pendingCount = Number(counts?.pending || 0);
+                        const sentCount = Number(counts?.sent || 0);
+                        const totalCount = Number(counts?.total || (pendingCount + sentCount + Number(counts?.dismissed || 0) + Number(counts?.error || 0)));
+
+                        if (pendingCount === 0 && totalCount > 0) {
+                            currentStatus = (sentCount > 0) ? "sent" : "all";
+                            offset = 0;
+                            renderChips(counts);
+                            renderPagerLabel();
+                        }
+                    }
+
+                    const rows = await loadAlerts();
+                    renderTable(rows);
+
+                    const prev = $("#prevBtn");
+                    const next = $("#nextBtn");
+                    if (prev) prev.disabled = offset === 0;
+                    if (next) next.disabled = !Array.isArray(rows) || rows.length < limit;
+                } catch (e) {
+                    showFlash("bad", e.message || String(e));
+                    renderTable([]); // show empty + avoid stale table
+
+                    const prev = $("#prevBtn");
+                    const next = $("#nextBtn");
+                    if (prev) prev.disabled = offset === 0;
+                    if (next) next.disabled = true;
+                }
+            }
+
+
+            // ----------------------------
+            // Events
+            // ----------------------------
+            document.addEventListener("click", async (e) => {
+                // chips (filter)
+                const chip = e.target.closest("[data-chip]");
+                if (chip) {
+                    currentStatus = chip.getAttribute("data-chip");
+                    offset = 0;
+                    await refreshAll();
+                    return;
+                }
+
+                // table actions
+                const btn = e.target.closest("button[data-action]");
+                if (btn) {
+                    const tr = e.target.closest("tr[data-alert-id]");
+                    const alertId = tr?.getAttribute("data-alert-id");
+                    if (!alertId) return;
+
+                    if (btn.dataset.action === "toggle") {
+                        const next = btn.getAttribute("data-next");
+                        try {
+                            btn.disabled = true;
+                            await patchAlertStatus(alertId, next);
+                            if (next === "dismissed") {
+                                showFlash("ok", "🗑️ Alert dismissed. It will not be sent.", 5000);
+                            } else {
+                                showFlash("ok", "↩️ Dismiss undone. Alert is pending again.", 5000);
+                            }
+                            await refreshAll({ keepFlash: true });
+                        } catch (err) {
+                            showFlash("bad", err.message || String(err));
+                        } finally {
+                            btn.disabled = false;
+                        }
+                    }
+                    return;
+                }
+
+                // refresh button (dev)
+                const refreshBtn = e.target.closest("#refreshBtn");
+                if (refreshBtn) {
+                    const old = refreshBtn.textContent;
+                    try {
+                        offset = 0;
+                        refreshBtn.disabled = true;
+                        refreshBtn.textContent = "Refreshing…";
+                        showFlash("", "Refreshing marketplaces…", 0);
+
+                        const r = await devRefreshSearch();
+                        const fetched = (r && r.fetched != null) ? r.fetched : "—";
+                        const inserted = (r && r.inserted != null) ? r.inserted : 0;
+                        const alertsInserted = (r && r.alertsInserted != null) ? r.alertsInserted : 0;
+
+                        showFlash("ok", `🔄 Refresh complete. fetched=${fetched} inserted=${inserted} new alerts=${alertsInserted}`, 6500);
+                        await refreshAll({ keepFlash: true });
+                    } catch (err) {
+                        showFlash("bad", err.message || String(err));
+                    } finally {
+                        refreshBtn.disabled = false;
+                        refreshBtn.textContent = old;
+                    }
+                    return;
+                }
+
+                // send now button (dev)
+                const sendNowBtnClick = e.target.closest("#sendNowBtn");
+                if (sendNowBtnClick) {
+                    const old = sendNowBtnClick.textContent;
+                    let keepDisabled = false;
+                    try {
+                        sendNowBtnClick.disabled = true;
+                        sendNowBtnClick.textContent = "Sending…";
+                        showFlash("", "Sending alerts…", 0);
+
+                        const result = await sendNowAuto(25);
+
+                        // Handle skip reasons (cooldown, disabled, no email, etc.)
+                        if (result?.skipped) {
+                            const reason = String(result?.reason || "");
+
+                            if (reason === "cooldown") {
+                                const remaining = Math.max(0,
+                                    Number(result.cooldown_seconds) - Number(result.seconds_since_last_sent)
+                                );
+                                showFlash("ok", `⏳ Cooldown active — try again in ${formatDuration(remaining)}.`, 6500);
+                                keepDisabled = true;
+                                setSendNowCooldown(remaining);
+                            } else if (reason === "no_email_enabled") {
+                                showFlash("warn", "📧 Email alerts aren’t enabled for this search. Open Search Detail → Alerts to enable an email destination.", 9000);
+                            } else if (reason === "alerts_disabled") {
+                                showFlash("warn", "🔕 Alerts are disabled for this search. Open Search Detail → Alerts to enable them.", 9000);
+                            } else if (reason === "daily_already_sent") {
+                                showFlash("warn", "🗓️ Daily digest already sent today. Try again tomorrow (or force in dev).", 9000);
+                            } else {
+                                showFlash("warn", `Dispatch skipped (${reason || "unknown"}).`, 6500);
+                            }
+
+                            offset = 0;
+                            await refreshAll({ keepFlash: true });
+                            return;
+                        }
+
+                        const sent = Number(result?.sent || 0);
+                        const emailed = Number(result?.emailed || 0);
+                        const error = Number(result?.error || 0);
+
+                        if (sent === 0 && error === 0) {
+                            const pb = Number(result?.pending_before || 0);
+                            if (pb > 0) {
+                                showFlash("warn", `📭 No sendable pending alerts right now (pending=${pb}).`, 7000);
+                            } else {
+                                showFlash("ok", "📭 No pending alerts to send right now.", 5000);
+                            }
+                        } else if (error > 0) {
+                            showFlash("bad", `⚠️ Dispatch finished with issues. sent=${sent} emailed=${emailed} error=${error}`);
+                        } else {
+                            showFlash("ok", `📤 Alerts sent successfully. sent=${sent} emailed=${emailed}`, 5500);
+                        }
+
+                        offset = 0;
+                        await refreshAll({ keepFlash: true });
+                    } catch (err) {
+                        showFlash("bad", err.message || String(err));
+                    } finally {
+                        sendNowBtnClick.textContent = old;
+                        if (!keepDisabled) sendNowBtnClick.disabled = false;
+                    }
+                }
+
+                // pager
+                const prevBtn = e.target.closest("#prevBtn");
+                if (prevBtn) {
+                    offset = Math.max(0, offset - limit);
+                    await refreshAll();
+                    return;
+                }
+
+                const nextBtn = e.target.closest("#nextBtn");
+                if (nextBtn) {
+                    offset = offset + limit;
+                    await refreshAll();
+                    return;
+                }
+            });
+
+            if (searchId) {
+                // Init
+                setSubtitle();
+                renderPagerLabel();
+                refreshAll();
+                // Summary bar is updated as part of refreshAll()
+
+
+            }
+        </script>
+    </main>
+</body>
+
+</html>

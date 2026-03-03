@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>GoSnaggit – Search Results</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card-bg: #151a2b;
+      --accent: #ffb347;
+      --brand: var(--accent);
+      --accent-soft: rgba(255, 179, 71, 0.15);
+      --accent-strong: #ff9f1c;
+      --text-main: #f7f7ff;
+      --text: var(--text-main);
+      --text-muted: #a2a7c4;
+      --border-subtle: #262b3f;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1120px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+      padding: 2px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inner {
+      border-radius: calc(var(--radius-xl) - 2px);
+      background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+      padding: 22px 22px 18px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 2.1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .inner {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 20px 16px 18px;
+      }
+    }
+
+    header {
+      margin-bottom: 1rem;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      gap: 10px;
+    }
+
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1b1206;
+      font-weight: 800;
+      font-size: 1rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-text span:first-child {
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .logo-text span:last-child {
+      font-size: 0.98rem;
+      font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 179, 71, 0.35);
+      background-color: rgba(255, 179, 71, 0.10);
+    }
+
+
+    h1 {
+      font-size: clamp(1.45rem, 1.9vw + 0.9rem, 2rem);
+      margin: 0 0 0.35rem;
+      line-height: 1.2;
+    }
+
+    .empty-state {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      padding: 12px 4px;
+      line-height: 1.45;
+    }
+
+    .empty-state strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .empty-state a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .empty-state a:hover {
+      text-decoration: underline;
+    }
+
+
+    .subtitle strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .info-card {
+      margin-top: 1.1rem;
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
+      border: 1px solid rgba(80, 97, 183, 0.6);
+      padding: 12px 13px 10px;
+      font-size: 0.82rem;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 0.35rem;
+    }
+
+    .info-label {
+      color: var(--text-muted);
+    }
+
+    .info-value {
+      font-weight: 500;
+    }
+
+    .info-pills {
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .info-pill {
+      border-radius: 999px;
+      padding: 3px 8px;
+      background-color: rgba(8, 10, 25, 0.95);
+      border: 1px solid rgba(52, 64, 132, 0.85);
+      color: var(--text-muted);
+      font-size: 0.76rem;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid transparent;
+      background-color: rgba(94, 234, 212, 0.13);
+      border-color: rgba(34, 197, 154, 0.6);
+      color: #a7ffeb;
+    }
+
+    /* Right: results grid */
+    .results-card {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, var(--card-bg), #0d1021 60%);
+      border: 1px solid rgba(80, 97, 183, 0.6);
+      padding: 14px 13px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .results-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .results-meta {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .results-controls {
+      display: flex;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+    }
+
+    .tiny-pill {
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      cursor: default;
+    }
+
+    .refresh-btn {
+      border-radius: 999px;
+      padding: 3px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: var(--accent);
+      background-color: transparent;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .refresh-btn:hover {
+      background-color: rgba(12, 16, 36, 0.92);
+      border-color: rgba(255, 179, 71, 0.45);
+    }
+
+    .grid-wrapper {
+      margin-top: 0.4rem;
+      border-radius: 10px;
+      border: 1px solid rgba(46, 57, 118, 0.9);
+      background-color: rgba(6, 8, 22, 0.96);
+      padding: 10px;
+      max-height: 440px;
+      overflow: auto;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 10px;
+    }
+
+    .result-card {
+      border-radius: 10px;
+      background: radial-gradient(circle at top left, #151827, #050712 70%);
+      border: 1px solid rgba(46, 57, 118, 0.9);
+      padding: 8px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.8rem;
+    }
+
+    .result-header {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .result-source {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .result-price-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.86rem;
+    }
+
+    .price-pill {
+      border-radius: 999px;
+      padding: 3px 9px;
+      background-color: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.7);
+      color: #bbf7d0;
+      font-size: 0.8rem;
+    }
+
+    .condition-pill {
+      border-radius: 999px;
+      padding: 2px 7px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      color: #e2e8f0;
+      font-size: 0.75rem;
+    }
+
+    .result-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .result-link {
+      font-size: 0.78rem;
+      text-decoration: none;
+      color: var(--accent);
+    }
+
+    .result-link:hover {
+      text-decoration: underline;
+    }
+
+    .empty-state {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      padding: 10px 4px;
+    }
+
+    .pagination {
+      margin-top: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .pagination-controls {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .page-btn {
+      border-radius: 999px;
+      padding: 3px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background-color: transparent;
+      color: #e2e8f0;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .page-btn[disabled] {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .message {
+      margin-top: 0.6rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .message-error {
+      color: #ffc5cb;
+    }
+
+
+
+    .message-success {
+      color: #a7ffeb;
+    }
+
+    .message-warn {
+      color: #ffe4b5;
+    }
+
+    .message-success {
+      color: #a7ffeb;
+    }
+
+    .message-info {
+      color: var(--text-muted);
+    }
+
+    .result-top {
+      display: grid;
+      grid-template-columns: 86px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .thumb {
+      width: 86px;
+      height: 86px;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(6, 8, 22, 0.5);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .thumb.thumb-fallback::after {
+      content: "No image";
+      font-size: 0.72rem;
+      color: rgba(162, 167, 196, 0.8);
+    }
+
+    .result-source-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .mp-pill {
+      border-radius: 999px;
+      padding: 2px 8px;
+      border: 1px solid rgba(255, 179, 71, 0.55);
+      background: rgba(255, 179, 71, 0.12);
+      color: var(--accent);
+      font-size: 0.75rem;
+      line-height: 1.3;
+    }
+
+    /* Empty state polish (wins over earlier empty-state rules) */
+    #empty-state.empty-state {
+      border: 1px dashed rgba(148, 163, 184, 0.25);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(6, 8, 22, 0.35);
+    }
+
+    #empty-state .empty-title {
+      font-weight: 650;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    #empty-state .empty-subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+  </style>
+  <link href="/app.css" rel="stylesheet" />
+  <script defer="True" src="/ui.js"></script>
+</head>
+
+<body>
+  <header class="app-header" id="gs-header"></header>
+  <main class="gs-page">
+    <section class="page-hero">
+      <h1 id="search-title">Search results</h1>
+      <p class="subtitle" id="search-subtitle">
+        Viewing mock marketplace results for this saved search.
+      </p>
+    </section>
+    <div class="shell">
+      <div class="inner">
+        <!-- Left: search context/info -->
+        <div>
+
+          <div class="info-card">
+            <div class="info-row">
+              <span class="info-label">Item</span>
+              <span class="info-value" id="info-item">—</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Location</span>
+              <span class="info-value" id="info-location">—</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Category</span>
+              <span class="info-value" id="info-category">—</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Max price</span>
+              <span class="info-value" id="info-max-price">—</span>
+            </div>
+            <div class="info-pills">
+              <span class="info-pill" id="info-status-pill">Status: —</span>
+              <span class="info-pill" id="info-count-pill">Results: —</span>
+            </div>
+          </div>
+        </div>
+        <!-- Right: results panel -->
+        <div class="results-card">
+          <div class="results-header">
+            <div>
+              <div class="results-title">Results preview</div>
+              <div class="results-meta" id="results-meta">
+                Loading…
+              </div>
+            </div>
+            <div class="results-controls">
+              <button class="refresh-btn" id="refresh-button" type="button">Refresh</button>
+              <a class="btn secondary" id="detail-link" href="#">Search Detail</a>
+              <a class="btn secondary" id="alerts-link" href="#">Alerts</a>
+            </div>
+          </div>
+          <div class="grid-wrapper">
+            <div class="results-grid" id="results-grid">
+              <!-- cards go here -->
+            </div>
+            <div class="empty-state" id="empty-state">
+              <strong>No results yet.</strong><br />
+              This hunt is set up — results will appear here as sources are checked.<br />
+              Try broadening your search, removing filters, or checking back later as new listings appear.<br />
+              Try <a href="#" id="empty-refresh">Refresh</a> or go back to
+              <a href="/searches.html">Saved searches</a>.
+            </div>
+            <div class="pagination">
+              <div id="page-summary">Page 1 of 1</div>
+              <div class="pagination-controls">
+                <button class="page-btn" id="prev-page" type="button">Previous</button>
+                <button class="page-btn" id="next-page" type="button">Next</button>
+              </div>
+            </div>
+            <div id="message" class="message" role="status" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+      <script>
+        function getParams() {
+          const params = new URLSearchParams(window.location.search);
+
+          // Support BOTH styles:
+          // - ?search_id=2 (current)
+          // - ?id=2 (older links / your error text)
+          const search_id = params.get('search_id') || params.get('searchId') || params.get('id');
+
+          const detailLink = document.getElementById("detail-link");
+          if (detailLink && search_id) {
+            detailLink.href = `/search-detail.html?search_id=${encodeURIComponent(search_id)}`;
+          }
+
+          const alertsLink = document.getElementById("alerts-link");
+          if (alertsLink && search_id) {
+            alertsLink.href = `/search-alerts.html?search_id=${encodeURIComponent(search_id)}`;
+          }
+
+
+          return {
+            search_id,
+            page: parseInt(params.get('page') || '1', 10),
+            created: params.get('created') || params.get('saved') || null
+          };
+        }
+
+
+        const { search_id: searchId, page: initialPage, created } = getParams();
+
+
+        const searchTitleEl = document.getElementById('search-title');
+        const searchSubtitleEl = document.getElementById('search-subtitle');
+        const infoItemEl = document.getElementById('info-item');
+        const infoLocationEl = document.getElementById('info-location');
+        const infoCategoryEl = document.getElementById('info-category');
+        const infoMaxPriceEl = document.getElementById('info-max-price');
+        const infoStatusPill = document.getElementById('info-status-pill');
+        const infoCountPill = document.getElementById('info-count-pill');
+
+        const resultsGrid = document.getElementById('results-grid');
+        const emptyStateEl = document.getElementById('empty-state');
+        const resultsMetaEl = document.getElementById('results-meta');
+        const pageSummaryEl = document.getElementById('page-summary');
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        const refreshBtn = document.getElementById('refresh-button');
+        const messageEl = document.getElementById('message');
+
+        // --------------------
+        // Safety helpers (avoid accidental HTML/URL injection)
+        // --------------------
+        function escapeHtml(v) {
+          return String(v)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        function safeUrl(raw, fallback) {
+          const fb = fallback === undefined ? '#' : fallback;
+          const s = String(raw || '').trim();
+          if (!s) return fb;
+          // Allow only http(s) URLs (and tolerate protocol-relative)
+          if (/^https?:\/\//i.test(s) || /^\/\//.test(s)) return s;
+          return fb;
+        }
+
+        function setLoading(isLoading, label) {
+          if (isLoading) {
+            resultsMetaEl.textContent = label || 'Loading…';
+            refreshBtn.disabled = true;
+          } else {
+            refreshBtn.disabled = false;
+          }
+        }
+
+
+
+        let __msgTimer = null;
+        function showMessage(kind, msg, autoHideMs = 4500) {
+          if (!messageEl) return;
+          if (__msgTimer) {
+            clearTimeout(__msgTimer);
+            __msgTimer = null;
+          }
+
+          messageEl.textContent = msg || '';
+          messageEl.className = 'message' + (kind ? ' message-' + kind : '');
+
+          if (msg && autoHideMs) {
+            __msgTimer = setTimeout(() => {
+              messageEl.textContent = '';
+              messageEl.className = 'message';
+            }, autoHideMs);
+          }
+        }
+
+        function clearUrlParam(key) {
+          const params = new URLSearchParams(window.location.search);
+          if (!params.has(key)) return;
+          params.delete(key);
+          const newUrl = window.location.pathname + '?' + params.toString();
+          window.history.replaceState({}, '', newUrl.endsWith('?') ? window.location.pathname : newUrl);
+        }
+
+        function showEmpty(show) {
+          emptyStateEl.style.display = show ? 'block' : 'none';
+        }
+
+        let currentPage = initialPage || 1;
+        const limitPerPage = 6;
+        let resultsRequestId = 0;
+        // Note: backend does not currently return total count/pages.
+        // We use "gotFullPage" to decide if "Next" should be enabled.
+
+        if (!searchId) {
+          resultsMetaEl.textContent = 'No saved search selected.';
+          messageEl.textContent = 'Open this from Saved Searches (or add ?search_id=1 to the URL).';
+
+          messageEl.className = 'message-error';
+
+          // Hide the grid and show a helpful empty state
+          resultsGrid.innerHTML = '';
+          emptyStateEl.style.display = 'block';
+
+          // Disable controls that won’t work without an id
+          prevPageBtn.disabled = true;
+          nextPageBtn.disabled = true;
+          refreshBtn.disabled = true;
+
+          // Adjust empty-state links for this scenario
+          const emptyRefresh = document.getElementById('empty-refresh');
+          if (emptyRefresh) emptyRefresh.style.display = 'none';
+        } else {
+          loadSearchContext();
+          loadResults();
+
+          // Confirmation UX: show one-time banner when arriving from a create flow
+          if (created) {
+            showMessage('success', '✅ Search saved. GoSnaggit will now monitor this item for you.');
+            clearUrlParam('created');
+          }
+        }
+
+
+
+        // Load basic info about the search itself for the left panel
+        async function loadSearchContext() {
+          if (!searchId) return;
+
+          try {
+            const response = await fetchWithTimeout(`/api/searches/${searchId}`, {}, 12000);
+
+            if (!response.ok) {
+              throw new Error('Failed to load search details');
+            }
+
+            const data = await response.json();
+
+            const item = data.search_item || 'Saved search';
+            searchTitleEl.textContent = item;
+            searchSubtitleEl.textContent = 'Viewing results for this saved search.';
+            infoItemEl.textContent = item;
+            infoLocationEl.textContent = data.location || '—';
+            infoCategoryEl.textContent = data.category || '—';
+
+            // Max price formatting (robust)
+            if (data.max_price != null && data.max_price !== '') {
+              const n = Number(data.max_price);
+              infoMaxPriceEl.textContent = Number.isFinite(n) ? `$${n.toFixed(2)}` : `$${String(data.max_price)}`;
+            } else {
+              infoMaxPriceEl.textContent = '—';
+            }
+
+            // Status pill (robust + flexible)
+            const statusRaw = (data.status || '—').toString();
+            const status = statusRaw.toLowerCase().trim();
+            infoStatusPill.textContent = 'Status: ' + statusRaw;
+
+            // Stable attribute for CSS styling later (optional)
+            infoStatusPill.setAttribute('data-status', status || 'unknown');
+          } catch (err) {
+            const msg =
+              (err?.name === 'AbortError')
+                ? 'Search details timed out. Please refresh.'
+                : ('Error loading search details: ' + (err?.message || String(err)));
+
+            resultsMetaEl.textContent = msg;
+            showMessage('error', msg, 6500);
+          }
+        }
+
+        function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+          const controller = new AbortController();
+          const t = setTimeout(() => controller.abort(), timeoutMs);
+          return fetch(url, { ...options, signal: controller.signal })
+            .finally(() => clearTimeout(t));
+        }
+
+        // Load stored marketplace results for this search (paginated)
+        async function loadResults() {
+          if (!searchId) return 0;
+
+          const myReq = ++resultsRequestId;
+
+          setLoading(true, 'Loading results…');
+          // Clear any prior message
+          showMessage('', '', 0);
+
+          resultsGrid.innerHTML = '';
+          showEmpty(false);
+
+          const offset = (currentPage - 1) * limitPerPage;
+
+          try {
+            const response = await fetchWithTimeout(
+              `/api/searches/${searchId}/results?limit=${limitPerPage}&offset=${offset}`,
+              {},
+              15000
+            );
+
+            let results;
+            if (!response.ok) {
+              if (response.status === 404) {
+                results = [];
+              } else {
+                throw new Error('Failed to load results');
+              }
+            } else {
+              results = await response.json(); // expects ARRAY
+            }
+
+            // Ensure array
+            results = Array.isArray(results) ? results : [];
+
+            // If a newer request started after this one, ignore this render
+            if (myReq !== resultsRequestId) return 0;
+
+            // Infer pagination:
+            const gotFullPage = results.length === limitPerPage;
+
+            // Display counts based on what we know (this page only)
+            infoCountPill.textContent = `Results: ${results.length}${gotFullPage ? '+' : ''}`;
+            resultsMetaEl.textContent = results.length
+              ? `Showing ${results.length} result(s) (page ${currentPage}).`
+              : 'No results yet — this hunt is ready and will populate as sources are checked. Tip: broaden your search, remove filters, or check back later.';
+
+            resultsGrid.innerHTML = '';
+
+            if (results.length === 0) {
+              emptyStateEl.style.display = 'block';
+              prevPageBtn.disabled = currentPage <= 1;
+              nextPageBtn.disabled = true;
+            } else {
+              emptyStateEl.style.display = 'none';
+
+              results.forEach(r => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+
+                const titleRaw = r.title || 'Listing';
+                const sourceRaw = r.source || r.site || r.marketplace || 'Marketplace';
+
+                const conditionRaw = r.condition || 'Unknown';
+                const locationRaw = r.location || 'Online';
+                const postedAt = r.found_at
+                  ? new Date(r.found_at).toLocaleDateString()
+                  : '—';
+
+                const url = safeUrl(r.listing_url || '#', '#');
+
+                const img = safeUrl(r.image_url || '', '');
+                const mp = (r.marketplace || 'Marketplace').toString();
+                const mpLabel = mp.charAt(0).toUpperCase() + mp.slice(1);
+
+                const priceText = (() => {
+                  if (r.price == null) return '—';
+                  const n = Number(r.price);
+                  if (!Number.isFinite(n)) return '—';
+
+                  const cur = (r.currency || '').toString().trim();
+                  // Use Intl currency formatting when possible
+                  if (cur && cur.length === 3) {
+                    try {
+                      return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(n);
+                    } catch (e) {
+                      // fall through
+                    }
+                  }
+                  // Fallback
+                  return `$${n.toFixed(2)}`;
+                })();
+
+                const titleEsc = escapeHtml(titleRaw);
+                const sourceEsc = escapeHtml(sourceRaw);
+                const conditionEsc = escapeHtml(conditionRaw);
+                const locationEsc = escapeHtml(locationRaw);
+                const mpLabelEsc = escapeHtml(mpLabel);
+
+                card.innerHTML = `
+<div class="result-top">
+  <div class="thumb">
+    ${img ? `<img src="${img}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('thumb-fallback');">` : ''}
+  </div>
+
+  <div class="result-main">
+    <div class="result-header">${titleEsc}</div>
+
+    <div class="result-source-row">
+      <span class="mp-pill">${mpLabelEsc}</span>
+      <span class="result-source">${sourceEsc}</span>
+    </div>
+
+    <div class="result-price-row">
+      <span class="price-pill">${escapeHtml(priceText)}</span>
+      <span class="condition-pill">${conditionEsc}</span>
+    </div>
+
+    <div class="result-footer">
+      <span>${locationEsc} • ${escapeHtml(postedAt)}</span>
+      <div class="result-actions">
+        <a href="${url}" target="_blank" rel="noopener noreferrer" class="result-link">View listing</a>
+        <button type="button" class="copy-link" data-url="${url}">Copy link</button>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+                resultsGrid.appendChild(card);
+              });
+
+              prevPageBtn.disabled = currentPage <= 1;
+              nextPageBtn.disabled = !gotFullPage;
+            }
+
+            // Update the simple page indicator
+            pageSummaryEl.textContent = `Page ${currentPage}${gotFullPage ? '+' : ''}`;
+
+            return results.length;
+
+          } catch (err) {
+            resultsGrid.innerHTML = '';
+            emptyStateEl.style.display = 'block';
+
+            resultsMetaEl.textContent = 'Could not load results.';
+
+            const msg =
+              (err?.name === 'AbortError')
+                ? 'This is taking too long. Please try Refresh.'
+                : 'Please try again. If this keeps happening, restart the server.';
+
+            showMessage('error', msg, 6500);
+
+            prevPageBtn.disabled = true;
+            nextPageBtn.disabled = true;
+            return 0;
+
+          } finally {
+            setLoading(false);
+          }
+        }
+
+        resultsGrid.addEventListener('click', async (e) => {
+          const btn = e.target.closest('.copy-link');
+          if (!btn) return;
+
+          const url = btn.getAttribute('data-url');
+          if (!url || url === '#') return;
+
+          try {
+            btn.disabled = true;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(url);
+            } else {
+              const ta = document.createElement('textarea');
+              ta.value = url;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              ta.remove();
+            }
+
+            const old = btn.textContent;
+            btn.textContent = 'Link copied';
+            setTimeout(() => (btn.textContent = old), 900);
+          } catch (err) {
+            const old = btn.textContent;
+            btn.textContent = 'Copy failed — try again';
+            setTimeout(() => (btn.textContent = old), 1200);
+          } finally {
+            setTimeout(() => (btn.disabled = false), 300);
+          }
+        });
+
+        prevPageBtn.addEventListener('click', async function () {
+          if (prevPageBtn.disabled) return;
+
+          currentPage -= 1;
+          await loadResults();
+          updateUrl();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        nextPageBtn.addEventListener('click', async function () {
+          if (nextPageBtn.disabled) return;
+
+          currentPage += 1;
+          await loadResults();
+          updateUrl();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        async function doRefresh() {
+          if (!searchId) return;
+
+          const oldText = refreshBtn.textContent;
+          try {
+            showMessage('', '', 0);
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = 'Refreshing…';
+            resultsMetaEl.textContent = 'Refreshing…';
+
+            const r = await fetchWithTimeout(`/api/searches/${searchId}/refresh`, { method: 'POST' }, 20000);
+            if (!r.ok) throw new Error('Refresh failed');
+
+            await loadSearchContext();
+            currentPage = 1;
+            updateUrl();
+            const count = await loadResults();
+
+            if ((count || 0) > 0) {
+              showMessage('success', '🔄 Search updated just now.');
+            } else {
+              showMessage('warn', '🔄 Search updated — no new results this time.');
+            }
+          } catch (e) {
+            showMessage('error', e.message || String(e), 6500);
+          } finally {
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = oldText;
+          }
+        }
+
+        refreshBtn.addEventListener('click', doRefresh);
+
+        document.addEventListener('click', function (e) {
+          if (e.target && e.target.id === 'empty-refresh') {
+            e.preventDefault();
+            doRefresh();
+          }
+        });
+
+        function updateUrl() {
+          const params = new URLSearchParams(window.location.search);
+
+          // Preserve whichever ID param style the user arrived with
+          const key = params.has('id') ? 'id' : (params.has('searchId') ? 'searchId' : 'search_id');
+          params.set(key, searchId);
+
+          params.set('page', String(currentPage));
+          const newUrl = window.location.pathname + '?' + params.toString();
+          window.history.replaceState({}, '', newUrl);
+        }
+        // --- Boot on first load (robust) ---
+        (async function boot() {
+          try {
+            // Pull page from URL if present
+            const params = new URLSearchParams(window.location.search);
+            const p = Number(params.get('page') || '1');
+            currentPage = Number.isFinite(p) && p > 0 ? p : 1;
+
+            // Always load context first (left panel), then results
+            await loadSearchContext();
+            await loadResults();
+          } catch (e) {
+            // If something goes sideways, make sure we don't sit in a fake loading state
+            setLoading(false);
+            showMessage('error', e?.message || String(e), 6500);
+          }
+        })();
+
+      </script>
+  </main>
+</body>
+
+</html>

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>GoSnaggit – Search Details</title>
+  <link rel="icon" type="image/png" href="/assets/logo-mark.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<style>
+        :root {
+            --bg: #0b1020;
+            --card-bg: #151a2b;
+            --accent: #ffb347;
+            --brand: var(--accent);
+            --accent-strong: #ff9f1c;
+            --text-main: #f7f7ff;
+            --text: var(--text-main);
+            --text-muted: #a2a7c4;
+            --border-subtle: #262b3f;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+            --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text-main);
+            background: radial-gradient(circle at top left, #1d2440 0, #050712 55%, #020308 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 900px;
+            border-radius: var(--radius-xl);
+            background: linear-gradient(135deg, rgba(255, 179, 71, 0.07), rgba(93, 63, 211, 0.2));
+            padding: 2px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .inner {
+            border-radius: calc(var(--radius-xl) - 2px);
+            background: radial-gradient(circle at top right, #222742 0, #101425 55%, #050712 100%);
+            padding: 22px 22px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-mark {
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
+            background: radial-gradient(circle at 30% 20%, #ffe8c2, #ffb347 36%, #ff9f1c 72%, #f75c03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1b1206;
+            font-weight: 800;
+            font-size: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-text span:first-child {
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .logo-text span:last-child {
+            font-size: 0.98rem;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+            border-color: rgba(255, 255, 255, 0.12);
+            background-color: rgba(9, 13, 32, 0.9);
+        }
+
+        h1 {
+            margin: 0 0 0.3rem;
+            font-size: clamp(1.4rem, 1.9vw + 0.9rem, 1.9rem);
+        }
+
+        .subtitle {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            max-width: 560px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 780px) {
+            .layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        .card {
+            border-radius: var(--radius-lg);
+            background: radial-gradient(circle at top left, #151827, #050712 70%);
+            border: 1px solid rgba(80, 97, 183, 0.6);
+            padding: 14px 14px 12px;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin: 0 0 0.5rem;
+        }
+
+        dl {
+            margin: 0;
+            display: grid;
+            grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+            row-gap: 6px;
+            column-gap: 10px;
+            font-size: 0.86rem;
+        }
+
+        dt {
+            color: var(--text-muted);
+        }
+
+        dd {
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .muted {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            border: 1px solid transparent;
+        }
+
+        .status-active {
+            background-color: rgba(22, 163, 74, 0.2);
+            border-color: rgba(34, 197, 94, 0.6);
+            color: #bbf7d0;
+        }
+
+        .status-paused {
+            background-color: rgba(253, 224, 71, 0.15);
+            border-color: rgba(250, 204, 21, 0.7);
+            color: #fef9c3;
+        }
+
+        .status-cancelled,
+        .status-completed,
+        .status-deleted {
+            background-color: rgba(248, 113, 113, 0.15);
+            border-color: rgba(248, 113, 113, 0.8);
+            color: #fecaca;
+        }
+
+        .chips-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 0.5rem;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .chip {
+            border-radius: 999px;
+            padding: 3px 9px;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            background-color: rgba(6, 8, 22, 0.96);
+        }
+
+        .actions-row {
+            margin-top: 0.6rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            font-size: 0.82rem;
+        }
+.meta-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .meta-list li {
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .meta-label {
+            opacity: 0.9;
+        }
+
+        .meta-value {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .message {
+            margin-top: 6px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .message.error {
+            color: #fecaca;
+        }
+
+        footer {
+            margin-top: 4px;
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            opacity: 0.9;
+        }
+    
+  
+  </style>
+<link href="/app.css" rel="stylesheet"/><script defer="True" src="/ui.js"></script></head>
+<body><header class="app-header" id="gs-header"></header>
+<main class="gs-page">
+<section class="page-hero">
+  <h1 id="title">Search details</h1>
+  <p class="subtitle" id="subtitle">Reviewing one saved hunt. In future, this view can expand into a full activity log and alert
+                    history.</p>
+</section>
+<div class="shell">
+<div class="inner">
+
+
+<div class="layout">
+<!-- LEFT: main detail fields -->
+<div class="card">
+<div class="section-title">Core search details</div>
+<dl>
+<dt>Search item</dt>
+<dd class="muted" id="field-item">—</dd>
+<dt>Location</dt>
+<dd class="muted" id="field-location">—</dd>
+<dt>Category</dt>
+<dd class="muted" id="field-category">—</dd>
+<dt>Max price</dt>
+<dd class="muted" id="field-max-price">—</dd>
+<dt>Status</dt>
+<dd id="field-status">
+<span class="status-pill status-active" id="status-pill">active</span>
+</dd>
+</dl>
+<div class="chips-row">
+<span class="chip" id="chip-id">ID: —</span>
+<span class="chip" id="chip-created">Created: —</span>
+</div>
+<div class="actions-row">
+<a class="btn btn-ghost" href="/searches.html">← Back to saved searches</a>
+<a class="btn btn-secondary" href="#" id="view-results-link">View results</a>
+<a class="btn btn-primary" href="#" id="edit-search-link">Edit this search</a>
+<a class="btn btn-secondary" href="#" id="manage-alerts-link">Manage alerts</a>
+</div>
+<div class="message" id="message"></div>
+</div>
+<!-- RIGHT: meta / context -->
+<div class="card">
+<div class="section-title">Meta &amp; context</div>
+<ul class="meta-list">
+<li>
+<span class="meta-label">Internal ID</span>
+<span class="meta-value" id="meta-id">—</span>
+</li>
+<li>
+<span class="meta-label">Created at</span>
+<span class="meta-value" id="meta-created">—</span>
+</li>
+<li>
+<span class="meta-label">Current status</span>
+<span class="meta-value" id="meta-status">—</span>
+</li>
+<li>
+<span class="meta-label">Max price</span>
+<span class="meta-value" id="meta-max-price">—</span>
+</li>
+</ul>
+<div class="message" id="meta-note">
+                        This search’s status and price ceiling will later influence how often your background engine
+                        looks for new
+                        matches.
+                    </div>
+</div>
+</div>
+
+<!-- Alerts settings -->
+<div class="card">
+  <div class="section-title">Alerts</div>
+  <div class="message" style="margin-bottom:10px;">
+    Turn alerts on/off for this search. (Saved on the server, so it works the same on localhost and 127.0.0.1.)
+  </div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+    <label style="display:flex; gap:10px; align-items:center;">
+      <input type="checkbox" id="alerts-enabled" />
+      <span><strong>Enable alerts</strong></span>
+    </label>
+    <label style="display:flex; gap:8px; align-items:center;">
+      <span class="muted">Email</span>
+      <input id="alerts-email" class="input" type="email" placeholder="you@example.com" style="min-width:220px;" />
+    </label>
+    <label style="display:flex; gap:8px; align-items:center;">
+      <span class="muted">Mode</span>
+      <select id="alerts-mode" class="input" style="min-width:160px;">
+        <option value="immediate">Immediate</option>
+        <option value="daily">Daily digest</option>
+      </select>
+    </label>
+    <label style="display:flex; gap:8px; align-items:center;">
+      <span class="muted">Max per email</span>
+      <input id="alerts-max" class="input" type="number" min="1" max="200" value="25" style="width:90px;" />
+    </label>
+    <button class="btn btn-primary" id="alerts-save-btn" type="button">Save</button>
+    <span class="chip" id="alerts-saved-chip" style="display:none;">Saved</span>
+  </div>
+</div>
+
+<footer
+                GoSnaggit – internal MVP prototype. Details view is driven from your local “searches” table via the API.
+            </footer>
+</div>
+</div>
+<script>
+        function getParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                id: params.get('id') || params.get('search_id') || params.get('sid')
+            };
+        }
+
+        const { id: searchId } = getParams();
+
+        const fieldItem = document.getElementById('field-item');
+        const fieldLocation = document.getElementById('field-location');
+        const fieldCategory = document.getElementById('field-category');
+        const fieldMaxPrice = document.getElementById('field-max-price');
+        const fieldStatus = document.getElementById('field-status');
+        const statusPill = document.getElementById('status-pill');
+
+        const chipId = document.getElementById('chip-id');
+        const chipCreated = document.getElementById('chip-created');
+
+        const metaId = document.getElementById('meta-id');
+        const metaCreated = document.getElementById('meta-created');
+        const metaStatus = document.getElementById('meta-status');
+        const metaMaxPrice = document.getElementById('meta-max-price');
+
+        const viewResultsLink = document.getElementById('view-results-link');
+        const editSearchLink = document.getElementById('edit-search-link');
+        const messageEl = document.getElementById('message');
+
+        function setMessage(text, type) {
+            messageEl.textContent = text || '';
+            messageEl.className = 'message';
+            if (type) {
+                messageEl.classList.add(type);
+            }
+        }
+
+        function applyStatusPill(status) {
+            const s = (status || 'unknown').toLowerCase();
+            statusPill.textContent = s;
+            statusPill.className = 'status-pill';
+
+            if (s === 'active') {
+                statusPill.classList.add('status-active');
+            } else if (s === 'paused') {
+                statusPill.classList.add('status-paused');
+            } else if (s === 'cancelled' || s === 'completed' || s === 'deleted') {
+                statusPill.classList.add('status-cancelled', 'status-' + s);
+            } else {
+                // leave it neutral
+            }
+        }
+
+        function formatPrice(value) {
+            if (value === null || value === undefined || value === '') return '—';
+            const num = Number(value);
+            if (Number.isNaN(num)) return String(value);
+            return '$' + num.toFixed(2);
+        }
+
+        async function loadDetails() {
+            if (!searchId) {
+                setMessage('Missing search id in URL (e.g., ?id=1).', 'error');
+                return;
+            }
+
+            setMessage('Loading search details…');
+
+            try {
+                const res = await fetch('/api/searches/' + searchId);
+                if (!res.ok) {
+                    const errBody = await res.json().catch(() => ({}));
+                    const msg = errBody.error || 'Failed to load search';
+                    throw new Error(msg);
+                }
+
+                const data = await res.json();
+
+                const item = data.search_item || 'Saved search';
+                const location = data.location || '—';
+                const category = data.category || '—';
+                const maxPrice = formatPrice(data.max_price);
+                const status = data.status || 'unknown';
+
+                const createdDate = data.created_at ? new Date(data.created_at) : null;
+                const createdLabel = createdDate ? createdDate.toLocaleString() : '—';
+
+                document.getElementById('title').textContent = item;
+                document.getElementById('subtitle').textContent =
+                    'Detailed view for this saved hunt. Use Edit to adjust item, price ceiling, or status.';
+
+                fieldItem.textContent = item;
+                fieldLocation.textContent = location;
+                fieldCategory.textContent = category;
+                fieldMaxPrice.textContent = maxPrice;
+
+                applyStatusPill(status);
+
+                chipId.textContent = 'ID: ' + (data.id ?? '—');
+                chipCreated.textContent = 'Created: ' + createdLabel;
+
+                metaId.textContent = data.id ?? '—';
+                metaCreated.textContent = createdLabel;
+                metaStatus.textContent = status;
+                metaMaxPrice.textContent = maxPrice;
+
+                viewResultsLink.href = '/search-results.html?search_id=' + encodeURIComponent(searchId);
+                editSearchLink.href = '/edit-search.html?id=' + encodeURIComponent(searchId);
+
+                setMessage('Loaded search details.', 'success');
+            } catch (err) {
+                console.error(err);
+                setMessage('Error loading search: ' + err.message, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDetails);
+
+
+        // --- Alerts settings wiring (server-backed) ---
+        async function loadAlertSettings(searchId) {
+            const enabledEl = document.getElementById('alerts-enabled');
+            const emailEl = document.getElementById('alerts-email');
+            const modeEl = document.getElementById('alerts-mode');
+            const maxEl = document.getElementById('alerts-max');
+            if (!enabledEl || !modeEl || !maxEl) return;
+            const s = (window.GoSnaggit && GoSnaggit.getAlertSettings) ? await GoSnaggit.getAlertSettings(searchId) : { enabled:true, mode:'immediate', maxPerEmail:25 };
+            if (emailEl && window.GoSnaggit && GoSnaggit.getAlertEmail) {
+                emailEl.value = await GoSnaggit.getAlertEmail(searchId) || '';
+            }
+            enabledEl.checked = !!s.enabled;
+            modeEl.value = (s.mode === 'daily') ? 'daily' : 'immediate';
+            maxEl.value = String(s.maxPerEmail || 25);
+        }
+
+        async function saveAlertSettings(searchId) {
+            const enabledEl = document.getElementById('alerts-enabled');
+            const emailEl = document.getElementById('alerts-email');
+            const modeEl = document.getElementById('alerts-mode');
+            const maxEl = document.getElementById('alerts-max');
+            const chip = document.getElementById('alerts-saved-chip');
+            if (!enabledEl || !modeEl || !maxEl) return;
+            const settings = { enabled: !!enabledEl.checked, mode: String(modeEl.value || 'immediate'), maxPerEmail: Number(maxEl.value || 25) };
+            if (emailEl && window.GoSnaggit && GoSnaggit.setAlertEmail) {
+                await GoSnaggit.setAlertEmail(searchId, String(emailEl.value||''));
+            }
+            const res = (window.GoSnaggit && GoSnaggit.setAlertSettings) ? await GoSnaggit.setAlertSettings(searchId, settings) : { ok:false };
+            if (chip) {
+                chip.style.display = (res && res.ok) ? 'inline-flex' : 'none';
+                if (res && res.ok) setTimeout(()=>{ chip.style.display='none'; }, 1800);
+            }
+        }
+
+
+        document.addEventListener('DOMContentLoaded', async function(){
+            const { id } = getParams();
+            const sid = Number(id);
+            const manage = document.getElementById('manage-alerts-link');
+            if (manage && Number.isFinite(sid) && sid > 0) {
+                manage.href = `/search-alerts.html?search_id=${sid}`;
+            }
+            if (Number.isFinite(sid) && sid > 0) {
+                await loadAlertSettings(sid);
+                const saveBtn = document.getElementById('alerts-save-btn');
+                const enabledEl = document.getElementById('alerts-enabled');
+            const emailEl = document.getElementById('alerts-email');
+                if (saveBtn) saveBtn.addEventListener('click', ()=>saveAlertSettings(sid));
+                if (enabledEl) enabledEl.addEventListener('change', ()=>saveAlertSettings(sid));
+            }
+        });
+</script>
+</main>
+</body>
+</html>
