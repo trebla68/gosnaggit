@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api, type SearchRow, type ResultRow } from "../../../../lib/api";
 
-
 function numPrice(r: any) {
   // Prefer indexed numeric column
   const n1 = Number(r?.price_num);
@@ -85,7 +84,6 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [loggedIn, setLoggedIn] = useState(false);
 
   const count = rows?.length ?? 0;
 
@@ -100,26 +98,6 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
-
-  useEffect(() => {
-    let alive = true;
-
-    (async () => {
-      try {
-        const res = await fetch("/api/auth/status", { cache: "no-store" });
-        const data = await res.json().catch(() => null);
-        if (!alive) return;
-        setLoggedIn(Boolean(data?.loggedIn));
-      } catch {
-        if (!alive) return;
-        setLoggedIn(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   useEffect(() => {
     // Persist hidden keys
@@ -258,235 +236,208 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         </div>
 
         <div className="ctaRow">
-          <a
-            className="btn"
-            href={
-              loggedIn
-                ? `/saved-searches/${id}`
-                : `/signup?next=${encodeURIComponent(`/saved-searches/${id}`)}`
-            }
-          >
+          <a className="btn" href={`/saved-searches/${id}`}>
             Details
           </a>
-          <a
-            className="btn"
-            href={
-              loggedIn
-                ? `/saved-searches/${id}/alerts`
-                : `/signup?next=${encodeURIComponent(`/saved-searches/${id}/alerts`)}`
-            }
-          >
+          <a className="btn" href={`/saved-searches/${id}/alerts`}>
             Alerts
           </a>
         </div>
+      </div>
 
-        {hiddenKeys.length ? (
-          <div className="flash warn" style={{ marginBottom: 12 }}>
-            You hid {hiddenKeys.length} result
-            {hiddenKeys.length === 1 ? "" : "s"}.
+      {hiddenKeys.length ? (
+        <div className="flash warn" style={{ marginBottom: 12 }}>
+          You hid {hiddenKeys.length} result
+          {hiddenKeys.length === 1 ? "" : "s"}.
+          <button
+            className="btn"
+            style={{ marginLeft: 10 }}
+            type="button"
+            onClick={undoHide}
+          >
+            Undo
+          </button>
+        </div>
+      ) : null}
+
+      {priceStats ? (
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="resultMeta" style={{ marginBottom: 6 }}>
+            <div>
+              <strong>Price stats:</strong> min {fmtPrice(priceStats.min)} •
+              median {fmtPrice(priceStats.median)} • max{" "}
+              {fmtPrice(priceStats.max)}
+            </div>
+            <div className="muted">
+              {priceStats.maxPrice != null
+                ? `Under max (${priceStats.maxPrice}): ${priceStats.underMax}`
+                : ""}
+            </div>
+          </div>
+
+          <div className="ctaRow">
             <button
-              className="btn"
-              style={{ marginLeft: 10 }}
-              type="button"
-              onClick={undoHide}
+              className={`btn ${sortBy === "newest" ? "primary" : ""}`}
+              onClick={() => setSortBy("newest")}
             >
-              Undo
+              Newest
+            </button>
+            <button
+              className={`btn ${sortBy === "price_low" ? "primary" : ""}`}
+              onClick={() => setSortBy("price_low")}
+            >
+              Price ↑
+            </button>
+            <button
+              className={`btn ${sortBy === "price_high" ? "primary" : ""}`}
+              onClick={() => setSortBy("price_high")}
+            >
+              Price ↓
             </button>
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
-        {priceStats ? (
-          <div className="card" style={{ marginBottom: 12 }}>
-            <div className="resultMeta" style={{ marginBottom: 6 }}>
-              <div>
-                <strong>Price stats:</strong> min {fmtPrice(priceStats.min)} •
-                median {fmtPrice(priceStats.median)} • max{" "}
-                {fmtPrice(priceStats.max)}
-              </div>
-              <div className="muted">
-                {priceStats.maxPrice != null
-                  ? `Under max (${priceStats.maxPrice}): ${priceStats.underMax}`
-                  : ""}
-              </div>
-            </div>
+      {err ? <div className="flash bad">{err}</div> : null}
 
-            <div className="ctaRow">
-              <button
-                className={`btn ${sortBy === "newest" ? "primary" : ""}`}
-                onClick={() => setSortBy("newest")}
-              >
-                Newest
-              </button>
-              <button
-                className={`btn ${sortBy === "price_low" ? "primary" : ""}`}
-                onClick={() => setSortBy("price_low")}
-              >
-                Price ↑
-              </button>
-              <button
-                className={`btn ${sortBy === "price_high" ? "primary" : ""}`}
-                onClick={() => setSortBy("price_high")}
-              >
-                Price ↓
-              </button>
-            </div>
+      {loading ? (
+        <div className="card">Loading…</div>
+      ) : count === 0 ? (
+        <div className="card empty">
+          <div style={{ fontWeight: 800, marginBottom: 6 }}>No results yet</div>
+          <div className="muted" style={{ marginBottom: 12 }}>
+            Once your search runs, results will appear here. You can also trigger
+            a refresh from Alerts.
           </div>
-        ) : null}
-
-        {err ? <div className="flash bad">{err}</div> : null}
-
-        {loading ? (
-          <div className="card">Loading…</div>
-        ) : count === 0 ? (
-          <div className="card empty">
-            <div style={{ fontWeight: 800, marginBottom: 6 }}>No results yet</div>
-            <div className="muted" style={{ marginBottom: 12 }}>
-              Once your search runs, results will appear here. You can also trigger
-              a refresh from Alerts.
-            </div>
-            <div className="ctaRow">
-              <a
-                className="btn primary"
-                href={
-                  loggedIn
-                    ? `/saved-searches/${id}/alerts`
-                    : `/signup?next=${encodeURIComponent(`/saved-searches/${id}/alerts`)}`
-                }
-              >
-                Go to Alerts
-              </a>
-              <a
-                className="btn"
-                href={
-                  loggedIn
-                    ? `/saved-searches/${id}`
-                    : `/signup?next=${encodeURIComponent(`/saved-searches/${id}`)}`
-                }
-              >
-                Back to Details
-              </a>
-            </div>
+          <div className="ctaRow">
+            <a className="btn primary" href={`/saved-searches/${id}/alerts`}>
+              Go to Alerts
+            </a>
+            <a className="btn" href={`/saved-searches/${id}`}>
+              Back to Details
+            </a>
           </div>
-        ) : (
-          <>
-            <div className="resultsGrid">
-              {sorted.map((r) => {
-                const key = resultKey(r);
-                if (hiddenKeys.includes(key)) return null;
-                const isNew = isRecent(r.found_at || r.created_at, 48);
+        </div>
+      ) : (
+        <>
+          <div className="resultsGrid">
+            {sorted.map((r) => {
+              const key = resultKey(r);
+              if (hiddenKeys.includes(key)) return null;
+              const isNew = isRecent(r.found_at || r.created_at, 48);
 
-                const mp = (r.marketplace || "").toLowerCase();
-                const mpLabel = r.marketplace ? r.marketplace.toUpperCase() : "SOURCE";
-                const priceLabel = fmtPrice(r.price_num ?? r.price, r.currency);
-                const p = numPrice(r);
+              const mp = (r.marketplace || "").toLowerCase();
+              const mpLabel = r.marketplace ? r.marketplace.toUpperCase() : "SOURCE";
+              const priceLabel = fmtPrice(r.price_num ?? r.price, r.currency);
+              const p = numPrice(r);
 
-                const isBest = priceStats && p != null && p === priceStats.min;
-                const underMax =
-                  priceStats &&
-                  p != null &&
-                  priceStats.maxPrice != null &&
-                  p <= priceStats.maxPrice;
+              const isBest = priceStats && p != null && p === priceStats.min;
+              const underMax =
+                priceStats &&
+                p != null &&
+                priceStats.maxPrice != null &&
+                p <= priceStats.maxPrice;
 
-                const when = fmtWhen(r.found_at || r.created_at);
-                const hasImg = !!r.image_url;
-                const destUrl =
-                  r.listing_url && r.listing_url.includes("ebay.")
-                    ? r.listing_url +
-                    (r.listing_url.includes("?") ? "&" : "?") +
-                    "campid=" +
-                    (process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID || "") +
-                    "&customid=search-" +
-                    String(params.id)
-                    : (r.listing_url || "");
+              const when = fmtWhen(r.found_at || r.created_at);
+              const hasImg = !!r.image_url;
+              const destUrl =
+                r.listing_url && r.listing_url.includes("ebay.")
+                  ? r.listing_url +
+                  (r.listing_url.includes("?") ? "&" : "?") +
+                  "campid=" +
+                  (process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID || "") +
+                  "&customid=search-" +
+                  String(params.id)
+                  : (r.listing_url || "");
 
-                const backendBase = (
-                  process.env.NEXT_PUBLIC_BACKEND_URL ||
-                  process.env.NEXT_PUBLIC_API_URL ||
-                  process.env.NEXT_PUBLIC_API_BASE_URL ||
-                  ""
-                ).replace(/\/+$/, "");
+              const backendBase = (
+                process.env.NEXT_PUBLIC_BACKEND_URL ||
+                process.env.NEXT_PUBLIC_API_URL ||
+                process.env.NEXT_PUBLIC_API_BASE_URL ||
+                ""
+              ).replace(/\/+$/, "");
 
-                const trackUrl =
-                  backendBase && destUrl
-                    ? `${backendBase}/api/click?url=${encodeURIComponent(destUrl)}` +
-                    `&search_id=${encodeURIComponent(String(params.id))}` +
-                    `&result_id=${encodeURIComponent(String(r.id ?? ""))}` +
-                    `&marketplace=${encodeURIComponent(String(r.marketplace ?? ""))}` +
-                    `&customid=${encodeURIComponent("search-" + String(params.id))}`
-                    : destUrl;
+              const trackUrl =
+                backendBase && destUrl
+                  ? `${backendBase}/api/click?url=${encodeURIComponent(destUrl)}` +
+                  `&search_id=${encodeURIComponent(String(params.id))}` +
+                  `&result_id=${encodeURIComponent(String(r.id ?? ""))}` +
+                  `&marketplace=${encodeURIComponent(String(r.marketplace ?? ""))}` +
+                  `&customid=${encodeURIComponent("search-" + String(params.id))}`
+                  : destUrl;
 
-                return (
-                  <div className={`resultCard ${isNew ? "newCard" : ""}`} key={key}>
-                    <div className="resultMedia">
-                      {hasImg ? (
-                        <img
-                          src={r.image_url as string}
-                          alt={r.title || "Result image"}
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="resultMediaFallback">
-                          <span>no image</span>
-                        </div>
-                      )}
+              return (
+                <div className={`resultCard ${isNew ? "newCard" : ""}`} key={key}>
+                  <div className="resultMedia">
+                    {hasImg ? (
+                      <img
+                        src={r.image_url as string}
+                        alt={r.title || "Result image"}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="resultMediaFallback">
+                        <span>no image</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="resultBody">
+                    <div className="resultTop">
+                      <span className={pillClass(mp === "ebay" ? "ok" : "neutral")}>
+                        {mpLabel}
+                      </span>
+                      {isNew ? (
+                        <span className="pill bad pillNew" title="New result">
+                          NEW
+                        </span>
+                      ) : null}
+                      {isBest ? (
+                        <span className={`${pillClass("ok")} pillBest`}>🏷️ BEST PRICE</span>
+                      ) : null}
+                      {underMax ? (
+                        <span className={`${pillClass("warn")} pillUnder`}>UNDER MAX</span>
+                      ) : null}
+                      {r.condition ? <span className={pillClass("neutral")}>{r.condition}</span> : null}
+                      {r.location ? <span className={pillClass("neutral")}>{r.location}</span> : null}
                     </div>
 
-                    <div className="resultBody">
-                      <div className="resultTop">
-                        <span className={pillClass(mp === "ebay" ? "ok" : "neutral")}>
-                          {mpLabel}
-                        </span>
-                        {isNew ? (
-                          <span className="pill bad pillNew" title="New result">
-                            NEW
-                          </span>
-                        ) : null}
-                        {isBest ? (
-                          <span className={`${pillClass("ok")} pillBest`}>🏷️ BEST PRICE</span>
-                        ) : null}
-                        {underMax ? (
-                          <span className={`${pillClass("warn")} pillUnder`}>UNDER MAX</span>
-                        ) : null}
-                        {r.condition ? <span className={pillClass("neutral")}>{r.condition}</span> : null}
-                        {r.location ? <span className={pillClass("neutral")}>{r.location}</span> : null}
-                      </div>
+                    <div className="resultTitle">{r.title || "Untitled listing"}</div>
 
-                      <div className="resultTitle">{r.title || "Untitled listing"}</div>
+                    <div className="resultMeta">
+                      <div className="resultPrice">{priceLabel}</div>
+                      <div className="muted">{when}</div>
+                    </div>
 
-                      <div className="resultMeta">
-                        <div className="resultPrice">{priceLabel}</div>
-                        <div className="muted">{when}</div>
-                      </div>
-
-                      <div className="resultActions">
-                        {r.listing_url ? (
-                          <a
-                            className="btn primary"
-                            href={trackUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open listing
-                          </a>
-                        ) : null}
-                        <button
-                          className="btn danger"
-                          type="button"
-                          onClick={() => hideResult(key)}
+                    <div className="resultActions">
+                      {r.listing_url ? (
+                        <a
+                          className="btn primary"
+                          href={trackUrl}
+                          target="_blank"
+                          rel="noreferrer"
                         >
-                          Delete
-                        </button>
-                      </div>
+                          Open listing
+                        </a>
+                      ) : null}
+                      <button
+                        className="btn danger"
+                        type="button"
+                        onClick={() => hideResult(key)}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </>
-        )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
-        <style jsx>{`
+      <style jsx>{`
         .page {
           padding: 18px;
         }
