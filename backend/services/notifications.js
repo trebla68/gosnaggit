@@ -20,9 +20,22 @@ function envBool(v, def = false) {
   return s === '1' || s === 'true' || s === 'yes' || s === 'on';
 }
 
+function isSafeHttpUrl(url) {
+  try {
+    if (!url) return false;
+    const u = new URL(String(url));
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function withClickTracking(url, { searchId, resultId, marketplace, customid }) {
   try {
     if (!url) return url;
+
+    // Safety: only track http(s) URLs
+    if (!isSafeHttpUrl(url)) return url;
 
     const base = String(process.env.PUBLIC_BACKEND_URL || "")
       .trim()
@@ -37,6 +50,34 @@ function withClickTracking(url, { searchId, resultId, marketplace, customid }) {
       "&customid=" + encodeURIComponent(String(customid || ""));
 
     return `${base}/api/click?${qs}`;
+  } catch {
+    return url;
+  }
+}
+
+function normalizeEbayUrl(url, { campid, customid }) {
+  try {
+    if (!url) return url;
+
+    // Safety: only operate on http(s) URLs
+    if (!isSafeHttpUrl(url)) return url;
+
+    const parsed = new URL(url);
+
+    // Only apply to ebay domains
+    if (!/(^|\.)ebay\./i.test(parsed.hostname)) {
+      return url;
+    }
+
+    if (campid) {
+      parsed.searchParams.set("campid", String(campid));
+    }
+
+    if (customid) {
+      parsed.searchParams.set("customid", String(customid));
+    }
+
+    return parsed.toString();
   } catch {
     return url;
   }
@@ -130,13 +171,20 @@ function buildAlertEmail({ searchId, alerts }) {
     lines.push(`${idx + 1}) ${a.title || '—'}`);
     lines.push(`   Price: ${a.price ? `${a.price} ${a.currency || ''}` : '—'}`);
     lines.push(`   Marketplace: ${a.marketplace || '—'}`);
-    const customid = `search-${searchId}`;
-    const tracked = withClickTracking(a.listing_url, {
+    const customid = `search-${searchId}-alert-${a.alert_id || "na"}-result-${a.result_id || "na"}`;
+
+    const normalizedDest = normalizeEbayUrl(a.listing_url, {
+      campid: process.env.EBAY_CAMPAIGN_ID,
+      customid,
+    });
+
+    const tracked = withClickTracking(normalizedDest, {
       searchId,
       resultId: a.result_id,
       marketplace: a.marketplace,
       customid,
     });
+
     lines.push(`   Link: ${tracked || '—'}`);
     lines.push(`   Alert ID: ${a.alert_id}`);
     lines.push('');
