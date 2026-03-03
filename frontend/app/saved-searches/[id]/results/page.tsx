@@ -6,10 +6,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api, type SearchRow, type ResultRow } from "../../../../lib/api";
 
+
 function numPrice(r: any) {
+  // Prefer indexed numeric column
   const n1 = Number(r?.price_num);
   if (Number.isFinite(n1) && n1 > 0) return n1;
 
+  // Fallback legacy
   const n2 = Number(r?.price);
   if (Number.isFinite(n2) && n2 > 0) return n2;
 
@@ -26,10 +29,10 @@ function isRecent(iso?: string | null, hours = 48) {
 
 function resultKey(r: ResultRow): string {
   return String(
-    (r as any).id ??
-      (r as any).external_id ??
-      (r as any).listing_url ??
-      `${(r as any).marketplace ?? "m"}:${(r as any).title ?? "t"}`,
+    r.id ??
+    r.external_id ??
+    r.listing_url ??
+    `${r.marketplace ?? "m"}:${r.title ?? "t"}`,
   );
 }
 
@@ -69,14 +72,13 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
   );
 
   const searchParams = useSearchParams();
-  const focusNew = (searchParams.get("focus") || "").toLowerCase() === "new";
-
   const backendBase = (
     process.env.NEXT_PUBLIC_BACKEND_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.NEXT_PUBLIC_API_BASE_URL ||
     ""
   ).replace(/\/+$/, "");
+  const focusNew = (searchParams.get("focus") || "").toLowerCase() === "new";
 
   const storageKey = `gosnaggit:hiddenResults:${id}`;
   const [hiddenKeys, setHiddenKeys] = useState<string[]>([]);
@@ -143,16 +145,19 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
     (async () => {
       try {
-        const [s, r0] = await Promise.all([api.getSearch(id), api.getResults(id, 200, 0)]);
+        const [s, r0] = await Promise.all([
+          api.getSearch(id),
+          api.getResults(id, 200, 0),
+        ]);
         if (!alive) return;
 
         setSearch(s || null);
 
-        // If results aren't ready yet, poll a few times
+        // If results aren't ready yet, poll a few times (new searches often take a few seconds)
         let r = r0;
         if ((!r || r.length === 0) && alive) {
-          const attempts = 10;
-          const delayMs = 2000;
+          const attempts = 10; // total tries
+          const delayMs = 2000; // 2 seconds between tries
 
           for (let i = 0; i < attempts && alive; i++) {
             await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -160,7 +165,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             if (!alive) return;
 
             r = rNext;
-            if (r && r.length > 0) break;
+            if (r && r.length > 0) break; // stop early as soon as we have results
           }
         }
 
@@ -179,56 +184,69 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     };
   }, [id]);
 
+  const sorted = useMemo(() => {
+    const copy = [...rows];
+
+    const isNewRow = (r: ResultRow) => isRecent(r.found_at || r.created_at, 48);
+
+    const cmpNewFirst = (a: ResultRow, b: ResultRow) => {
+      const na = isNewRow(a) ? 1 : 0;
+      const nb = isNewRow(b) ? 1 : 0;
+      return nb - na;
+    };
+
+    const cmpNewest = (a: ResultRow, b: ResultRow) => {
+      const ta = new Date(a.found_at || a.created_at || 0).getTime();
+      const tb = new Date(b.found_at || b.created_at || 0).getTime();
+      return tb - ta;
+    };
+
+    if (sortBy === "price_low") {
+      return copy.sort((a, b) => {
+        const p = cmpNewFirst(a, b);
+        if (p !== 0) return p;
+        return (numPrice(a) ?? Infinity) - (numPrice(b) ?? Infinity);
+      });
+    }
+
+    if (sortBy === "price_high") {
+      return copy.sort((a, b) => {
+        const p = cmpNewFirst(a, b);
+        if (p !== 0) return p;
+        return (numPrice(b) ?? -Infinity) - (numPrice(a) ?? -Infinity);
+      });
+    }
+
+    // Default: NEW first, then newest
+    return copy.sort((a, b) => {
+      const p = cmpNewFirst(a, b);
+      if (p !== 0) return p;
+      return cmpNewest(a, b);
+    });
+  }, [rows, sortBy]);
+
   const priceStats = useMemo(() => {
-    const nums = (rows || [])
+    const nums = (sorted || [])
       .map((r) => numPrice(r))
-      .filter((n): n is number => typeof n === "number" && Number.isFinite(n) && n > 0)
+      .filter((n): n is number => n !== null)
       .sort((a, b) => a - b);
 
-    if (!nums.length) return null;
+    if (nums.length === 0) return null;
 
     const min = nums[0];
     const max = nums[nums.length - 1];
-    const median = nums[Math.floor(nums.length / 2)];
+    const mid = Math.floor(nums.length / 2);
+    const median = nums.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
 
-    const maxPrice =
-      search && (search as any).max_price != null && Number((search as any).max_price) > 0
-        ? Number((search as any).max_price)
-        : null;
+    const maxPrice = search?.max_price ?? null;
+    const underMax =
+      maxPrice == null ? null : nums.filter((n) => n <= maxPrice).length;
 
-    const underMax = maxPrice != null ? nums.filter((n) => n <= maxPrice).length : 0;
-
-    return { min, max, median, maxPrice, underMax };
-  }, [rows, search]);
-
-  const sorted = useMemo(() => {
-    const base = (rows || []).slice();
-
-    base.sort((a: any, b: any) => {
-      const aNew = isRecent(a.found_at || a.created_at, 48);
-      const bNew = isRecent(b.found_at || b.created_at, 48);
-
-      if (focusNew && aNew !== bNew) return aNew ? -1 : 1;
-
-      if (sortBy === "newest") {
-        const at = Date.parse(a.found_at || a.created_at || "") || 0;
-        const bt = Date.parse(b.found_at || b.created_at || "") || 0;
-        return bt - at;
-      }
-
-      const ap = numPrice(a) ?? Number.POSITIVE_INFINITY;
-      const bp = numPrice(b) ?? Number.POSITIVE_INFINITY;
-
-      if (sortBy === "price_low") return ap - bp;
-      return bp - ap;
-    });
-
-    return base;
-  }, [rows, sortBy, focusNew]);
+    return { min, median, max, count: nums.length, maxPrice, underMax };
+  }, [sorted, search]);
 
   return (
     <main className="page">
-      {/* HEADER ONLY */}
       <div className="pageHead">
         <div>
           <h1 className="h1">Results for #{id}</h1>
@@ -261,214 +279,214 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             Alerts
           </a>
         </div>
-      </div>
 
-      {/* BODY */}
-      {hiddenKeys.length ? (
-        <div className="flash warn" style={{ marginBottom: 12 }}>
-          You hid {hiddenKeys.length} result{hiddenKeys.length === 1 ? "" : "s"}.
-          <button
-            className="btn"
-            style={{ marginLeft: 10 }}
-            type="button"
-            onClick={undoHide}
-          >
-            Undo
-          </button>
-        </div>
-      ) : null}
-
-      {priceStats ? (
-        <div className="card" style={{ marginBottom: 12 }}>
-          <div className="resultMeta" style={{ marginBottom: 6 }}>
-            <div>
-              <strong>Price stats:</strong> min {fmtPrice(priceStats.min)} • median{" "}
-              {fmtPrice(priceStats.median)} • max {fmtPrice(priceStats.max)}
-            </div>
-            <div className="muted">
-              {priceStats.maxPrice != null
-                ? `Under max (${priceStats.maxPrice}): ${priceStats.underMax}`
-                : ""}
-            </div>
-          </div>
-
-          <div className="ctaRow">
+        {hiddenKeys.length ? (
+          <div className="flash warn" style={{ marginBottom: 12 }}>
+            You hid {hiddenKeys.length} result
+            {hiddenKeys.length === 1 ? "" : "s"}.
             <button
-              className={`btn ${sortBy === "newest" ? "primary" : ""}`}
-              onClick={() => setSortBy("newest")}
-              type="button"
-            >
-              Newest
-            </button>
-            <button
-              className={`btn ${sortBy === "price_low" ? "primary" : ""}`}
-              onClick={() => setSortBy("price_low")}
-              type="button"
-            >
-              Price ↑
-            </button>
-            <button
-              className={`btn ${sortBy === "price_high" ? "primary" : ""}`}
-              onClick={() => setSortBy("price_high")}
-              type="button"
-            >
-              Price ↓
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {err ? <div className="flash bad">{err}</div> : null}
-
-      {loading ? (
-        <div className="card">Loading…</div>
-      ) : count === 0 ? (
-        <div className="card empty">
-          <div style={{ fontWeight: 800, marginBottom: 6 }}>No results yet</div>
-          <div className="muted" style={{ marginBottom: 12 }}>
-            Once your search runs, results will appear here. You can also trigger a refresh
-            from Alerts.
-          </div>
-          <div className="ctaRow">
-            <a
-              className="btn primary"
-              href={
-                loggedIn
-                  ? `/saved-searches/${id}/alerts`
-                  : `/signup?next=${encodeURIComponent(`/saved-searches/${id}/alerts`)}`
-              }
-            >
-              Go to Alerts
-            </a>
-            <a
               className="btn"
-              href={
-                loggedIn
-                  ? `/saved-searches/${id}`
-                  : `/signup?next=${encodeURIComponent(`/saved-searches/${id}`)}`
-              }
+              style={{ marginLeft: 10 }}
+              type="button"
+              onClick={undoHide}
             >
-              Back to Details
-            </a>
+              Undo
+            </button>
           </div>
-        </div>
-      ) : (
-        <>
-          <div className="resultsGrid">
-            {sorted.map((r) => {
-              const key = resultKey(r);
-              if (hiddenKeys.includes(key)) return null;
+        ) : null}
 
-              const isNew = isRecent((r as any).found_at || (r as any).created_at, 48);
-              const mp = String((r as any).marketplace || "").toLowerCase();
-              const mpLabel = (r as any).marketplace
-                ? String((r as any).marketplace).toUpperCase()
-                : "SOURCE";
+        {priceStats ? (
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div className="resultMeta" style={{ marginBottom: 6 }}>
+              <div>
+                <strong>Price stats:</strong> min {fmtPrice(priceStats.min)} •
+                median {fmtPrice(priceStats.median)} • max{" "}
+                {fmtPrice(priceStats.max)}
+              </div>
+              <div className="muted">
+                {priceStats.maxPrice != null
+                  ? `Under max (${priceStats.maxPrice}): ${priceStats.underMax}`
+                  : ""}
+              </div>
+            </div>
 
-              const priceLabel = fmtPrice((r as any).price_num ?? (r as any).price, (r as any).currency);
-              const p = numPrice(r);
-              const isBest = priceStats && p != null && p === priceStats.min;
-              const underMax =
-                priceStats &&
-                p != null &&
-                priceStats.maxPrice != null &&
-                p <= priceStats.maxPrice;
+            <div className="ctaRow">
+              <button
+                className={`btn ${sortBy === "newest" ? "primary" : ""}`}
+                onClick={() => setSortBy("newest")}
+              >
+                Newest
+              </button>
+              <button
+                className={`btn ${sortBy === "price_low" ? "primary" : ""}`}
+                onClick={() => setSortBy("price_low")}
+              >
+                Price ↑
+              </button>
+              <button
+                className={`btn ${sortBy === "price_high" ? "primary" : ""}`}
+                onClick={() => setSortBy("price_high")}
+              >
+                Price ↓
+              </button>
+            </div>
+          </div>
+        ) : null}
 
-              const when = fmtWhen((r as any).found_at || (r as any).created_at);
+        {err ? <div className="flash bad">{err}</div> : null}
 
-              const hasImg = Boolean((r as any).image_url);
-              const listingUrl = String((r as any).listing_url || "");
+        {loading ? (
+          <div className="card">Loading…</div>
+        ) : count === 0 ? (
+          <div className="card empty">
+            <div style={{ fontWeight: 800, marginBottom: 6 }}>No results yet</div>
+            <div className="muted" style={{ marginBottom: 12 }}>
+              Once your search runs, results will appear here. You can also trigger
+              a refresh from Alerts.
+            </div>
+            <div className="ctaRow">
+              <a
+                className="btn primary"
+                href={
+                  loggedIn
+                    ? `/saved-searches/${id}/alerts`
+                    : `/signup?next=${encodeURIComponent(`/saved-searches/${id}/alerts`)}`
+                }
+              >
+                Go to Alerts
+              </a>
+              <a
+                className="btn"
+                href={
+                  loggedIn
+                    ? `/saved-searches/${id}`
+                    : `/signup?next=${encodeURIComponent(`/saved-searches/${id}`)}`
+                }
+              >
+                Back to Details
+              </a>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="resultsGrid">
+              {sorted.map((r) => {
+                const key = resultKey(r);
+                if (hiddenKeys.includes(key)) return null;
+                const isNew = isRecent(r.found_at || r.created_at, 48);
 
-              const destUrl =
-                listingUrl && listingUrl.includes("ebay.")
-                  ? listingUrl +
-                    (listingUrl.includes("?") ? "&" : "?") +
+                const mp = (r.marketplace || "").toLowerCase();
+                const mpLabel = r.marketplace ? r.marketplace.toUpperCase() : "SOURCE";
+                const priceLabel = fmtPrice(r.price_num ?? r.price, r.currency);
+                const p = numPrice(r);
+
+                const isBest = priceStats && p != null && p === priceStats.min;
+                const underMax =
+                  priceStats &&
+                  p != null &&
+                  priceStats.maxPrice != null &&
+                  p <= priceStats.maxPrice;
+
+                const when = fmtWhen(r.found_at || r.created_at);
+                const hasImg = !!r.image_url;
+                const destUrl =
+                  r.listing_url && r.listing_url.includes("ebay.")
+                    ? r.listing_url +
+                    (r.listing_url.includes("?") ? "&" : "?") +
                     "campid=" +
-                    String(process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID || "") +
+                    (process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID || "") +
                     "&customid=search-" +
                     String(params.id)
-                  : listingUrl;
+                    : (r.listing_url || "");
 
-              const trackUrl =
-                backendBase && destUrl
-                  ? `${backendBase}/api/click?url=${encodeURIComponent(destUrl)}` +
+                const backendBase = (
+                  process.env.NEXT_PUBLIC_BACKEND_URL ||
+                  process.env.NEXT_PUBLIC_API_URL ||
+                  process.env.NEXT_PUBLIC_API_BASE_URL ||
+                  ""
+                ).replace(/\/+$/, "");
+
+                const trackUrl =
+                  backendBase && destUrl
+                    ? `${backendBase}/api/click?url=${encodeURIComponent(destUrl)}` +
                     `&search_id=${encodeURIComponent(String(params.id))}` +
-                    `&result_id=${encodeURIComponent(String((r as any).id ?? ""))}` +
-                    `&marketplace=${encodeURIComponent(String((r as any).marketplace ?? ""))}` +
+                    `&result_id=${encodeURIComponent(String(r.id ?? ""))}` +
+                    `&marketplace=${encodeURIComponent(String(r.marketplace ?? ""))}` +
                     `&customid=${encodeURIComponent("search-" + String(params.id))}`
-                  : destUrl;
+                    : destUrl;
 
-              return (
-                <div className={`resultCard ${isNew ? "newCard" : ""}`} key={key}>
-                  <div className="resultMedia">
-                    {hasImg ? (
-                      <img
-                        src={(r as any).image_url as string}
-                        alt={(r as any).title || "Result image"}
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="resultMediaFallback">
-                        <span>no image</span>
-                      </div>
-                    )}
-                  </div>
+                return (
+                  <div className={`resultCard ${isNew ? "newCard" : ""}`} key={key}>
+                    <div className="resultMedia">
+                      {hasImg ? (
+                        <img
+                          src={r.image_url as string}
+                          alt={r.title || "Result image"}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="resultMediaFallback">
+                          <span>no image</span>
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="resultBody">
-                    <div className="resultTop">
-                      <span className={pillClass(mp === "ebay" ? "ok" : "neutral")}>
-                        {mpLabel}
-                      </span>
-                      {isNew ? (
-                        <span className="pill bad pillNew" title="New result">
-                          NEW
+                    <div className="resultBody">
+                      <div className="resultTop">
+                        <span className={pillClass(mp === "ebay" ? "ok" : "neutral")}>
+                          {mpLabel}
                         </span>
-                      ) : null}
-                      {isBest ? (
-                        <span className={`${pillClass("ok")} pillBest`}>🏷️ BEST PRICE</span>
-                      ) : null}
-                      {underMax ? (
-                        <span className={`${pillClass("warn")} pillUnder`}>UNDER MAX</span>
-                      ) : null}
-                      {(r as any).condition ? (
-                        <span className={pillClass("neutral")}>{String((r as any).condition)}</span>
-                      ) : null}
-                      {(r as any).location ? (
-                        <span className={pillClass("neutral")}>{String((r as any).location)}</span>
-                      ) : null}
-                    </div>
+                        {isNew ? (
+                          <span className="pill bad pillNew" title="New result">
+                            NEW
+                          </span>
+                        ) : null}
+                        {isBest ? (
+                          <span className={`${pillClass("ok")} pillBest`}>🏷️ BEST PRICE</span>
+                        ) : null}
+                        {underMax ? (
+                          <span className={`${pillClass("warn")} pillUnder`}>UNDER MAX</span>
+                        ) : null}
+                        {r.condition ? <span className={pillClass("neutral")}>{r.condition}</span> : null}
+                        {r.location ? <span className={pillClass("neutral")}>{r.location}</span> : null}
+                      </div>
 
-                    <div className="resultTitle">{(r as any).title || "Untitled listing"}</div>
+                      <div className="resultTitle">{r.title || "Untitled listing"}</div>
 
-                    <div className="resultMeta">
-                      <div className="resultPrice">{priceLabel}</div>
-                      <div className="muted">{when}</div>
-                    </div>
+                      <div className="resultMeta">
+                        <div className="resultPrice">{priceLabel}</div>
+                        <div className="muted">{when}</div>
+                      </div>
 
-                    <div className="resultActions">
-                      {listingUrl ? (
-                        <a className="btn primary" href={trackUrl} target="_blank" rel="noreferrer">
-                          Open listing
-                        </a>
-                      ) : null}
-                      <button
-                        className="btn danger"
-                        type="button"
-                        onClick={() => hideResult(key)}
-                      >
-                        Delete
-                      </button>
+                      <div className="resultActions">
+                        {r.listing_url ? (
+                          <a
+                            className="btn primary"
+                            href={trackUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Open listing
+                          </a>
+                        ) : null}
+                        <button
+                          className="btn danger"
+                          type="button"
+                          onClick={() => hideResult(key)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+                );
+              })}
+            </div>
+          </>
+        )}
 
-      <style jsx>{`
+        <style jsx>{`
         .page {
           padding: 18px;
         }
@@ -476,49 +494,87 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
-          gap: 14px;
-          margin-bottom: 14px;
+          gap: 12px;
+          margin-bottom: 12px;
         }
         .h1 {
-          margin: 0 0 6px 0;
+          margin: 0;
           font-size: 22px;
+          font-weight: 900;
         }
         .muted {
-          opacity: 0.8;
+          opacity: 0.72;
+          margin: 6px 0 0;
         }
         .ctaRow {
           display: flex;
-          gap: 10px;
+          gap: 8px;
           flex-wrap: wrap;
-          align-items: center;
-          justify-content: flex-end;
+        }
+        .card {
+          padding: 14px;
+          border-radius: var(--radius);
+          border: 1px solid var(--panel-border);
+          background: var(--panel);
+          box-shadow: 0 10px 22px rgba(0, 0, 0, 0.07);
+        }
+        .empty {
+          padding: 18px;
+          opacity: 0.8;
         }
         .resultsGrid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 12px;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         }
         .resultCard {
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.55);
           display: grid;
-          grid-template-columns: 120px 1fr;
-          gap: 12px;
-          padding: 12px;
-          border-radius: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(0, 0, 0, 0.25);
+          grid-template-rows: 160px auto;
+          transition: transform 140ms ease, box-shadow 140ms ease;
         }
+        .resultCard:hover {
+          transform: translateY(-2px);
+          box-shadow: var(--shadow);
+        }
+
         .newCard {
-          outline: 2px solid rgba(255, 220, 80, 0.3);
+          border-color: rgba(193, 18, 31, 0.35);
+          background: rgba(255, 232, 235, 0.6);
+        }
+
+        .pillNew {
+          background: rgba(193, 18, 31, 0.22);
+          border-color: rgba(193, 18, 31, 0.6);
+          color: rgba(255, 255, 255, 0.95);
+          letter-spacing: 0.08em;
+        }
+
+        .btn.danger {
+          border-color: rgba(193, 18, 31, 0.45);
+          background: rgba(193, 18, 31, 0.12);
+        }
+
+        .btn.danger:hover {
+          background: rgba(193, 18, 31, 0.18);
+        }
+
+        .pillBest {
+          letter-spacing: 0.06em;
+        }
+
+        .pillUnder {
+          letter-spacing: 0.04em;
         }
         .resultMedia {
-          width: 120px;
-          height: 120px;
-          border-radius: 12px;
-          overflow: hidden;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(255, 255, 255, 0.04);
           display: flex;
           align-items: center;
           justify-content: center;
+          overflow: hidden;
         }
         .resultMedia img {
           width: 100%;
@@ -527,12 +583,12 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           display: block;
         }
         .resultMediaFallback {
-          font-size: 12px;
           opacity: 0.7;
+          font-size: 12px;
         }
         .resultBody {
-          display: flex;
-          flex-direction: column;
+          padding: 12px;
+          display: grid;
           gap: 8px;
         }
         .resultTop {
