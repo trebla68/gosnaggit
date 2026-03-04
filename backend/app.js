@@ -37,6 +37,14 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+process.on("unhandledRejection", (reason) => {
+  console.error("UNHANDLED REJECTION:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+});
+
 
 // --------------------
 // Alert settings (enabled / mode / maxPerEmail) API
@@ -213,7 +221,7 @@ async function loadSession(req) {
   const exp = row.expires_at ? new Date(row.expires_at) : null;
   if (!exp || exp.getTime() < Date.now()) {
     // expired; best-effort cleanup
-    await pool.query(`DELETE FROM sessions WHERE id=$1`, [sid]).catch(() => {});
+    await pool.query(`DELETE FROM sessions WHERE id=$1`, [sid]).catch(() => { });
     return null;
   }
 
@@ -361,7 +369,6 @@ const SERVE_LEGACY_UI = String(process.env.SERVE_LEGACY_UI || "").toLowerCase() 
 if (SERVE_LEGACY_UI) {
   app.use(express.static(path.join(__dirname, "..", "legacy", "backend-public")));
 }
-
 
 app.use(helmet({
   // Full CSP would break your current inline scripts/styles unless configured carefully.
@@ -538,7 +545,7 @@ app.post("/api/auth/logout", async (req, res) => {
   try {
     const cookies = parseCookies(req);
     const sid = cookies.gs_session;
-    if (sid) await pool.query(`DELETE FROM sessions WHERE id=$1`, [sid]).catch(() => {});
+    if (sid) await pool.query(`DELETE FROM sessions WHERE id=$1`, [sid]).catch(() => { });
     clearCookie(res, "gs_session");
     return res.json({ ok: true });
   } catch (e) {
@@ -811,10 +818,8 @@ async function createSearch(req, res) {
     res.status(500).json({ error: 'Failed to create search' });
   }
 }
-
 app.post('/searches', createSearch);
 app.post('/api/searches', createSearch);
-
 
 async function patchSearch(req, res) {
   try {
