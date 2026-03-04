@@ -35,6 +35,31 @@ function resultKey(r: ResultRow): string {
   );
 }
 
+function getImageUrl(r: any): string {
+  // Common fields across marketplaces / older rows
+  const raw =
+    r?.image_url ??
+    r?.imageUrl ??
+    r?.thumbnail_url ??
+    r?.thumbnailUrl ??
+    r?.gallery_url ??
+    r?.galleryUrl ??
+    r?.picture_url ??
+    r?.pictureUrl ??
+    r?.img ??
+    r?.image ??
+    "";
+
+  const s = String(raw || "").trim();
+  if (!s) return "";
+
+  // Avoid mixed-content issues when the page is https
+  if (s.startsWith("http://")) return "https://" + s.slice("http://".length);
+
+  return s;
+}
+
+
 function fmtPrice(price: any, currency?: string | null) {
   const n = Number(price);
   if (!Number.isFinite(n) || n <= 0) return "—";
@@ -354,7 +379,8 @@ export default function ResultsPage() {
                 p <= priceStats.maxPrice;
 
               const when = fmtWhen(r.found_at || r.created_at);
-              const hasImg = !!r.image_url;
+              const imgUrl = getImageUrl(r);
+              const hasImg = !!imgUrl;
               const destUrl =
                 r.listing_url && r.listing_url.includes("ebay.")
                   ? r.listing_url +
@@ -386,10 +412,13 @@ export default function ResultsPage() {
                   <div className="resultMedia">
                     {hasImg ? (
                       <img
-                        src={r.image_url as string}
+                        src={imgUrl}
                         alt={r.title || "Result image"}
                         loading="lazy"
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }}
                       />
                     ) : (
                       <div className="resultMediaFallback">

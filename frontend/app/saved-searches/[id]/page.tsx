@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import { api, isAuthedClient, type AlertSummary, type SearchRow } from "../../../lib/api";
 import Link from "next/link";
 
@@ -48,9 +49,9 @@ function hasNewResults(last_found_at: string | null | undefined, hours = 48) {
   return ageMs >= 0 && ageMs <= hours * 60 * 60 * 1000;
 }
 
-export default function SearchDetail({ params }: { params: { id: string } }) {
-  const id = Number(params.id);
-
+export default function SearchDetail() {
+  const params = useParams();
+  const id = String((params as any)?.id ?? "");
   const [search, setSearch] = useState<SearchRow | null>(null);
   const [summary, setSummary] = useState<AlertSummary | null>(null);
 
@@ -215,7 +216,7 @@ export default function SearchDetail({ params }: { params: { id: string } }) {
   }
 
   useEffect(() => {
-    if (!Number.isFinite(id) || id <= 0) return;
+    if (!id || id === "NaN") return;
     load();
 
     // Tighten UX: don't even call auth-protected settings endpoints unless logged in.
