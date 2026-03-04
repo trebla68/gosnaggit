@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { api, guestFreeUsed, isAuthedClient, markGuestFreeUsed } from "../../lib/api";
+import { api, guestFreeUsed, isAuthedClient, markGuestFreeUsed, getCreatedSearchId } from "../../lib/api";
 import { useRouter } from "next/navigation";
 
 type Mk = "ebay" | "etsy" | "facebook" | "craigslist";
@@ -75,7 +75,7 @@ export default function NewSearch() {
       if (!isAuthedClient()) {
         markGuestFreeUsed();
       }
-      const id = res?.id ?? res?.search?.id ?? res?.searchId;
+      const id = getCreatedSearchId(res);
       router.push(id ? `/saved-searches/${id}/results` : "/saved-searches");
       router.refresh();
     } catch (e: any) {

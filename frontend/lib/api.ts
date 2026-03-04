@@ -32,6 +32,29 @@ export type AlertRow = {
   listing_url: string | null;
 };
 
+// --------------------
+// Types for createSearch (frontend only)
+// --------------------
+
+export type CreateSearchOk =
+  | { ok: true; search: SearchRow }
+  | { ok: true; id: number }
+  | { ok: true; searchId: number };
+
+export type CreateSearchErr = { ok: false; error: string };
+
+export type CreateSearchResponse = CreateSearchOk | CreateSearchErr;
+
+export function getCreatedSearchId(res: CreateSearchResponse): number | null {
+  if (!res || res.ok !== true) return null;
+
+  if ("search" in res && res.search && typeof res.search.id === "number") return res.search.id;
+  if ("id" in res && typeof res.id === "number") return res.id;
+  if ("searchId" in res && typeof res.searchId === "number") return res.searchId;
+
+  return null;
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: "include",
@@ -103,8 +126,8 @@ export const api = {
     category?: string | null;
     max_price?: number | null;
     marketplaces?: Record<string, boolean>;
-  }) =>
-    apiFetch<any>(`/api/searches`, {
+  }): Promise<CreateSearchResponse> =>
+    apiFetch<SearchRow>(`/api/searches`, {
       method: "POST",
       body: JSON.stringify(payload),
     }).then((raw) => ({ ok: true, search: raw })),
