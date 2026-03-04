@@ -76,7 +76,6 @@ export default function NewSearch() {
         markGuestFreeUsed();
       }
       const id = res?.id;
-      router.push(id ? `/saved-searches/${id}/results` : "/saved-searches");
       router.refresh();
     } catch (e: any) {
       const msg = String(e?.message || "");
