@@ -55,6 +55,15 @@ export function getCreatedSearchId(res: CreateSearchResponse): number | null {
   return null;
 }
 
+export type SearchId = string | number;
+
+function encodeSearchId(id: SearchId): string {
+  const s = typeof id === "number" ? (Number.isFinite(id) ? String(id) : "") : String(id ?? "");
+  if (!s || s === "NaN") throw new Error("Invalid search id");
+  return encodeURIComponent(s);
+}
+
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: "include",
@@ -132,39 +141,39 @@ export const api = {
       body: JSON.stringify(payload),
     }).then((raw) => ({ ok: true, search: raw })),
 
-  getSearch: (id: number) => apiFetch<SearchRow>(`/api/searches/${id}`),
+  getSearch: (id: SearchId) => apiFetch<SearchRow>(`/api/searches/${encodeSearchId(id)}`),
 
   patchSearch: (
-    id: number,
+    id: SearchId,
     payload: Partial<Pick<SearchRow, "search_item" | "location" | "category" | "max_price">> & {
       marketplaces?: Record<string, boolean>;
     }
   ) =>
-    apiFetch<{ ok: boolean; search: SearchRow }>(`/api/searches/${id}`, {
+    apiFetch<{ ok: boolean; search: SearchRow }>(`/api/searches/${encodeSearchId(id)}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
 
-  deleteSearch: (id: number) =>
-    apiFetch<{ ok: boolean }>(`/api/searches/${id}`, { method: "DELETE" }),
+  deleteSearch: (id: SearchId) =>
+    apiFetch<{ ok: boolean }>(`/api/searches/${encodeSearchId(id)}`, { method: "DELETE" }),
 
-  restoreSearch: (id: number) =>
-    apiFetch<{ ok: boolean; search?: any }>(`/api/searches/${id}/status`, {
+  restoreSearch: (id: SearchId) =>
+    apiFetch<{ ok: boolean; search?: any }>(`/api/searches/${encodeSearchId(id)}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status: "active" }),
     }),
 
-  duplicateSearch: (id: number) =>
-    apiFetch<{ ok: boolean; id: number }>(`/api/searches/${id}/duplicate`, { method: "POST" }),
+  duplicateSearch: (id: SearchId) =>
+    apiFetch<{ ok: boolean; id: number }>(`/api/searches/${encodeSearchId(id)}/duplicate`, { method: "POST" }),
 
-  getResults: (id: number, limit = 50, offset = 0) =>
-    apiFetch<ResultRow[]>(`/api/searches/${id}/results?limit=${limit}&offset=${offset}`),
+  getResults: (id: SearchId, limit = 50, offset = 0) =>
+    apiFetch<ResultRow[]>(`/api/searches/${encodeSearchId(id)}/results?limit=${limit}&offset=${offset}`),
 
-  getAlertSummary: async (id: number) => {
-    const raw = await apiFetch<any>(`/api/searches/${id}/alerts/summary`);
+  getAlertSummary: async (id: SearchId) => {
+    const raw = await apiFetch<any>(`/api/searches/${encodeSearchId(id)}/alerts/summary`);
     const c = raw?.counts || raw || {};
     return {
-      search_id: Number(raw?.search_id ?? id),
+      search_id: Number(raw?.search_id ?? (typeof id === "number" ? id : Number(id))),
       pending: Number(c?.pending ?? 0),
       sent: Number(c?.sent ?? 0),
       dismissed: Number(c?.dismissed ?? 0),
@@ -174,9 +183,9 @@ export const api = {
   },
 
 
-  listAlerts: (id: number, status = "all", limit = 50, offset = 0) =>
+  listAlerts: (id: SearchId, status = "all", limit = 50, offset = 0) =>
     apiFetch<AlertRow[]>(
-      `/api/searches/${id}/alerts?status=${encodeURIComponent(status)}&limit=${limit}&offset=${offset}`
+      `/api/searches/${encodeSearchId(id)}/alerts?status=${encodeURIComponent(status)}&limit=${limit}&offset=${offset}`
     ),
 
   patchAlertStatus: (alertId: number, status: string) =>
@@ -185,37 +194,37 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
 
-  getAlertSettings: (id: number) =>
+  getAlertSettings: (id: SearchId) =>
     apiFetch<{ ok: boolean; search_id: number; settings: { enabled: boolean; mode: "immediate" | "daily"; maxPerEmail: number } }>(
-      `/api/searches/${id}/alert-settings`
+      `/api/searches/${encodeSearchId(id)}/alert-settings`
     ),
 
-  saveAlertSettings: (id: number, settings: { enabled: boolean; mode: "immediate" | "daily"; maxPerEmail: number }) =>
-    apiFetch<{ ok: boolean; search_id: number; settings: any }>(`/api/searches/${id}/alert-settings`, {
+  saveAlertSettings: (id: SearchId, settings: { enabled: boolean; mode: "immediate" | "daily"; maxPerEmail: number }) =>
+    apiFetch<{ ok: boolean; search_id: number; settings: any }>(`/api/searches/${encodeSearchId(id)}/alert-settings`, {
       method: "POST",
       body: JSON.stringify(settings),
     }),
 
-  getNotificationStatus: (id: number) =>
+  getNotificationStatus: (id: SearchId) =>
     apiFetch<{ ok: boolean; search_id: number; email_enabled: boolean; email_destination: string | null }>(
-      `/api/searches/${id}/notification-status`
+      `/api/searches/${encodeSearchId(id)}/notification-status`
     ),
 
-  saveEmailNotification: (id: number, payload: { email: string; enabled: boolean }) =>
-    apiFetch<any>(`/api/searches/${id}/notifications/email`, {
+  saveEmailNotification: (id: SearchId, payload: { email: string; enabled: boolean }) =>
+    apiFetch<any>(`/api/searches/${encodeSearchId(id)}/notifications/email`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
 
 
-  refreshSearch: (id: number) =>
-    apiFetch<any>(`/api/searches/${id}/refresh`, { method: "POST" }),
+  refreshSearch: (id: SearchId) =>
+    apiFetch<any>(`/api/searches/${encodeSearchId(id)}/refresh`, { method: "POST" }),
 
-  sendNow: (id: number, limit = 25) =>
-    apiFetch<any>(`/api/searches/${id}/alerts/send-now?limit=${limit}`, { method: "POST" }),
+  sendNow: (id: SearchId, limit = 25) =>
+    apiFetch<any>(`/api/searches/${encodeSearchId(id)}/alerts/send-now?limit=${limit}`, { method: "POST" }),
 
   // Backwards-compatible alias (older UI code calls this name)
-  dispatchAlertsDev: (id: number, limit = 25) =>
+  dispatchAlertsDev: (id: SearchId, limit = 25) =>
     api.sendNow(id, limit),
 
   listDeleted: (limit = 100) =>
