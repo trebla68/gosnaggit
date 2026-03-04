@@ -24,7 +24,7 @@ export async function proxy(request: Request, backendPath: string, init?: Reques
   const body =
     method === "GET" || method === "HEAD"
       ? undefined
-      : init?.body ?? (request as any).body ?? (await request.arrayBuffer().catch(() => undefined));
+      : init?.body ?? (await request.arrayBuffer());
 
   const res = await fetch(target.toString(), {
     method,
