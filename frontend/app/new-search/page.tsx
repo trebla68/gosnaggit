@@ -77,7 +77,6 @@ export default function NewSearch() {
       }
       const rawId = (res as any)?.id ?? (res as any)?.search?.id ?? (res as any)?.searchId;
       const id = rawId != null ? String(rawId) : "";
-
       router.push(id ? `/saved-searches/${id}/results` : "/saved-searches");
       router.refresh();
     } catch (e: any) {

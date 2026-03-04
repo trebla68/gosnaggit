@@ -62,7 +62,7 @@ function pillClass(kind: "ok" | "warn" | "bad" | "neutral" = "neutral") {
 }
 
 export default function ResultsPage({ params }: { params: { id: string } }) {
-  const id = Number(params.id);
+  const id = String(params.id ?? "");
 
   const [rows, setRows] = useState<ResultRow[]>([]);
   const [search, setSearch] = useState<SearchRow | null>(null);
