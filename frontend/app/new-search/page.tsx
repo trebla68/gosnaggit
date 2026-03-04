@@ -75,7 +75,7 @@ export default function NewSearch() {
       if (!isAuthedClient()) {
         markGuestFreeUsed();
       }
-      const id = res?.search?.id;
+      const id = res?.id;
       router.push(id ? `/saved-searches/${id}/results` : "/saved-searches");
       router.refresh();
     } catch (e: any) {
