@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { api, isAuthedClient, type SearchRow, type ResultRow } from "../../../../lib/api";
 
 function numPrice(r: any) {
@@ -61,8 +61,9 @@ function pillClass(kind: "ok" | "warn" | "bad" | "neutral" = "neutral") {
   return `pill ${kind}`;
 }
 
-export default function ResultsPage({ params }: { params: { id: string } }) {
-  const id = String(params.id ?? "");
+export default function ResultsPage() {
+  const params = useParams();
+  const id = String((params as any)?.id ?? "");
 
   const [rows, setRows] = useState<ResultRow[]>([]);
   const [search, setSearch] = useState<SearchRow | null>(null);
