@@ -14,9 +14,9 @@ const SignInSchema = z.object({
     password: z.string().min(8),
 });
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authConfig = {
     adapter: PostgresAdapter(pool),
-    session: { strategy: "database" },
+    session: { strategy: "database" as const },
     pages: {
         signIn: "/login",
     },
@@ -60,11 +60,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }),
     ],
     callbacks: {
-        async session({ session, user }) {
+        async session({ session, user }: any) {
             if (session.user) {
                 (session.user as any).id = user.id;
             }
             return session;
         },
     },
-});
+};
+
+export const { auth, signIn, signOut } = NextAuth(authConfig);
