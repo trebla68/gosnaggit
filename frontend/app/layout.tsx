@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import BrandMark from "../components/BrandMark";
 import TopNav from "./topnav";
+import Providers from "./providers";
 
 export const metadata: Metadata = {
   title: "GoSnaggit Beta",
@@ -29,7 +30,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <TopNav />
           </header>
 
-          <main className="main">{children}</main>
+          <main className="main">
+            <Providers>{children}</Providers>
+          </main>
 
           <footer className="footer">
             <a href="/about">About</a>
