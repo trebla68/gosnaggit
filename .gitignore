@@ -142,3 +142,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vscode/
+
+# Local Render environment snapshots (never commit secrets)
+render-env-*.json
+render-env-*.zip
