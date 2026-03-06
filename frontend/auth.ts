@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PostgresAdapter } from "@auth/pg-adapter";
+import PostgresAdapter from "@auth/pg-adapter";
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
