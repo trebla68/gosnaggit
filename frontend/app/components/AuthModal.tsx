@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "../../lib/api";
-
-type Mode = "login" | "signup";
+import { signIn } from "next-auth/react";
 
 export default function AuthModal({
   open,
@@ -16,7 +14,6 @@ export default function AuthModal({
   reason?: string | null;
   onAuthed?: () => void;
 }) {
-  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,30 +23,46 @@ export default function AuthModal({
     if (!open) return;
     setErr(null);
     setBusy(false);
-    setMode("login");
+    setEmail("");
+    setPassword("");
   }, [open]);
 
   async function submit() {
     setBusy(true);
     setErr(null);
+
     try {
       const e = email.trim();
       if (!e) throw new Error("Email is required");
       if (!password) throw new Error("Password is required");
 
-      if (mode === "login") {
-        await api.login(e, password);
-      } else {
-        await api.signup(e, password);
+      const res = await signIn("credentials", {
+        email: e,
+        password,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        throw new Error("Invalid email or password.");
       }
 
       onClose();
       onAuthed?.();
+      window.location.reload();
     } catch (e: any) {
-      setErr(e?.message || "Auth failed");
+      setErr(e?.message || "Login failed");
     } finally {
       setBusy(false);
     }
+  }
+
+  function goToSignup() {
+    const next =
+      typeof window !== "undefined"
+        ? window.location.pathname + window.location.search
+        : "/saved-searches";
+
+    window.location.href = `/signup?next=${encodeURIComponent(next)}`;
   }
 
   if (!open) return null;
@@ -73,22 +86,32 @@ export default function AuthModal({
       }}
     >
       <div className="card" style={{ width: "min(520px, 100%)", padding: 16 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ fontSize: 20, fontWeight: 900 }}>
-            {mode === "login" ? "Log in" : "Create account"}
-          </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 20, fontWeight: 900 }}>Log in</div>
           <button className="btn" type="button" onClick={onClose}>
             Close
           </button>
         </div>
 
         <p className="muted" style={{ marginTop: 6 }}>
-          {reason || "To run more searches or set up alerts, please log in."}
+          {reason || "To continue, please log in."}
         </p>
 
         <div className="panel" style={{ marginTop: 10 }}>
           <label>Email</label>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
 
           <div style={{ marginTop: 10 }}>
             <label>Password</label>
@@ -97,6 +120,7 @@ export default function AuthModal({
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
               type="password"
+              autoComplete="current-password"
             />
           </div>
 
@@ -108,15 +132,11 @@ export default function AuthModal({
 
           <div className="ctaRow" style={{ marginTop: 12 }}>
             <button className="btn primary" type="button" disabled={busy} onClick={submit}>
-              {busy ? "Working…" : mode === "login" ? "Log in" : "Create account"}
+              {busy ? "Working…" : "Log in"}
             </button>
-            <button
-              className="btn"
-              type="button"
-              disabled={busy}
-              onClick={() => setMode((m) => (m === "login" ? "signup" : "login"))}
-            >
-              {mode === "login" ? "Need an account?" : "Already have an account?"}
+
+            <button className="btn" type="button" disabled={busy} onClick={goToSignup}>
+              Need an account?
             </button>
           </div>
 
