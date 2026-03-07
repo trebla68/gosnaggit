@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import PostgresAdapter from "@auth/pg-adapter";
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -15,8 +14,6 @@ const SignInSchema = z.object({
 });
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
-  adapter: PostgresAdapter(pool),
-
   session: { strategy: "jwt" },
 
   pages: {
@@ -40,9 +37,13 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         const { rows } = await pool.query(
           `
-          SELECT u.id, u.email, u.name, c.password_hash
+          SELECT
+            u.id,
+            u.email,
+            u.password_hash,
+            up.display_name
           FROM users u
-          JOIN user_credentials c ON c.user_id = u.id
+          LEFT JOIN user_profiles up ON up.user_id = u.id
           WHERE LOWER(u.email) = LOWER($1)
           LIMIT 1
           `,
@@ -56,25 +57,25 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         if (!ok) return null;
 
         return {
-          id: user.id,
+          id: String(user.id),
           email: user.email,
-          name: user.name ?? null,
+          name: user.display_name ?? null,
         };
       },
     }),
   ],
 
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
       }
       return token;
     },
 
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id;
+        (session.user as any).id = token.id as string;
       }
       return session;
     },

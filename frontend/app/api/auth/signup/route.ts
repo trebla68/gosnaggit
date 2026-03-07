@@ -10,7 +10,7 @@ const pool = new Pool({
 const SignupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  displayName: z.string().min(1).max(60).optional(),
+  displayName: z.string().trim().min(1).max(60).optional(),
 });
 
 export async function POST(req: Request) {
@@ -48,28 +48,24 @@ export async function POST(req: Request) {
 
     const userRes = await client.query(
       `
-      INSERT INTO users (id, email, name, "emailVerified", image)
-      VALUES (gen_random_uuid(), $1, $2, NULL, NULL)
+      INSERT INTO users (email, password_hash)
+      VALUES ($1, $2)
       RETURNING id, email
       `,
-      [email, displayName]
+      [email, passwordHash]
     );
 
     const userId = userRes.rows[0].id;
 
     await client.query(
       `
-      INSERT INTO user_credentials (user_id, password_hash)
-      VALUES ($1, $2)
-      `,
-      [userId, passwordHash]
-    );
-
-    await client.query(
-      `
       INSERT INTO user_profiles (user_id, display_name, alert_email)
       VALUES ($1, $2, $3)
-      ON CONFLICT (user_id) DO NOTHING
+      ON CONFLICT (user_id) DO UPDATE
+      SET
+        display_name = EXCLUDED.display_name,
+        alert_email = EXCLUDED.alert_email,
+        updated_at = now()
       `,
       [userId, displayName, email]
     );
