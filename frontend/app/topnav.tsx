@@ -68,8 +68,18 @@ export default function TopNav() {
   async function logout() {
     try {
       await api.logout();
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.removeItem("gs-authed");
+          window.localStorage.removeItem("gs-is-admin");
+          window.localStorage.removeItem("gs-free-used");
+        } catch {
+          // ignore
+        }
+      }
     } finally {
-      await refreshMe();
+      setMe(null);
+      router.push("/");
       router.refresh();
     }
   }
