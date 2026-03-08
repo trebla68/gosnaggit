@@ -71,8 +71,9 @@ export default function NewSearch() {
 
       const res = await api.createSearch(payload);
 
-      // If the visitor is still a guest, mark that they used their one free search.
-      if (!isAuthedClient()) {
+      // Only mark guest free-search usage when there is truly no logged-in session.
+      const me = await api.me().catch(() => null);
+      if (!me?.user?.id) {
         markGuestFreeUsed();
       }
       const rawId = (res as any)?.id ?? (res as any)?.search?.id ?? (res as any)?.searchId;
@@ -81,7 +82,8 @@ export default function NewSearch() {
       router.refresh();
     } catch (e: any) {
       const msg = String(e?.message || "");
-      if (msg.includes("API 401")) {
+      const me = await api.me().catch(() => null);
+      if (msg.includes("API 401") && !me?.user?.id) {
         window.dispatchEvent(new CustomEvent("gs-auth-required", { detail: { reason: "You’ve used your 1 free search. Log in to create more searches or set alerts." } }));
         return;
       }

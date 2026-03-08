@@ -771,10 +771,12 @@ async function createSearch(req, res) {
 
     const marketplaces = normalizeMarketplaces(req.body.marketplaces);
 
+    const userId = me?.id ? Number(me.id) : null;
+
     const result = await pool.query(
       `
-  INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces)
-  VALUES ($1, $2, $3, $4, $5, $6, $7)
+  INSERT INTO searches (search_item, location, category, max_price, status, plan_tier, marketplaces, user_id)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   RETURNING *
   `,
       [
@@ -784,7 +786,8 @@ async function createSearch(req, res) {
         maxPriceNum,
         finalStatus,
         finalTier,
-        marketplaces
+        marketplaces,
+        userId
       ]
 
     );
