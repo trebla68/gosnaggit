@@ -8,19 +8,19 @@
         "baseUrl": ".",
         "paths": {
             "@gosnaggit/db": [
-                "packages/db/src"
+                "packages/db/src/index.ts"
             ],
             "@gosnaggit/core": [
-                "packages/core/src"
+                "packages/core/src/index.ts"
             ],
             "@gosnaggit/marketplace": [
-                "packages/marketplace/src"
+                "packages/marketplace/src/index.ts"
             ],
             "@gosnaggit/alerts": [
-                "packages/alerts/src"
+                "packages/alerts/src/index.ts"
             ],
             "@gosnaggit/email": [
-                "packages/email/src"
+                "packages/email/src/index.ts"
             ]
         }
     }

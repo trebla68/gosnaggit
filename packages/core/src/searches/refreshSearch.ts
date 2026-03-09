@@ -1,6 +1,11 @@
 import { db, results } from "@gosnaggit/db";
+import { searchMarketplace } from "@gosnaggit/marketplace";
 import { and, eq } from "drizzle-orm";
-import { SearchRow } from "./types";
+import {
+    MarketplaceName,
+    RefreshSearchSummary,
+    SearchRow,
+} from "./types";
 
 function toMarketplaceRecord(value: unknown): Record<string, boolean> | null {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -17,84 +22,132 @@ function toMarketplaceRecord(value: unknown): Record<string, boolean> | null {
     return normalized;
 }
 
-function buildDeterministicExternalId(searchId: number, marketplace: string) {
-    return `mock-${marketplace}-${searchId}`;
+function toSupportedMarketplaceNames(
+    marketplaces: string[]
+): MarketplaceName[] {
+    return marketplaces.filter(
+        (name): name is MarketplaceName => name === "ebay"
+    );
 }
 
 export async function refreshSearch(search: SearchRow) {
     const marketplaceRecord = toMarketplaceRecord(search.marketplaces);
 
-    const marketplaces = marketplaceRecord
+    const enabledMarketplaces = marketplaceRecord
         ? Object.keys(marketplaceRecord).filter((key) => marketplaceRecord[key])
         : [];
 
-    const marketplace = marketplaces[0] || "mock";
-    const externalId = buildDeterministicExternalId(search.id, marketplace);
+    const marketplaces = toSupportedMarketplaceNames(enabledMarketplaces);
 
     console.log(
-        `[core] refreshSearch #${search.id} "${search.searchItem}" | marketplaces=${marketplaces.join(",") || "none"}`
+        `[core] refreshSearch #${search.id} "${search.searchItem}" | marketplaces=${marketplaces.join(",") || "none"
+        }`
     );
 
-    const existing = await db
-        .select()
-        .from(results)
-        .where(
-            and(
-                eq(results.searchId, search.id),
-                eq(results.marketplace, marketplace),
-                eq(results.externalId, externalId)
-            )
-        )
-        .limit(1);
+    let inserted = 0;
+    let skippedDuplicates = 0;
+    let lastInsertedResultId: number | null = null;
 
-    if (existing.length > 0) {
-        console.log(
-            `[core] duplicate result skipped for search #${search.id} | marketplace=${marketplace} | externalId=${externalId}`
-        );
-
-        return {
-            ok: true,
+    for (const marketplace of marketplaces) {
+        const listings = await searchMarketplace({
+            marketplace,
             searchId: search.id,
-            refreshedAt: new Date(),
-            marketplaces,
-            insertedResultId: null,
-            deduped: true,
-        };
+            searchItem: search.searchItem,
+            location: search.location,
+            category: search.category,
+            maxPrice:
+                typeof search.maxPrice === "number"
+                    ? search.maxPrice
+                    : typeof search.maxPrice === "string" && search.maxPrice.trim() !== ""
+                        ? Number(search.maxPrice)
+                        : null,
+        });
+
+        for (const listing of listings) {
+            const existing = await db
+                .select()
+                .from(results)
+                .where(
+                    and(
+                        eq(results.searchId, search.id),
+                        eq(results.marketplace, listing.marketplace),
+                        eq(results.externalId, listing.externalId)
+                    )
+                )
+                .limit(1);
+
+            if (existing.length > 0) {
+                skippedDuplicates++;
+
+                console.log(
+                    `[core] duplicate result skipped for search #${search.id} | marketplace=${listing.marketplace} | externalId=${listing.externalId}`
+                );
+
+                continue;
+            }
+
+            const priceNum =
+                typeof listing.price === "number" ? listing.price.toFixed(2) : null;
+            const shippingNum =
+                typeof listing.shippingPrice === "number"
+                    ? listing.shippingPrice.toFixed(2)
+                    : null;
+            const totalPrice =
+                typeof listing.price === "number"
+                    ? (
+                        listing.price +
+                        (typeof listing.shippingPrice === "number" ? listing.shippingPrice : 0)
+                    ).toFixed(2)
+                    : null;
+
+            const insertedRows = await db
+                .insert(results)
+                .values({
+                    searchId: search.id,
+                    marketplace: listing.marketplace,
+                    externalId: listing.externalId,
+                    title: listing.title,
+                    price:
+                        typeof listing.price === "number"
+                            ? `$${listing.price.toFixed(2)}`
+                            : null,
+                    currency: listing.currency,
+                    priceNum,
+                    shippingNum,
+                    totalPrice,
+                    listingUrl: listing.url,
+                    imageUrl: listing.imageUrl,
+                    location: listing.location ?? search.location ?? "Unknown",
+                    condition: listing.condition ?? "Unknown",
+                    sellerUsername: listing.sellerName ?? "unknown-seller",
+                    foundAt: listing.listedAt ?? new Date(),
+                })
+                .returning();
+
+            const result = insertedRows[0];
+            inserted++;
+            lastInsertedResultId = result?.id ?? null;
+
+            console.log(
+                `[core] inserted result #${result.id} for search #${search.id} | marketplace=${listing.marketplace} | externalId=${listing.externalId}`
+            );
+        }
     }
 
-    const inserted = await db
-        .insert(results)
-        .values({
-            searchId: search.id,
-            marketplace,
-            externalId,
-            title: `Mock result for ${search.searchItem}`,
-            price: "$123.45",
-            currency: "USD",
-            priceNum: "123.45",
-            shippingNum: "15.00",
-            totalPrice: "138.45",
-            listingUrl: `https://example.com/listing/${search.id}`,
-            imageUrl: "https://example.com/image.jpg",
-            location: search.location ?? "Unknown",
-            condition: "Used",
-            sellerUsername: "mock-seller",
-            foundAt: new Date(),
-        })
-        .returning();
-
-    const result = inserted[0];
-
-    console.log(
-        `[core] inserted mock result #${result.id} for search #${search.id}`
-    );
+    const summary: RefreshSearchSummary = {
+        searchId: search.id,
+        marketplacesTried: marketplaces,
+        inserted,
+        skippedDuplicates,
+    };
 
     return {
         ok: true,
         searchId: search.id,
         refreshedAt: new Date(),
         marketplaces,
-        insertedResultId: result.id,
-        deduped: false,
+        insertedResultId: lastInsertedResultId,
+        deduped: inserted === 0 && skippedDuplicates > 0,
+        summary,
     };
 }

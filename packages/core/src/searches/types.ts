@@ -20,3 +20,27 @@ export type SearchRow = {
     nextRefreshAt: Date | null;
     lastFoundAt: Date | null;
 };
+
+export type MarketplaceName = "ebay";
+
+export type MarketplaceListing = {
+    marketplace: MarketplaceName;
+    externalId: string;
+    title: string;
+    price: number | null;
+    currency: string | null;
+    url: string;
+    imageUrl: string | null;
+    location: string | null;
+    sellerName: string | null;
+    listedAt: Date | null;
+    condition: string | null;
+    shippingPrice: number | null;
+};
+
+export type RefreshSearchSummary = {
+    searchId: number;
+    marketplacesTried: MarketplaceName[];
+    inserted: number;
+    skippedDuplicates: number;
+};
