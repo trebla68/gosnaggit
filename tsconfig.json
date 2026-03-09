@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": true,
+        "skipLibCheck": true,
+        "baseUrl": ".",
+        "paths": {
+            "@gosnaggit/db": [
+                "packages/db/src"
+            ],
+            "@gosnaggit/core": [
+                "packages/core/src"
+            ],
+            "@gosnaggit/marketplace": [
+                "packages/marketplace/src"
+            ],
+            "@gosnaggit/alerts": [
+                "packages/alerts/src"
+            ],
+            "@gosnaggit/email": [
+                "packages/email/src"
+            ]
+        }
+    }
+}

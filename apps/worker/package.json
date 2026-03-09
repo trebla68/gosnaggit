@@ -1,0 +1,12 @@
+{
+    "name": "@gosnaggit/worker",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "seed:due": "tsx src/seedDueSearch.ts",
+        "start": "node dist/index.js",
+        "build": "tsup src/index.ts src/seedDueSearch.ts --format esm --dts"
+    }
+}
