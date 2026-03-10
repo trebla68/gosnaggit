@@ -36,6 +36,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@gosnaggit/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       next:
         specifier: 16.1.6
         version: 16.1.6(@babel/core@7.29.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -80,6 +83,9 @@ importers:
       '@gosnaggit/db':
         specifier: workspace:*
         version: link:../db
+      '@gosnaggit/marketplace':
+        specifier: workspace:*
+        version: link:../marketplace
 
   packages/db: {}
 
