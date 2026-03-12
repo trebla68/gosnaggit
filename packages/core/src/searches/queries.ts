@@ -1,6 +1,32 @@
 import { db, listings, searchResults, searches } from "@gosnaggit/db";
 import { count, desc, eq } from "drizzle-orm";
 
+const listingSelect = {
+    searchResultId: searchResults.id,
+    foundAt: searchResults.foundAt,
+    listingId: listings.id,
+    marketplace: listings.marketplace,
+    externalId: listings.externalId,
+    title: listings.title,
+    price: listings.price,
+    currency: listings.currency,
+    priceNum: listings.priceNum,
+    shippingNum: listings.shippingNum,
+    totalPrice: listings.totalPrice,
+    listingUrl: listings.listingUrl,
+    imageUrl: listings.imageUrl,
+    location: listings.location,
+    condition: listings.condition,
+    sellerUsername: listings.sellerUsername,
+    firstSeenAt: listings.firstSeenAt,
+    lastSeenAt: listings.lastSeenAt,
+};
+
+const searchResultDetailSelect = {
+    ...listingSelect,
+    searchId: searchResults.searchId,
+};
+
 export async function getRecentSearchesWithCounts(limit = 20) {
     const rows = await db
         .select({
@@ -38,26 +64,7 @@ export async function getRecentSearchesWithCounts(limit = 20) {
 
 export async function getListingsForSearch(searchId: number, limit = 50) {
     const rows = await db
-        .select({
-            searchResultId: searchResults.id,
-            foundAt: searchResults.foundAt,
-            listingId: listings.id,
-            marketplace: listings.marketplace,
-            externalId: listings.externalId,
-            title: listings.title,
-            price: listings.price,
-            currency: listings.currency,
-            priceNum: listings.priceNum,
-            shippingNum: listings.shippingNum,
-            totalPrice: listings.totalPrice,
-            listingUrl: listings.listingUrl,
-            imageUrl: listings.imageUrl,
-            location: listings.location,
-            condition: listings.condition,
-            sellerUsername: listings.sellerUsername,
-            firstSeenAt: listings.firstSeenAt,
-            lastSeenAt: listings.lastSeenAt,
-        })
+        .select(listingSelect)
         .from(searchResults)
         .innerJoin(listings, eq(searchResults.listingId, listings.id))
         .where(eq(searchResults.searchId, searchId))
@@ -72,6 +79,17 @@ export async function getSearchById(searchId: number) {
         .select()
         .from(searches)
         .where(eq(searches.id, searchId))
+        .limit(1);
+
+    return rows[0] ?? null;
+}
+
+export async function getSearchResultById(searchResultId: number) {
+    const rows = await db
+        .select(searchResultDetailSelect)
+        .from(searchResults)
+        .innerJoin(listings, eq(searchResults.listingId, listings.id))
+        .where(eq(searchResults.id, searchResultId))
         .limit(1);
 
     return rows[0] ?? null;

@@ -15,10 +15,6 @@ function formatMoney(
     return currency ? `${price} ${currency}` : price;
 }
 
-function buildDisplayUrl(url: string | null | undefined) {
-    return url ?? "#";
-}
-
 export default async function SearchDetailPage({ params }: PageProps) {
     const { id } = await params;
     const searchId = Number(id);
@@ -122,12 +118,12 @@ export default async function SearchDetailPage({ params }: PageProps) {
                                             External ID: {row.externalId}
                                         </div>
                                         <a
-                                            href={buildDisplayUrl(row.listingUrl)}
+                                            href={`/out/r/${row.searchResultId}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="inline-flex rounded-full border border-black/10 px-4 py-2 text-sm font-medium transition hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/10"
                                         >
-                                            View on eBay
+                                            View on {row.marketplace}
                                         </a>
                                     </div>
                                 </div>
