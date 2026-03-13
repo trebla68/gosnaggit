@@ -111,7 +111,9 @@ export const alerts = pgTable("alerts", {
     searchId: integer("search_id")
         .notNull()
         .references(() => searches.id, { onDelete: "cascade" }),
-    resultId: integer("result_id").references(() => results.id, { onDelete: "set null" }),
+    searchResultId: integer("search_result_id").references(() => searchResults.id, {
+        onDelete: "set null",
+    }),
     status: text("status").notNull().default("pending"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
