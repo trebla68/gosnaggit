@@ -118,6 +118,22 @@ export const alerts = pgTable("alerts", {
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const clickEvents = pgTable("click_events", {
+    id: serial("id").primaryKey(),
+    searchResultId: integer("search_result_id")
+        .notNull()
+        .references(() => searchResults.id, { onDelete: "cascade" }),
+    searchId: integer("search_id").references(() => searches.id, {
+        onDelete: "set null",
+    }),
+    listingId: integer("listing_id").references(() => listings.id, {
+        onDelete: "set null",
+    }),
+    marketplace: text("marketplace"),
+    destinationUrl: text("destination_url"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const notificationSettings = pgTable("notification_settings", {
     id: serial("id").primaryKey(),
     searchId: integer("search_id")

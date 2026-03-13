@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSearchResultById } from "@gosnaggit/core";
+import { clickEvents, db } from "@gosnaggit/db";
 
 const EBAY_HOSTS = new Set([
     "www.ebay.com",
@@ -76,6 +77,18 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
     if (!redirectUrl) {
         return new NextResponse("Listing URL unavailable.", { status: 404 });
+    }
+
+    try {
+        await db.insert(clickEvents).values({
+            searchResultId: row.searchResultId,
+            searchId: row.searchId,
+            listingId: row.listingId,
+            marketplace: row.marketplace,
+            destinationUrl: redirectUrl,
+        });
+    } catch (error) {
+        console.error("[out/r] failed to log click", error);
     }
 
     return NextResponse.redirect(redirectUrl);
