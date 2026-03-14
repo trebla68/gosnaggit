@@ -1,4 +1,4 @@
-import { db, listings, searchResults, searches } from "@gosnaggit/db";
+import { clickEvents, db, listings, searchResults, searches } from "@gosnaggit/db";
 import { count, desc, eq } from "drizzle-orm";
 
 const listingSelect = {
@@ -93,4 +93,22 @@ export async function getSearchResultById(searchResultId: number) {
         .limit(1);
 
     return rows[0] ?? null;
+}
+
+export async function getRecentClickEvents(limit = 50) {
+    const rows = await db
+        .select({
+            id: clickEvents.id,
+            searchResultId: clickEvents.searchResultId,
+            searchId: clickEvents.searchId,
+            listingId: clickEvents.listingId,
+            marketplace: clickEvents.marketplace,
+            destinationUrl: clickEvents.destinationUrl,
+            createdAt: clickEvents.createdAt,
+        })
+        .from(clickEvents)
+        .orderBy(desc(clickEvents.createdAt))
+        .limit(limit);
+
+    return rows;
 }
