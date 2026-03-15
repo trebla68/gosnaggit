@@ -50,13 +50,52 @@ function appendEbayAffiliateParams(
     }
 }
 
+function isLikelyAutomatedEmailClick(request: Request) {
+    const method = request.method.toUpperCase();
+    if (method !== "GET") return true;
+
+    const userAgent = (request.headers.get("user-agent") || "").toLowerCase();
+
+    const knownScannerSignals = [
+        "microsoft office",
+        "microsoft outlook",
+        "safelinks",
+        "defender",
+        "exchange",
+        "googleimageproxy",
+        "google-inspectiontool",
+        "urlscan",
+        "barracuda",
+        "mimecast",
+        "proofpoint",
+        "trend micro",
+        "symantec",
+        "norton",
+        "crawler",
+        "spider",
+        "bot",
+    ];
+
+    return knownScannerSignals.some((signal) => userAgent.includes(signal));
+}
+
+function buildRedirectResponse(redirectUrl: string) {
+    const response = NextResponse.redirect(redirectUrl, { status: 302 });
+
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+
+    return response;
+}
+
 type RouteContext = {
     params: Promise<{
         searchResultId: string;
     }>;
 };
 
-export async function GET(_request: Request, { params }: RouteContext) {
+export async function GET(request: Request, { params }: RouteContext) {
     const { searchResultId } = await params;
     const id = Number(searchResultId);
 
@@ -79,17 +118,45 @@ export async function GET(_request: Request, { params }: RouteContext) {
         return new NextResponse("Listing URL unavailable.", { status: 404 });
     }
 
-    try {
-        await db.insert(clickEvents).values({
-            searchResultId: row.searchResultId,
-            searchId: row.searchId,
-            listingId: row.listingId,
-            marketplace: row.marketplace,
-            destinationUrl: redirectUrl,
-        });
-    } catch (error) {
-        console.error("[out/r] failed to log click", error);
+    if (!isLikelyAutomatedEmailClick(request)) {
+        try {
+            await db.insert(clickEvents).values({
+                searchResultId: row.searchResultId,
+                searchId: row.searchId,
+                listingId: row.listingId,
+                marketplace: row.marketplace,
+                destinationUrl: redirectUrl,
+            });
+        } catch (error) {
+            console.error("[out/r] failed to log click", error);
+        }
     }
 
-    return NextResponse.redirect(redirectUrl);
+    return buildRedirectResponse(redirectUrl);
+}
+
+export async function HEAD(request: Request, { params }: RouteContext) {
+    const { searchResultId } = await params;
+    const id = Number(searchResultId);
+
+    if (!Number.isFinite(id)) {
+        return new NextResponse(null, { status: 400 });
+    }
+
+    const row = await getSearchResultById(id);
+
+    if (!row || !row.listingUrl) {
+        return new NextResponse(null, { status: 404 });
+    }
+
+    const redirectUrl =
+        row.marketplace?.toLowerCase() === "ebay"
+            ? appendEbayAffiliateParams(row.listingUrl, row.searchId)
+            : row.listingUrl;
+
+    if (!redirectUrl) {
+        return new NextResponse(null, { status: 404 });
+    }
+
+    return buildRedirectResponse(redirectUrl);
 }
