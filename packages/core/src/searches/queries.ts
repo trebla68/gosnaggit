@@ -1,5 +1,5 @@
 import { clickEvents, db, listings, searchResults, searches } from "@gosnaggit/db";
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, sql } from "drizzle-orm";
 
 const listingSelect = {
     searchResultId: searchResults.id,
@@ -111,4 +111,43 @@ export async function getRecentClickEvents(limit = 50) {
         .limit(limit);
 
     return rows;
+}
+
+export async function getClickEventSummary() {
+    const totalRows = await db
+        .select({
+            value: count(clickEvents.id),
+        })
+        .from(clickEvents);
+
+    const todayRows = await db
+        .select({
+            value: count(clickEvents.id),
+        })
+        .from(clickEvents)
+        .where(sql`${clickEvents.createdAt} >= now() - interval '1 day'`);
+
+    const weekRows = await db
+        .select({
+            value: count(clickEvents.id),
+        })
+        .from(clickEvents)
+        .where(sql`${clickEvents.createdAt} >= now() - interval '7 days'`);
+
+    const marketplaceRows = await db
+        .select({
+            marketplace: clickEvents.marketplace,
+            clicks: count(clickEvents.id),
+        })
+        .from(clickEvents)
+        .groupBy(clickEvents.marketplace)
+        .orderBy(desc(count(clickEvents.id)))
+        .limit(1);
+
+    return {
+        totalClicks: Number(totalRows[0]?.value ?? 0),
+        clicksToday: Number(todayRows[0]?.value ?? 0),
+        clicksLast7Days: Number(weekRows[0]?.value ?? 0),
+        topMarketplace: marketplaceRows[0]?.marketplace ?? "—",
+    };
 }

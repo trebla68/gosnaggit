@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getRecentClickEvents } from "@gosnaggit/core";
+import { getClickEventSummary, getRecentClickEvents } from "@gosnaggit/core";
 
 function formatDate(value: Date | string | null | undefined) {
     if (!value) return "—";
@@ -14,7 +14,10 @@ function truncate(value: string | null | undefined, max = 90) {
 }
 
 export default async function AdminClicksPage() {
-    const clicks = await getRecentClickEvents(100);
+    const [clicks, summary] = await Promise.all([
+        getRecentClickEvents(100),
+        getClickEventSummary(),
+    ]);
 
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
@@ -37,6 +40,38 @@ export default async function AdminClicksPage() {
                                 Latest outbound click activity captured through the canonical redirect
                                 route.
                             </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-950">
+                        <div className="text-sm uppercase tracking-[0.2em] text-black/50 dark:text-white/50">
+                            Total clicks
+                        </div>
+                        <div className="mt-3 text-3xl font-bold">{summary.totalClicks}</div>
+                    </div>
+
+                    <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-950">
+                        <div className="text-sm uppercase tracking-[0.2em] text-black/50 dark:text-white/50">
+                            Clicks today
+                        </div>
+                        <div className="mt-3 text-3xl font-bold">{summary.clicksToday}</div>
+                    </div>
+
+                    <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-950">
+                        <div className="text-sm uppercase tracking-[0.2em] text-black/50 dark:text-white/50">
+                            Last 7 days
+                        </div>
+                        <div className="mt-3 text-3xl font-bold">{summary.clicksLast7Days}</div>
+                    </div>
+
+                    <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-950">
+                        <div className="text-sm uppercase tracking-[0.2em] text-black/50 dark:text-white/50">
+                            Top marketplace
+                        </div>
+                        <div className="mt-3 text-3xl font-bold">
+                            {summary.topMarketplace || "—"}
                         </div>
                     </div>
                 </section>
