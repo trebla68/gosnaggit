@@ -151,3 +151,19 @@ export async function getClickEventSummary() {
         topMarketplace: marketplaceRows[0]?.marketplace ?? "—",
     };
 }
+
+export async function getTopSearchesByClicks(limit = 5) {
+    const rows = await db
+        .select({
+            searchId: searches.id,
+            searchItem: searches.searchItem,
+            clicks: count(clickEvents.id),
+        })
+        .from(clickEvents)
+        .leftJoin(searches, eq(clickEvents.searchId, searches.id))
+        .groupBy(searches.id, searches.searchItem)
+        .orderBy(desc(count(clickEvents.id)))
+        .limit(limit);
+
+    return rows;
+}
