@@ -167,3 +167,46 @@ export async function getTopSearchesByClicks(limit = 5) {
 
     return rows;
 }
+
+export async function getSearchPerformance(limit = 10) {
+    const rows = await db
+        .select({
+            searchId: searches.id,
+            searchItem: searches.searchItem,
+            resultCount: count(searchResults.id),
+        })
+        .from(searches)
+        .leftJoin(searchResults, eq(searchResults.searchId, searches.id))
+        .groupBy(searches.id, searches.searchItem)
+        .orderBy(desc(searches.createdAt))
+        .limit(limit);
+
+    const clickRows = await db
+        .select({
+            searchId: clickEvents.searchId,
+            clicks: count(clickEvents.id),
+        })
+        .from(clickEvents)
+        .groupBy(clickEvents.searchId);
+
+    const clickMap = new Map<number, number>();
+    for (const row of clickRows) {
+        if (row.searchId != null) {
+            clickMap.set(row.searchId, Number(row.clicks ?? 0));
+        }
+    }
+
+    return rows.map((row) => {
+        const resultCount = Number(row.resultCount ?? 0);
+        const clicks = clickMap.get(row.searchId) ?? 0;
+        const ctr = resultCount > 0 ? (clicks / resultCount) * 100 : 0;
+
+        return {
+            searchId: row.searchId,
+            searchItem: row.searchItem,
+            resultCount,
+            clicks,
+            ctr: Number(ctr.toFixed(1)),
+        };
+    });
+}

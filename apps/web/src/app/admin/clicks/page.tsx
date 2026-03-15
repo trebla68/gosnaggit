@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
     getClickEventSummary,
     getRecentClickEvents,
+    getSearchPerformance,
     getTopSearchesByClicks,
 } from "@gosnaggit/core";
 
@@ -18,10 +19,11 @@ function truncate(value: string | null | undefined, max = 90) {
 }
 
 export default async function AdminClicksPage() {
-    const [clicks, summary, topSearches] = await Promise.all([
+    const [clicks, summary, topSearches, searchPerformance] = await Promise.all([
         getRecentClickEvents(100),
         getClickEventSummary(),
         getTopSearchesByClicks(5),
+        getSearchPerformance(10),
     ]);
 
     return (
@@ -106,6 +108,45 @@ export default async function AdminClicksPage() {
                                     <tr key={row.searchId} className="bg-black/[0.03] dark:bg-white/[0.04]">
                                         <td className="px-4 py-3">{row.searchItem ?? "—"}</td>
                                         <td className="px-4 py-3 font-mono">{row.clicks}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </section>
+
+                <section className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-neutral-950">
+                    <div className="mb-5">
+                        <h2 className="text-2xl font-semibold">Search performance</h2>
+                        <p className="text-sm text-black/60 dark:text-white/60">
+                            Results, clicks, and click-through rate by search.
+                        </p>
+                    </div>
+
+                    {searchPerformance.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-black/15 p-6 text-sm text-black/60 dark:border-white/15 dark:text-white/60">
+                            No search performance data yet.
+                        </div>
+                    ) : (
+                        <table className="min-w-full border-separate border-spacing-y-2">
+                            <thead>
+                                <tr className="text-left text-sm text-black/55 dark:text-white/55">
+                                    <th className="px-4 py-2 font-medium">Search</th>
+                                    <th className="px-4 py-2 font-medium">Results</th>
+                                    <th className="px-4 py-2 font-medium">Clicks</th>
+                                    <th className="px-4 py-2 font-medium">CTR</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {searchPerformance.map((row) => (
+                                    <tr
+                                        key={row.searchId}
+                                        className="bg-black/[0.03] dark:bg-white/[0.04]"
+                                    >
+                                        <td className="px-4 py-3">{row.searchItem ?? "—"}</td>
+                                        <td className="px-4 py-3 font-mono">{row.resultCount}</td>
+                                        <td className="px-4 py-3 font-mono">{row.clicks}</td>
+                                        <td className="px-4 py-3 font-mono">{row.ctr}%</td>
                                     </tr>
                                 ))}
                             </tbody>
