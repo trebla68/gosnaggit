@@ -20,6 +20,7 @@ function addMinutes(date: Date, minutes: number) {
 async function runOnce() {
     const { db, searches } = await import("@gosnaggit/db");
     const { refreshSearch } = await import("@gosnaggit/core");
+    const { processAlertsForSearch } = await import("./lib/alerts");
 
     const now = new Date();
 
@@ -49,7 +50,12 @@ async function runOnce() {
             `[worker] processing search #${search.id}: ${search.searchItem} | marketplaces=${JSON.stringify(search.marketplaces)}`
         );
 
-        await refreshSearch(search);
+        const refreshResult = await refreshSearch(search);
+
+        await processAlertsForSearch(
+            search.id,
+            refreshResult.insertedResultIds ?? []
+        );
 
         await db
             .update(searches)

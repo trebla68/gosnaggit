@@ -54,7 +54,14 @@ function isLikelyAutomatedEmailClick(request: Request) {
     const method = request.method.toUpperCase();
     if (method !== "GET") return true;
 
+    const purpose = (request.headers.get("purpose") || "").toLowerCase();
+    const secPurpose = (request.headers.get("sec-purpose") || "").toLowerCase();
+    const secFetchMode = (request.headers.get("sec-fetch-mode") || "").toLowerCase();
     const userAgent = (request.headers.get("user-agent") || "").toLowerCase();
+
+    if (purpose.includes("prefetch")) return true;
+    if (secPurpose.includes("prefetch")) return true;
+    if (secFetchMode === "prefetch") return true;
 
     const knownScannerSignals = [
         "microsoft office",
@@ -95,18 +102,17 @@ type RouteContext = {
     }>;
 };
 
-export async function GET(request: Request, { params }: RouteContext) {
-    const { searchResultId } = await params;
+async function resolveRedirectTarget(searchResultId: string) {
     const id = Number(searchResultId);
 
     if (!Number.isFinite(id)) {
-        return new NextResponse("Invalid search result id.", { status: 400 });
+        return { error: "invalid-id" as const };
     }
 
     const row = await getSearchResultById(id);
 
     if (!row || !row.listingUrl) {
-        return new NextResponse("Listing not found.", { status: 404 });
+        return { error: "not-found" as const };
     }
 
     const redirectUrl =
@@ -115,8 +121,32 @@ export async function GET(request: Request, { params }: RouteContext) {
             : row.listingUrl;
 
     if (!redirectUrl) {
+        return { error: "no-url" as const };
+    }
+
+    return {
+        row,
+        redirectUrl,
+    };
+}
+
+export async function GET(request: Request, { params }: RouteContext) {
+    const { searchResultId } = await params;
+    const resolved = await resolveRedirectTarget(searchResultId);
+
+    if ("error" in resolved) {
+        if (resolved.error === "invalid-id") {
+            return new NextResponse("Invalid search result id.", { status: 400 });
+        }
+
+        if (resolved.error === "not-found") {
+            return new NextResponse("Listing not found.", { status: 404 });
+        }
+
         return new NextResponse("Listing URL unavailable.", { status: 404 });
     }
+
+    const { row, redirectUrl } = resolved;
 
     if (!isLikelyAutomatedEmailClick(request)) {
         try {
@@ -135,28 +165,26 @@ export async function GET(request: Request, { params }: RouteContext) {
     return buildRedirectResponse(redirectUrl);
 }
 
-export async function HEAD(request: Request, { params }: RouteContext) {
+export async function HEAD(_request: Request, { params }: RouteContext) {
     const { searchResultId } = await params;
-    const id = Number(searchResultId);
+    const resolved = await resolveRedirectTarget(searchResultId);
 
-    if (!Number.isFinite(id)) {
-        return new NextResponse(null, { status: 400 });
-    }
+    if ("error" in resolved) {
+        if (resolved.error === "invalid-id") {
+            return new NextResponse(null, { status: 400 });
+        }
 
-    const row = await getSearchResultById(id);
+        if (resolved.error === "not-found") {
+            return new NextResponse(null, { status: 404 });
+        }
 
-    if (!row || !row.listingUrl) {
         return new NextResponse(null, { status: 404 });
     }
 
-    const redirectUrl =
-        row.marketplace?.toLowerCase() === "ebay"
-            ? appendEbayAffiliateParams(row.listingUrl, row.searchId)
-            : row.listingUrl;
+    const response = new NextResponse(null, { status: 204 });
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
 
-    if (!redirectUrl) {
-        return new NextResponse(null, { status: 404 });
-    }
-
-    return buildRedirectResponse(redirectUrl);
+    return response;
 }

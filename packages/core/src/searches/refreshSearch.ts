@@ -40,13 +40,13 @@ export async function refreshSearch(search: SearchRow) {
     const marketplaces = toSupportedMarketplaceNames(enabledMarketplaces);
 
     console.log(
-        `[core] refreshSearch #${search.id} "${search.searchItem}" | marketplaces=${marketplaces.join(",") || "none"
-        }`
+        `[core] refreshSearch #${search.id} "${search.searchItem}" | marketplaces=${marketplaces.join(",") || "none"}`
     );
 
     let inserted = 0;
     let skippedDuplicates = 0;
     let lastInsertedResultId: number | null = null;
+    const insertedResultIds: number[] = [];
 
     for (const marketplace of marketplaces) {
         const listingsFromMarketplace = await searchMarketplace({
@@ -181,6 +181,10 @@ export async function refreshSearch(search: SearchRow) {
             inserted++;
             lastInsertedResultId = searchResultLink?.id ?? null;
 
+            if (searchResultLink?.id != null) {
+                insertedResultIds.push(searchResultLink.id);
+            }
+
             console.log(
                 `[core] linked search #${search.id} to listing #${canonicalListingId} | searchResultId=${searchResultLink.id} | externalId=${listing.externalId}`
             );
@@ -200,6 +204,7 @@ export async function refreshSearch(search: SearchRow) {
         refreshedAt: new Date(),
         marketplaces,
         insertedResultId: lastInsertedResultId,
+        insertedResultIds,
         deduped: inserted === 0 && skippedDuplicates > 0,
         summary,
     };
