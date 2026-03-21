@@ -68,11 +68,11 @@ export default function NewSearchPage() {
                             New search
                         </div>
                         <h1 className="mt-2 text-3xl font-bold">
-                            Create a real GoSnaggit alert
+                            Create a real GoSnaggit search
                         </h1>
                         <p className="mt-2 text-sm text-black/60 dark:text-white/60">
-                            This creates a live search in V2 and stores the alert email
-                            destination so the worker can send new listing alerts.
+                            Email alerts are optional for now. If you leave the email blank,
+                            the search will still run and appear in your V2 dashboard flow.
                         </p>
                     </div>
                 </div>
@@ -161,7 +161,7 @@ export default function NewSearchPage() {
                                     htmlFor="email"
                                     className="mb-2 block text-sm font-medium"
                                 >
-                                    Alert email
+                                    Alert email (optional)
                                 </label>
                                 <input
                                     id="email"
@@ -170,7 +170,6 @@ export default function NewSearchPage() {
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="you@example.com"
                                     className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition focus:border-black/30 dark:border-white/10 dark:bg-neutral-900 dark:focus:border-white/30"
-                                    required
                                 />
                             </div>
                         </div>

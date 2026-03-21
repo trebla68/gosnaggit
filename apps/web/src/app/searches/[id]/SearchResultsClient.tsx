@@ -123,48 +123,64 @@ export default function SearchResultsClient({ searchId, initialRows }: Props) {
                     key={row.searchResultId}
                     className="rounded-3xl border border-black/10 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-neutral-950"
                 >
-                    <div className="flex flex-col gap-3">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                                <div className="text-xs uppercase tracking-[0.2em] text-black/45 dark:text-white/45">
-                                    {row.marketplace} • listing #{row.listingId}
+                    <div className="flex flex-col gap-4 md:flex-row">
+                        <div className="md:w-[140px] md:flex-shrink-0">
+                            {row.imageUrl ? (
+                                <img
+                                    src={row.imageUrl}
+                                    alt={row.title || "Listing image"}
+                                    className="h-[140px] w-full rounded-2xl object-cover border border-black/10 dark:border-white/10"
+                                />
+                            ) : (
+                                <div className="flex h-[140px] w-full items-center justify-center rounded-2xl border border-dashed border-black/15 text-xs text-black/45 dark:border-white/15 dark:text-white/45">
+                                    No image
                                 </div>
-                                <h2 className="mt-1 text-lg font-semibold">
-                                    {row.title || "Untitled listing"}
-                                </h2>
-                            </div>
-                            <div className="rounded-full border border-black/10 px-3 py-1 text-sm font-medium dark:border-white/10">
-                                {formatMoney(row.price, row.currency)}
-                            </div>
+                            )}
                         </div>
 
-                        <div className="grid gap-2 text-sm text-black/65 dark:text-white/65 md:grid-cols-3">
-                            <div>
-                                <span className="font-medium">Condition:</span>{" "}
-                                {row.condition || "-"}
+                        <div className="flex min-w-0 flex-1 flex-col gap-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <div className="text-xs uppercase tracking-[0.2em] text-black/45 dark:text-white/45">
+                                        {row.marketplace} • listing #{row.listingId}
+                                    </div>
+                                    <h2 className="mt-1 text-lg font-semibold">
+                                        {row.title || "Untitled listing"}
+                                    </h2>
+                                </div>
+                                <div className="rounded-full border border-black/10 px-3 py-1 text-sm font-medium dark:border-white/10">
+                                    {formatMoney(row.price, row.currency)}
+                                </div>
                             </div>
-                            <div>
-                                <span className="font-medium">Seller:</span>{" "}
-                                {row.sellerUsername || "-"}
-                            </div>
-                            <div>
-                                <span className="font-medium">Location:</span>{" "}
-                                {row.location || "-"}
-                            </div>
-                        </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                            <div className="text-xs text-black/50 dark:text-white/50">
-                                External ID: {row.externalId}
+                            <div className="grid gap-2 text-sm text-black/65 dark:text-white/65 md:grid-cols-3">
+                                <div>
+                                    <span className="font-medium">Condition:</span>{" "}
+                                    {row.condition || "-"}
+                                </div>
+                                <div>
+                                    <span className="font-medium">Seller:</span>{" "}
+                                    {row.sellerUsername || "-"}
+                                </div>
+                                <div>
+                                    <span className="font-medium">Location:</span>{" "}
+                                    {row.location || "-"}
+                                </div>
                             </div>
-                            <a
-                                href={`/out/r/${row.searchResultId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex rounded-full border border-black/10 px-4 py-2 text-sm font-medium transition hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/10"
-                            >
-                                View on {row.marketplace}
-                            </a>
+
+                            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                                <div className="text-xs text-black/50 dark:text-white/50">
+                                    External ID: {row.externalId}
+                                </div>
+                                <a
+                                    href={`/out/r/${row.searchResultId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex rounded-full border border-black/10 px-4 py-2 text-sm font-medium transition hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/10"
+                                >
+                                    View on {row.marketplace}
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </article>

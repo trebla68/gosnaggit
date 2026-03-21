@@ -28,9 +28,9 @@ export async function POST(request: Request) {
             );
         }
 
-        if (!email || !isValidEmail(email)) {
+        if (email && !isValidEmail(email)) {
             return NextResponse.json(
-                { ok: false, error: "A valid alert email is required." },
+                { ok: false, error: "If provided, alert email must be valid." },
                 { status: 400 }
             );
         }
@@ -55,12 +55,14 @@ export async function POST(request: Request) {
             marketplaces: { ebay: true },
         });
 
-        await db.insert(notificationSettings).values({
-            searchId: search.id,
-            channel: "email",
-            destination: email,
-            isEnabled: true,
-        });
+        if (email) {
+            await db.insert(notificationSettings).values({
+                searchId: search.id,
+                channel: "email",
+                destination: email,
+                isEnabled: true,
+            });
+        }
 
         return NextResponse.json({
             ok: true,
